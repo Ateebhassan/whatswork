@@ -263,6 +263,26 @@ fieldset label, .check { display: flex; gap: 8px; align-items: center; padding: 
 hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
 .toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 50; max-width: calc(100vw - 30px); box-shadow: 0 10px 30px #0006; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---------- WhatsWork layout: compact top menus, actions in a bottom bar ---------- */
+.bar { flex-wrap: nowrap; overflow-x: auto; gap: 6px; padding: 6px 10px; scrollbar-width: none; }
+.bar::-webkit-scrollbar { display: none; }
+.bar > * { flex: none; }
+.brand { font-size: 15px; margin-right: 2px; gap: 7px; }
+.bar .seg { padding: 2px; border-radius: 9px; }
+.bar .seg button { padding: 4px 9px; font-size: 13px; border-radius: 7px; white-space: nowrap; }
+.bar .btn { padding: 4px 9px; font-size: 13px; border-radius: 8px; }
+.bar .status { font-size: 12px; white-space: nowrap; }
+body.embedded .brand { display: none; }
+.wrap { padding-top: 12px; gap: 14px; }
+.foot { position: sticky; bottom: 0; z-index: 5; display: flex; justify-content: center; background: var(--surface); border-top: 1px solid var(--line);
+  padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px)); overflow-x: auto; scrollbar-width: none; }
+.foot::-webkit-scrollbar { display: none; }
+.foot .actions { flex-wrap: nowrap; gap: 6px; }
+.foot .btn { padding: 6px 11px; font-size: 13px; white-space: nowrap; }
+body.loading .foot { opacity: .55; pointer-events: none; }
+body.designer-link .foot { display: none; }
+@media (max-width: 600px) { .foot { justify-content: flex-start; } .wrap { padding-top: 8px; } }
 </style>
 </head>
 <body data-college="both">
@@ -276,14 +296,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
     <button class="btn" id="next" aria-label="Later">&rsaquo;</button>
   </div>
   <div class="spacer"></div>
-  <div class="actions">
-    <span class="status" id="status" role="status"></span>
-    <button class="btn" id="btnAdd">Add event</button>
-    <button class="btn" id="btnBirthdays">Birthdays</button>
-    <button class="btn" id="btnEvents">All events</button>
-    <button class="btn" id="btnBackup">Backup and updates</button>
-    <button class="btn primary" id="btnDownload">Download</button>
-  </div>
+  <span class="status" id="status" role="status"></span>
 </header>
 <div class="wrap">
   <main class="sheet" id="sheet"></main>
@@ -292,9 +305,19 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
     <section class="card legend" id="legend"></section>
   </aside>
 </div>
+<footer class="foot">
+  <div class="actions">
+    <button class="btn primary" id="btnAdd">+ Add event</button>
+    <button class="btn" id="btnBirthdays">Birthdays</button>
+    <button class="btn" id="btnEvents">All events</button>
+    <button class="btn" id="btnBackup">Backup</button>
+    <button class="btn" id="btnDownload">Download</button>
+  </div>
+</footer>
 <dialog id="dlg"></dialog>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js"></script>
+<script>try { if (window.parent !== window) document.body.classList.add("embedded"); } catch (e) { }</script>
 <script src="planner-bridge.js"></script>
 <script>/* ---------- Planner database ---------- */
 var COLLEGES = {
