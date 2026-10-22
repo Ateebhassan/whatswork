@@ -4,7 +4,10 @@
   var SUPABASE_URL = 'https://boajcspgqhuhchnvbkxl.supabase.co';
   var SUPABASE_KEY = 'sb_publishable_QbVXMyGif27UZnxhjApFUw_ul7EuoC5';
   var BUCKET = 'planner';
-  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  var parentSb = null;
+  try { if (window.parent !== window && window.parent.wwSupabase) parentSb = window.parent.wwSupabase; } catch (e) { }
+  /* inside WhatsWork: share its login; opened on its own: same login, read from this browser */
+  var sb = parentSb || supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   window.PLANNER_GOOGLE = true;          /* reuse the planner's "files open in a new tab + thumbnails" path */
   window.PLANNER_WHATSWORK = true;
 

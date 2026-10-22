@@ -286,7 +286,7 @@ svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stro
     <nav id="nav">
       <button data-p="Chats" class="on"><svg class="i"><use href="#i-chat"/></svg>Chats</button>
       <button data-p="Tasks"><svg class="i"><use href="#i-task"/></svg>Tasks<span class="badge hidden" id="navBadge"></span></button>
-      <button data-p="Planner" id="navPlanner" class="hidden"><svg class="i"><use href="#i-plan"/></svg>Planner</button>
+      <button data-p="Planner" id="navPlanner"><svg class="i"><use href="#i-plan"/></svg>Planner</button>
       <button data-p="Settings"><svg class="i"><use href="#i-gear"/></svg>Settings</button>
     </nav>
   </aside>
@@ -340,6 +340,7 @@ const AI_PROVIDERS = {
 };
 // =====================
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+window.wwSupabase = sb;   // the Planner tab reuses this login instead of opening a second one
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const icon = n => `<svg class="i"><use href="#i-${n}"/></svg>`;
@@ -777,9 +778,7 @@ async function disablePush(){
 async function checkPlanner(){
   try{
     await sb.rpc("planner_claim_seed");
-    const {count}=await sb.from("planner_docs").select("name",{count:"exact",head:true});
-    $("navPlanner").classList.toggle("hidden",!count);
-  }catch{}
+  }catch(e){ console.warn("planner check",e); }
 }
 function openPlanner(){
   const f=$("pvFrame"); if(!f.src) f.src="planner.html";
