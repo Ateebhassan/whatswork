@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>WhatsWork</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg:#f4f6f5;--panel:#fff;--ink:#14201d;--muted:#6b7a76;--line:#e3e8e6;--brand:#0f766e;--brand2:#14b8a6;--mine:#d9f5ef;--theirs:#fff;--warn:#f59e0b;--done:#94a3b8}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1412;--panel:#152019;--ink:#e6efec;--muted:#8fa19c;--line:#24332e;--mine:#11433c;--theirs:#1b2924}}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px}
+input,textarea{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+.btn{background:var(--brand);color:#fff;padding:10px 14px}.btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--line)}
+.hidden{display:none!important}
+/* auth */
+#auth{display:grid;place-items:center;height:100%;padding:16px}
+#auth .card{background:var(--panel);padding:28px;border-radius:18px;width:100%;max-width:360px;display:grid;gap:12px;box-shadow:0 10px 30px #0001}
+#auth h1{margin:0;color:var(--brand)}#auth small{color:var(--muted)}
+/* layout */
+#app{display:flex;height:100%}
+#side{width:320px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
+#side header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+#side header b{color:var(--brand);font-size:20px}
+#chats{overflow:auto;flex:1}
+.chatrow{padding:14px 16px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.chatrow:hover,.chatrow.on{background:var(--bg)}
+.pill{background:var(--warn);color:#000;border-radius:99px;padding:1px 8px;font-size:12px}
+#main{flex:1;display:flex;flex-direction:column;min-width:0}
+#chathead{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 14px}
+#chathead .top{display:flex;align-items:center;gap:10px}
+#back{display:none;background:none;font-size:22px;color:var(--brand);padding:0 6px}
+#bubbles{display:flex;gap:10px;overflow-x:auto;padding:10px 2px 4px;scrollbar-width:none}
+.bubble{flex:0 0 auto;max-width:200px;padding:8px 14px;border-radius:99px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 12px #0f766e44;animation:float 3s ease-in-out infinite}
+.bubble:nth-child(2n){animation-delay:-1s}.bubble:nth-child(3n){animation-delay:-2s}
+.bubble.late{background:linear-gradient(135deg,#dc2626,#f97316)}
+.bubble.done{background:var(--done);box-shadow:none;animation:none;text-decoration:line-through}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+#msgs{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:6px}
+.msg{max-width:75%;padding:8px 12px;border-radius:14px;background:var(--theirs);align-self:flex-start;position:relative;box-shadow:0 1px 2px #0001;user-select:text;word-wrap:break-word}
+.msg.me{align-self:flex-end;background:var(--mine)}
+.msg .t{font-size:11px;color:var(--muted);margin-top:3px;text-align:right}
+.msg img{max-width:100%;border-radius:10px;display:block;margin-bottom:4px}
+.msg a{color:var(--brand)}
+.msg .pin{position:absolute;top:-10px;right:-6px;background:var(--panel);border:1px solid var(--line);border-radius:99px;font-size:12px;padding:2px 6px;opacity:0}
+.msg:hover .pin{opacity:1}
+.msg.flash{outline:2px solid var(--warn)}
+.tasktag{font-size:11px;color:var(--brand);font-weight:600}
+#composer{display:flex;gap:8px;padding:10px;background:var(--panel);border-top:1px solid var(--line);align-items:flex-end;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+#composer textarea{resize:none;height:42px;max-height:120px}
+#attach{background:transparent;font-size:22px;padding:6px}
+#empty{flex:1;display:grid;place-items:center;color:var(--muted);text-align:center;padding:20px}
+/* modal */
+.modal{position:fixed;inset:0;background:#0007;display:grid;place-items:center;padding:16px;z-index:9}
+.modal .card{background:var(--panel);border-radius:16px;padding:20px;width:100%;max-width:420px;display:grid;gap:10px}
+.modal h3{margin:0}.row{display:flex;gap:8px;flex-wrap:wrap}.muted{color:var(--muted);font-size:13px}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 14px;border-radius:10px;font-size:13px;z-index:10}
+@media (max-width:760px){#side{width:100%}#app.inchat #side{display:none}#app:not(.inchat) #main{display:none}#back{display:block}}
+</style>
+</head>
+<body>
+
+<div id="auth">
+  <div class="card">
+    <h1>WhatsWork</h1>
+    <small id="authsub">Sign in to your work chats</small>
+    <input id="aname" placeholder="Your name" class="hidden">
+    <input id="aemail" type="email" placeholder="Email">
+    <input id="apass" type="password" placeholder="Password (6+ characters)">
+    <button class="btn" id="abtn">Sign in</button>
+    <button class="btn ghost" id="aswitch">New here? Create account</button>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <aside id="side">
+    <header><b>WhatsWork</b><div class="row"><button class="btn" id="newchat">+ Chat</button><button class="btn ghost" id="logout" title="Sign out">⎋</button></div></header>
+    <div id="chats"></div>
+  </aside>
+  <section id="main">
+    <div id="empty">Pick a chat, or tap <b>+ Chat</b> and enter your teammate's email.</div>
+    <div id="chathead" class="hidden">
+      <div class="top"><button id="back">‹</button><b id="chatname"></b><span class="muted" id="taskcount"></span>
+        <button class="btn ghost" id="showdone" style="margin-left:auto;padding:4px 10px;font-size:12px">Show done</button></div>
+      <div id="bubbles"></div>
+    </div>
+    <div id="msgs" class="hidden"></div>
+    <div id="composer" class="hidden">
+      <button id="attach" title="Send picture or file">📎</button>
+      <input type="file" id="file" class="hidden">
+      <textarea id="text" placeholder="Message…  (start with task: to make a work bubble)"></textarea>
+      <button class="btn" id="send">Send</button>
+    </div>
+  </section>
+</div>
+
+<div id="taskmodal" class="modal hidden"><div class="card">
+  <h3 id="tmhead">New task</h3>
+  <input id="tmtitle" placeholder="What needs doing?">
+  <textarea id="tmdetails" rows="3" placeholder="Details (optional)"></textarea>
+  <label class="muted">Assigned to</label><select id="tmassignee" style="padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink)"></select>
+  <label class="muted">Due (optional)</label><input id="tmdue" type="datetime-local">
+  <div class="muted" id="tmmeta"></div>
+  <div class="row">
+    <button class="btn" id="tmsave">Save</button>
+    <button class="btn ghost" id="tmdone">Mark done</button>
+    <button class="btn ghost" id="tmjump">Go to message</button>
+    <button class="btn ghost" id="tmdel" style="color:#dc2626">Delete</button>
+    <button class="btn ghost" id="tmclose" style="margin-left:auto">Close</button>
+  </div>
+</div></div>
+
+<div id="toast" class="hidden"></div>
+
+<script>
+// ====== CONFIG (filled in at deploy) ======
+const SUPABASE_URL = "https://boajcspgqhuhchnvbkxl.supabase.co";
+const SUPABASE_KEY = "sb_publishable_QbVXMyGif27UZnxhjApFUw_ul7EuoC5";
+// ==========================================
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let me=null, chats=[], cur=null, members=[], tasks=[], msgs=[], showDone=false, editing=null, rt=null, signupMode=false;
+const urlCache={};
+
+function toast(t){const e=$("toast");e.textContent=t;e.classList.remove("hidden");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.add("hidden"),2600)}
+const fmtT=d=>new Date(d).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+
+// ---------- AUTH ----------
+$("aswitch").onclick=()=>{signupMode=!signupMode;$("aname").classList.toggle("hidden",!signupMode);
+  $("abtn").textContent=signupMode?"Create account":"Sign in";$("aswitch").textContent=signupMode?"Have an account? Sign in":"New here? Create account";
+  $("authsub").textContent=signupMode?"Create your WhatsWork account":"Sign in to your work chats"};
+$("abtn").onclick=async()=>{
+  const email=$("aemail").value.trim(), password=$("apass").value;
+  if(!email||password.length<6) return toast("Enter email and a 6+ character password");
+  $("abtn").disabled=true;
+  const r = signupMode
+    ? await sb.auth.signUp({email,password,options:{data:{name:$("aname").value.trim()||email.split("@")[0]}}})
+    : await sb.auth.signInWithPassword({email,password});
+  $("abtn").disabled=false;
+  if(r.error) return toast(r.error.message);
+  if(signupMode && !r.data.session) toast("Check your email to confirm, then sign in");
+};
+$("logout").onclick=()=>sb.auth.signOut();
+sb.auth.onAuthStateChange((_e,s)=>{ if(s?.user){ if(!me||me.id!==s.user.id){me=s.user;start();} } else {me=null;$("app").classList.add("hidden");$("auth").classList.remove("hidden");} });
+
+async function start(){
+  $("auth").classList.add("hidden");$("app").classList.remove("hidden");
+  await loadChats();
+  if(rt) sb.removeChannel(rt);
+  rt = sb.channel("all")
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},p=>onMsg(p.new))
+    .on("postgres_changes",{event:"*",schema:"public",table:"tasks"},p=>onTask(p))
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"conversation_members"},()=>loadChats())
+    .subscribe();
+}
+
+// ---------- CHATS ----------
+async function loadChats(){
+  const {data,error}=await sb.from("conversation_members").select("conversation_id,user_id,profiles(name,email)");
+  if(error) return toast(error.message);
+  const map={};
+  data.forEach(r=>{(map[r.conversation_id]??={id:r.conversation_id,people:[]}).people.push({id:r.user_id,...r.profiles})});
+  chats=Object.values(map);
+  const {data:open}=await sb.from("tasks").select("conversation_id").eq("status","open");
+  chats.forEach(c=>c.open=(open||[]).filter(t=>t.conversation_id===c.id).length);
+  renderChats();
+}
+const chatName=c=>c.people.filter(p=>p.id!==me.id).map(p=>p.name||p.email).join(", ")||"Just me";
+function renderChats(){
+  $("chats").innerHTML = chats.length? chats.map(c=>`<div class="chatrow ${cur?.id===c.id?"on":""}" data-id="${c.id}"><span>${esc(chatName(c))}</span>${c.open?`<span class="pill">${c.open} task${c.open>1?"s":""}</span>`:""}</div>`).join("")
+    : `<div style="padding:20px" class="muted">No chats yet. Tap + Chat.</div>`;
+  document.querySelectorAll(".chatrow").forEach(r=>r.onclick=()=>openChat(r.dataset.id));
+}
+$("newchat").onclick=async()=>{
+  const email=prompt("Teammate's email (they must have signed up):"); if(!email) return;
+  const {data,error}=await sb.rpc("start_dm",{other_email:email});
+  if(error) return toast(error.message);
+  await loadChats(); openChat(data);
+};
+$("back").onclick=()=>{$("app").classList.remove("inchat");cur=null;renderChats()};
+
+async function openChat(id){
+  cur=chats.find(c=>c.id===id); if(!cur) return;
+  members=cur.people;
+  $("app").classList.add("inchat");
+  ["chathead","msgs","composer"].forEach(x=>$(x).classList.remove("hidden"));$("empty").classList.add("hidden");
+  $("chatname").textContent=chatName(cur);
+  renderChats();
+  const [m,t]=await Promise.all([
+    sb.from("messages").select("*").eq("conversation_id",id).order("created_at").limit(500),
+    sb.from("tasks").select("*").eq("conversation_id",id).order("created_at")
+  ]);
+  msgs=m.data||[]; tasks=t.data||[];
+  renderMsgs(); renderBubbles();
+}
+
+// ---------- MESSAGES ----------
+async function fileUrl(path){
+  if(urlCache[path]) return urlCache[path];
+  const {data}=await sb.storage.from("attachments").createSignedUrl(path,3600);
+  return urlCache[path]=data?.signedUrl;
+}
+function msgHtml(m){
+  const mine=m.sender_id===me.id, isTask=tasks.some(t=>t.message_id===m.id);
+  let inner="";
+  if(m.file_path){
+    inner += m.file_type?.startsWith("image/") ? `<img data-path="${esc(m.file_path)}" alt="">` : `<a href="#" data-dl="${esc(m.file_path)}">📄 ${esc(m.file_name)}</a><br>`;
+  }
+  if(m.body) inner+=esc(m.body).replace(/\n/g,"<br>");
+  return `<div class="msg ${mine?"me":""}" id="m-${m.id}" data-id="${m.id}">${isTask?'<div class="tasktag">📌 task</div>':""}${inner}<div class="t">${fmtT(m.created_at)}</div><button class="pin" title="Make task">📌 Task</button></div>`;
+}
+function renderMsgs(){
+  const box=$("msgs"); box.innerHTML=msgs.map(msgHtml).join("")||'<div class="muted" style="margin:auto">Say hi 👋</div>';
+  hydrate(box); box.scrollTop=box.scrollHeight;
+}
+function hydrate(root){
+  root.querySelectorAll("img[data-path]").forEach(async i=>{i.src=await fileUrl(i.dataset.path);i.onload=()=>{}; i.onclick=()=>window.open(i.src)});
+  root.querySelectorAll("a[data-dl]").forEach(a=>a.onclick=async e=>{e.preventDefault();window.open(await fileUrl(a.dataset.dl))});
+  root.querySelectorAll(".msg").forEach(el=>{
+    el.querySelector(".pin").onclick=()=>newTaskFromMsg(el.dataset.id);
+    let timer; el.addEventListener("touchstart",()=>timer=setTimeout(()=>newTaskFromMsg(el.dataset.id),550),{passive:true});
+    ["touchend","touchmove"].forEach(ev=>el.addEventListener(ev,()=>clearTimeout(timer),{passive:true}));
+    el.oncontextmenu=e=>{e.preventDefault();newTaskFromMsg(el.dataset.id)};
+  });
+}
+function onMsg(m){
+  if(!cur||m.conversation_id!==cur.id){ if(m.sender_id!==me.id) toast("New message"); return; }
+  if(msgs.some(x=>x.id===m.id)) return;
+  msgs.push(m);
+  const box=$("msgs"); if(msgs.length===1) box.innerHTML="";
+  const wrap=document.createElement("div"); wrap.innerHTML=msgHtml(m); hydrate(wrap); box.appendChild(wrap.firstElementChild);
+  box.scrollTop=box.scrollHeight;
+}
+
+const TASK_RE=/^\s*(task:|\/\/)\s*/i;
+async function send(){
+  const body=$("text").value.trim(); if(!body||!cur) return;
+  $("text").value="";
+  const {data,error}=await sb.from("messages").insert({conversation_id:cur.id,body}).select().single();
+  if(error) return toast(error.message);
+  onMsg(data);
+  if(TASK_RE.test(body)){
+    const other=members.find(p=>p.id!==me.id);
+    await createTask({title:body.replace(TASK_RE,"").split("\n")[0].slice(0,140),details:body.replace(TASK_RE,""),message_id:data.id,assignee_id:other?.id||me.id});
+  }
+}
+$("send").onclick=send;
+$("text").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!/Mobi/.test(navigator.userAgent)){e.preventDefault();send()}});
+$("attach").onclick=()=>$("file").click();
+$("file").onchange=async()=>{
+  const f=$("file").files[0]; $("file").value=""; if(!f||!cur) return;
+  if(f.size>45*1024*1024) return toast("File too big (max ~45 MB)");
+  toast("Uploading…");
+  const path=`${cur.id}/${crypto.randomUUID()}-${f.name.replace(/[^\w.\-]/g,"_")}`;
+  const up=await sb.storage.from("attachments").upload(path,f,{contentType:f.type});
+  if(up.error) return toast(up.error.message);
+  const caption=$("text").value.trim(); $("text").value="";
+  const {data,error}=await sb.from("messages").insert({conversation_id:cur.id,body:caption||null,file_path:path,file_name:f.name,file_type:f.type}).select().single();
+  if(error) return toast(error.message); onMsg(data);
+};
+
+// ---------- TASKS / BUBBLES ----------
+function renderBubbles(){
+  const list=tasks.filter(t=>showDone||t.status==="open");
+  const open=tasks.filter(t=>t.status==="open").length;
+  $("taskcount").textContent=open?`· ${open} open`:"";
+  $("bubbles").innerHTML=list.length?list.map(t=>{
+    const late=t.status==="open"&&t.due_at&&new Date(t.due_at)<new Date();
+    return `<button class="bubble ${t.status==="done"?"done":""} ${late?"late":""}" data-id="${t.id}" title="${esc(t.title)}">${late?"⏰ ":""}${esc(t.title)}</button>`}).join("")
+    :`<span class="muted" style="font-size:12px">No open work. Long-press a message or start one with <b>task:</b></span>`;
+  document.querySelectorAll(".bubble").forEach(b=>b.onclick=()=>openTask(b.dataset.id));
+}
+$("showdone").onclick=()=>{showDone=!showDone;$("showdone").textContent=showDone?"Hide done":"Show done";renderBubbles()};
+function onTask(p){
+  const t=p.new?.id?p.new:p.old;
+  if(cur && (p.new?.conversation_id===cur.id || tasks.some(x=>x.id===t.id))){
+    tasks=tasks.filter(x=>x.id!==t.id); if(p.eventType!=="DELETE") tasks.push(p.new);
+    tasks.sort((a,b)=>a.created_at.localeCompare(b.created_at)); renderBubbles();
+    const el=$("m-"+(p.new?.message_id)); if(el&&!el.querySelector(".tasktag")) el.insertAdjacentHTML("afterbegin",'<div class="tasktag">📌 task</div>');
+    if(p.eventType==="INSERT"&&p.new.assignee_id===me.id&&p.new.created_by!==me.id) toast("New work for you: "+p.new.title);
+  }
+  loadChats();
+}
+async function createTask(t){
+  const {data,error}=await sb.from("tasks").insert({conversation_id:cur.id,...t}).select().single();
+  if(error) return toast(error.message);
+  onTask({eventType:"INSERT",new:data}); toast("Work bubble added");
+}
+function fillAssignees(sel){
+  $("tmassignee").innerHTML=members.map(p=>`<option value="${p.id}" ${p.id===sel?"selected":""}>${esc(p.id===me.id?"Me":(p.name||p.email))}</option>`).join("");
+}
+const toLocal=d=>d?new Date(new Date(d).getTime()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16):"";
+function newTaskFromMsg(mid){
+  const m=msgs.find(x=>x.id===mid); editing={message_id:mid};
+  $("tmhead").textContent="Make this a task";
+  $("tmtitle").value=(m.body||m.file_name||"").split("\n")[0].slice(0,140);
+  $("tmdetails").value=m.body||"";
+  fillAssignees((members.find(p=>p.id!==me.id)||{}).id);
+  $("tmdue").value=""; $("tmmeta").textContent="";
+  ["tmdone","tmdel","tmjump"].forEach(x=>$(x).classList.add("hidden"));
+  $("taskmodal").classList.remove("hidden"); $("tmtitle").focus();
+}
+function openTask(id){
+  const t=tasks.find(x=>x.id===id); editing=t;
+  $("tmhead").textContent=t.status==="done"?"✅ Done task":"Work task";
+  $("tmtitle").value=t.title; $("tmdetails").value=t.details||""; fillAssignees(t.assignee_id);
+  $("tmdue").value=toLocal(t.due_at);
+  const by=members.find(p=>p.id===t.created_by);
+  $("tmmeta").textContent=`Given by ${by?(by.id===me.id?"you":by.name):"?"} · ${new Date(t.created_at).toLocaleString()}`;
+  $("tmdone").textContent=t.status==="done"?"Reopen":"Mark done";
+  ["tmdone","tmdel"].forEach(x=>$(x).classList.remove("hidden"));
+  $("tmjump").classList.toggle("hidden",!t.message_id);
+  $("taskmodal").classList.remove("hidden");
+}
+const closeModal=()=>{$("taskmodal").classList.add("hidden");editing=null};
+$("tmclose").onclick=closeModal;
+$("taskmodal").onclick=e=>{if(e.target.id==="taskmodal")closeModal()};
+$("tmsave").onclick=async()=>{
+  const v={title:$("tmtitle").value.trim(),details:$("tmdetails").value.trim()||null,assignee_id:$("tmassignee").value,due_at:$("tmdue").value?new Date($("tmdue").value).toISOString():null};
+  if(!v.title) return toast("Give the task a title");
+  if(editing.id){const {data,error}=await sb.from("tasks").update(v).eq("id",editing.id).select().single(); if(error) return toast(error.message); onTask({eventType:"UPDATE",new:data});}
+  else await createTask({...v,message_id:editing.message_id});
+  closeModal();
+};
+$("tmdone").onclick=async()=>{
+  const done=editing.status!=="done";
+  const {data,error}=await sb.from("tasks").update({status:done?"done":"open",done_at:done?new Date().toISOString():null}).eq("id",editing.id).select().single();
+  if(error) return toast(error.message); onTask({eventType:"UPDATE",new:data}); toast(done?"Marked done ✅":"Reopened"); closeModal();
+};
+$("tmdel").onclick=async()=>{
+  if(!confirm("Delete this task?")) return;
+  const id=editing.id; const {error}=await sb.from("tasks").delete().eq("id",id); if(error) return toast(error.message);
+  onTask({eventType:"DELETE",old:{id}}); closeModal();
+};
+$("tmjump").onclick=()=>{const el=$("m-"+editing.message_id); closeModal(); if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),2000)} else toast("Message is further back")};
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
