@@ -1222,7 +1222,7 @@ function zipStore(files) {
       localStorage.setItem(KEY + '.test', '1'); localStorage.removeItem(KEY + '.test');
       storageOk = true;
       var t = localStorage.getItem(KEY); if (t) state = normaliseState(JSON.parse(t));
-      var p = localStorage.getItem(PREF_KEY); if (p) { p = JSON.parse(p); if (COLLEGES[p.filter]) prefs.filter = p.filter; if (p.cats && typeof p.cats === 'object') prefs.cats = p.cats; }
+      var p = localStorage.getItem(PREF_KEY); if (p) { p = JSON.parse(p); if (COLLEGES[p.filter]) prefs.filter = p.filter; if (p.cats && typeof p.cats === 'object') prefs.cats = p.cats; if (['dash', 'month', 'six', 'desk'].indexOf(p.view) >= 0) prefs.view = p.view; }
     } catch (e) { storageOk = false; }
   }
   function savePrefs() {
@@ -1309,7 +1309,7 @@ function zipStore(files) {
       if (e.saving || e.dirty || snap.metadata.hasPendingWrites) return;
       var d = snap.exists ? snap.data() : null, json = d && typeof d.json === 'string' ? d.json : '{}';
       if (json === e.lastJson) { if (!wasReady) renderSheet(); return; }
-      try { e.map = JSON.parse(json) || {}; e.lastJson = json; renderSheet(); } catch (x) { }
+      try { e.map = JSON.parse(json) || {}; e.lastJson = json; renderSheet(); scheduleDigest(); } catch (x) { }
     }, function () { e.unsub = null; });
   }
   function pruneTracks(keep) {
@@ -1385,10 +1385,33 @@ function zipStore(files) {
     el.onclick = function (e) { var b = e.target.closest('button'); if (b) onPick(b.getAttribute('data-v')); };
   }
 
+  /* ---------- daily notifications: share the next 8 days with WhatsWork so it can remind you ---------- */
+  var digestTimer = 0, lastDigest = '';
+  function scheduleDigest() { clearTimeout(digestTimer); digestTimer = setTimeout(publishDigest, 4000); }
+  function publishDigest() {
+    if (!hosted || !cloud.ready || typeof window.plannerPublishDigest !== 'function') return;
+    var days = {}, d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    for (var i = 0; i < 8; i++) {
+      var d = new Date(d0.getTime()); d.setDate(d0.getDate() + i);
+      var ds = ymd(d.getFullYear(), d.getMonth() + 1, d.getDate());
+      var list = itemsOn(ds, state, 'both', prefs.cats).map(function (it) {
+        var tr = getT(it);
+        return { t: printTitle(it, 'both'), c: it.cat, made: !!tr.m, sched: !!tr.s, sent: !!tr.q };
+      });
+      if (list.length) days[ds] = list;
+    }
+    var tz = 'UTC'; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { }
+    var json = JSON.stringify({ v: 1, tz: tz, days: days });
+    if (json === lastDigest) return;
+    lastDigest = json;
+    window.plannerPublishDigest(json);
+  }
+
   function render() {
+    scheduleDigest();
     document.body.setAttribute('data-college', prefs.filter);
     seg($('filterSeg'), [['both', 'Both colleges'], ['superior', 'Superior College'], ['law', 'Allama Iqbal Law College']], prefs.filter, function (v) { prefs.filter = v; savePrefs(); });
-    seg($('viewSeg'), [['dash', 'Dashboard'], ['month', 'Month'], ['six', 'Six months'], ['desk', 'Designer']], view.mode, function (v) { view.mode = v; render(); });
+    seg($('viewSeg'), [['dash', 'Dashboard'], ['month', 'Month'], ['six', 'Six months'], ['desk', 'Designer']], view.mode, function (v) { view.mode = v; prefs.view = v; savePrefs(); });
     document.querySelector('.nav').hidden = view.mode === 'dash' || view.mode === 'desk';
     document.body.setAttribute('data-view', view.mode);
     renderSheet();
@@ -2188,6 +2211,7 @@ function zipStore(files) {
   setInterval(refreshToday, 60000);
 
   loadLocal();
+  if (prefs.view) view.mode = prefs.view;
   render();
   startCloud();
   try {

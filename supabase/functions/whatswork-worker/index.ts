@@ -198,12 +198,60 @@ async function scanUser(userId: string) {
   }
 }
 
+// ---------- PLANNER DIGEST (9 am: today's posts, 8 pm: tomorrow's) ----------
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+function localParts(tz: string) {
+  const f = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" });
+  const p = Object.fromEntries(f.formatToParts(new Date()).map((x) => [x.type, x.value]));
+  return { date: `${p.year}-${p.month}-${p.day}`, hour: Number(p.hour) };
+}
+function addDay(date: string, n: number) {
+  const d = new Date(date + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10);
+}
+function line(it: any) {
+  const st = it.sched ? "scheduled" : it.made ? "made" : it.sent ? "with designer" : "not started";
+  return `• ${it.t} (${st})`;
+}
+async function plannerDigests() {
+  if (!SERVICE_KEY) return 0;
+  const users = await sql`select distinct user_id from public.planner_docs where name = 'main'`;
+  let sent = 0;
+  for (const u of users as any[]) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/storage/v1/object/planner/${u.user_id}/_meta/upcoming.json`, {
+        headers: SERVICE_KEY.startsWith("sb_") ? { apikey: SERVICE_KEY } : { Authorization: `Bearer ${SERVICE_KEY}`, apikey: SERVICE_KEY },
+      });
+      if (!r.ok) continue;
+      const dg = await r.json();
+      const tz = dg.tz || "UTC";
+      const { date, hour } = localParts(tz);
+      const slot = hour >= 9 && hour < 12 ? "am" : hour >= 20 && hour < 23 ? "pm" : null;
+      if (!slot) continue;
+      const key = `pdigest:${slot}:${u.user_id}`;
+      const [prev] = await sql`select value from private.app_config where key = ${key}`;
+      if (prev?.value === date) continue;
+      await sql`insert into private.app_config (key, value) values (${key}, ${date}) on conflict (key) do update set value = excluded.value`;
+      const day = slot === "am" ? date : addDay(date, 1);
+      const items: any[] = (dg.days?.[day] ?? []);
+      if (!items.length) continue;
+      const todo = items.filter((it) => !it.sched && !it.made).length;
+      const title = slot === "am"
+        ? `📅 Today: ${items.length} post${items.length > 1 ? "s" : ""}${todo ? `, ${todo} not ready` : ", all ready"}`
+        : `🌙 Tomorrow: ${items.length} post${items.length > 1 ? "s" : ""}${todo ? `, ${todo} not ready` : ", all ready"}`;
+      const body = items.slice(0, 6).map(line).join("\n") + (items.length > 6 ? `\n+${items.length - 6} more` : "");
+      sent += await pushTo([u.user_id], { title, body, tag: `planner-${slot}`, url: "./?planner=1" });
+    } catch (e) { console.error("digest", e); }
+  }
+  return sent;
+}
+
 async function cron() {
   const r = await reminders();
+  const digests = await plannerDigests();
   const users = await sql`select user_id from private.ai_settings where enabled and api_key is not null`;
   const results = [];
   for (const u of users as any[]) results.push(await scanUser(u.user_id));
-  return { reminders: r, ai: results };
+  return { reminders: r, digests, ai: results };
 }
 
 // ---------- AUTH ----------

@@ -392,8 +392,9 @@ async function start(){
   checkPlanner();
   subscribe();
   const qs=new URLSearchParams(location.search);
+  if(qs.get("planner")){ history.replaceState(null,"",location.pathname); openPlanner(); }
   if(qs.get("c")){ await openChat(qs.get("c")); if(qs.get("t")) openTask(qs.get("t")); history.replaceState(null,"",location.pathname); }
-  if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message",ev=>{ if(ev.data?.url){const u=new URL(ev.data.url,location.href);const c=u.searchParams.get("c");if(c)openChat(c).then(()=>{const t=u.searchParams.get("t");if(t)openTask(t)})} });
+  if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message",ev=>{ if(ev.data?.url){const u=new URL(ev.data.url,location.href);if(u.searchParams.get("planner")){openPlanner();return;}const c=u.searchParams.get("c");if(c)openChat(c).then(()=>{const t=u.searchParams.get("t");if(t)openTask(t)})} });
 }
 function subscribe(){
   if(rt) sb.removeChannel(rt);

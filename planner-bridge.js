@@ -152,6 +152,16 @@
     });
   };
 
+  /* the next 8 days of posts, read by WhatsWork's background worker for the 9 am and 8 pm notifications */
+  window.plannerPublishDigest = function (json) {
+    uidP.then(function (uid) {
+      var path = uid + '/_meta/upcoming.json', blob = new Blob([json], { type: 'application/json' });
+      return sb.storage.from(BUCKET).remove([path]).then(function () {
+        return sb.storage.from(BUCKET).upload(path, blob, { contentType: 'application/json' });
+      });
+    }).catch(function () { });
+  };
+
   var downloads = {
     save: function (req) {
       try {
