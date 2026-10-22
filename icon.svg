@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0f766e"/><circle cx="196" cy="230" r="70" fill="#14b8a6"/><circle cx="330" cy="200" r="46" fill="#f59e0b"/><circle cx="320" cy="320" r="58" fill="#ffffff"/><text x="256" y="455" font-family="Arial,sans-serif" font-size="64" font-weight="700" fill="#fff" text-anchor="middle">WW</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="0" fill="#3157e8"/>
+  <path d="M256 128c-77 0-140 52-140 117 0 33 16 63 43 84l-12 55 58-31c16 5 33 8 51 8 77 0 140-52 140-116s-63-117-140-117z" fill="#ffffff"/>
+  <circle cx="352" cy="140" r="56" fill="#ffb21e" stroke="#3157e8" stroke-width="16"/>
+  <path d="m196 248 38 38 76-76" fill="none" stroke="#3157e8" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

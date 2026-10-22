@@ -1,1 +1,15 @@
-{"name":"WhatsWork","short_name":"WhatsWork","start_url":"./","scope":"./","display":"standalone","background_color":"#0f766e","theme_color":"#0f766e","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "name": "WhatsWork",
+  "short_name": "WhatsWork",
+  "description": "Work chat where every job you hand out floats above the chat until it's done.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f4f8",
+  "theme_color": "#3157e8",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

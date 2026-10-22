@@ -2,344 +2,761 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f766e">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#f3f4f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1119" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="WhatsWork">
 <title>WhatsWork</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Manrope:wght@400;500;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js"></script>
 <style>
-:root{--bg:#f4f6f5;--panel:#fff;--ink:#14201d;--muted:#6b7a76;--line:#e3e8e6;--brand:#0f766e;--brand2:#14b8a6;--mine:#d9f5ef;--theirs:#fff;--warn:#f59e0b;--done:#94a3b8}
-@media (prefers-color-scheme:dark){:root{--bg:#0d1412;--panel:#152019;--ink:#e6efec;--muted:#8fa19c;--line:#24332e;--mine:#11433c;--theirs:#1b2924}}
-*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-button{font:inherit;cursor:pointer;border:0;border-radius:10px}
-input,textarea{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
-.btn{background:var(--brand);color:#fff;padding:10px 14px}.btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--line)}
+/* Layout: phone-first app shell — list pane + chat pane side by side on desktop, stacked with a bottom tab bar on phones */
+:root{
+  --bg:#f3f4f8; --panel:#ffffff; --sunk:#eceef4; --chat:#e9ecf3;
+  --ink:#161b26; --muted:#6a7387; --line:#dfe3ec;
+  --brand:#3157e8; --brand-soft:#e3e9ff; --on-brand:#ffffff;
+  --mine:#dde5ff; --theirs:#ffffff;
+  --task:#ffb21e; --task-deep:#e88a00; --on-task:#2e1f00;
+  --late:#e5483b; --ok:#169a62; --done:#a3abbb;
+  --shadow:0 1px 2px rgba(22,27,38,.06),0 4px 14px rgba(22,27,38,.06);
+  --display:"Bricolage Grotesque",ui-rounded,system-ui,sans-serif;
+  --body:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:16px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d1119; --panel:#141a25; --sunk:#1a2130; --chat:#0f141e;
+  --ink:#e8ecf4; --muted:#8f99ad; --line:#252e40;
+  --brand:#7491ff; --brand-soft:#1e2847; --on-brand:#0d1119;
+  --mine:#22305c; --theirs:#1b2231;
+  --task:#ffb21e; --task-deep:#ffc552; --on-task:#2e1f00;
+  --late:#ff6b5e; --ok:#3fcf8e; --done:#566078;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
+  color-scheme:dark;
+}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.45 var(--body)}
+body{overflow:hidden}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px}
 .hidden{display:none!important}
-/* auth */
-#auth{display:grid;place-items:center;height:100%;padding:16px}
-#auth .card{background:var(--panel);padding:28px;border-radius:18px;width:100%;max-width:360px;display:grid;gap:12px;box-shadow:0 10px 30px #0001}
-#auth h1{margin:0;color:var(--brand)}#auth small{color:var(--muted)}
-/* layout */
-#app{display:flex;height:100%}
-#side{width:320px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
-#side header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
-#side header b{color:var(--brand);font-size:20px}
-#chats{overflow:auto;flex:1}
-.chatrow{padding:14px 16px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
-.chatrow:hover,.chatrow.on{background:var(--bg)}
-.pill{background:var(--warn);color:#000;border-radius:99px;padding:1px 8px;font-size:12px}
-#main{flex:1;display:flex;flex-direction:column;min-width:0}
-#chathead{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 14px}
-#chathead .top{display:flex;align-items:center;gap:10px}
-#back{display:none;background:none;font-size:22px;color:var(--brand);padding:0 6px}
-#bubbles{display:flex;gap:10px;overflow-x:auto;padding:10px 2px 4px;scrollbar-width:none}
-.bubble{flex:0 0 auto;max-width:200px;padding:8px 14px;border-radius:99px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 12px #0f766e44;animation:float 3s ease-in-out infinite}
-.bubble:nth-child(2n){animation-delay:-1s}.bubble:nth-child(3n){animation-delay:-2s}
-.bubble.late{background:linear-gradient(135deg,#dc2626,#f97316)}
-.bubble.done{background:var(--done);box-shadow:none;animation:none;text-decoration:line-through}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-#msgs{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:6px}
-.msg{max-width:75%;padding:8px 12px;border-radius:14px;background:var(--theirs);align-self:flex-start;position:relative;box-shadow:0 1px 2px #0001;user-select:text;word-wrap:break-word}
+svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.field{width:100%;background:var(--sunk);border:1px solid transparent;border-radius:12px;padding:12px 14px;outline:none;transition:border-color .15s,background .15s}
+.field:focus{border-color:var(--brand);background:var(--panel)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--brand);color:var(--on-brand);font-weight:700;border-radius:12px;padding:12px 18px;transition:transform .1s,opacity .15s}
+.btn:active{transform:scale(.97)}.btn:disabled{opacity:.5}
+.btn.soft{background:var(--brand-soft);color:var(--brand)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:transparent;color:var(--late);border:1px solid var(--line)}
+.btn.sm{padding:8px 12px;font-size:13px;border-radius:10px}
+.muted{color:var(--muted)}
+.label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- auth ---------- */
+#auth{height:100%;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-right)) 24px max(16px,env(safe-area-inset-left));overflow:auto}
+.auth-card{width:100%;max-width:380px;display:grid;gap:14px}
+.wordmark{font-family:var(--display);font-weight:800;font-size:34px;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+.wordmark .dot{width:14px;height:14px;border-radius:50%;background:var(--task);box-shadow:0 0 0 4px color-mix(in srgb,var(--task) 30%,transparent)}
+.auth-demo{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--sunk);border-radius:12px;padding:4px}
+.auth-tabs button{padding:9px;border-radius:9px;font-weight:700;color:var(--muted)}
+.auth-tabs button.on{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
+
+/* ---------- shell ---------- */
+#app{height:100%;display:flex}
+#side{width:380px;flex:none;display:flex;flex-direction:column;background:var(--panel);border-right:1px solid var(--line);min-width:0}
+.side-head{padding:calc(14px + env(safe-area-inset-top)) 18px 10px max(18px,env(safe-area-inset-left));display:flex;align-items:center;justify-content:space-between;gap:10px}
+.side-head h1{margin:0;font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.02em}
+.iconbtn{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:var(--ink)}
+.iconbtn:hover{background:var(--sunk)}
+.iconbtn.brand{background:var(--brand);color:var(--on-brand)}
+.pane{flex:1;overflow:auto;min-height:0}
+#nav{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);background:var(--panel);padding-bottom:env(safe-area-inset-bottom)}
+#nav button{display:grid;justify-items:center;gap:3px;padding:9px 0 8px;font-size:11px;font-weight:700;color:var(--muted);position:relative}
+#nav button.on{color:var(--brand)}
+#nav .badge{position:absolute;top:5px;left:calc(50% + 6px)}
+.badge{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--task);color:var(--on-task);font-size:11px;font-weight:800;display:inline-grid;place-items:center}
+
+/* chat list */
+.search{margin:4px 18px 10px}
+.row{display:flex;gap:12px;align-items:center;padding:11px 18px;cursor:pointer;width:100%;text-align:left}
+.row:hover{background:var(--sunk)}.row.on{background:var(--brand-soft)}
+.av{width:46px;height:46px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:16px;color:#fff;font-family:var(--display)}
+.av.sm{width:34px;height:34px;font-size:13px}
+.row-main{flex:1;min-width:0}
+.row-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.row-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-time{font-size:12px;color:var(--muted);flex:none}
+.row-sub{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:2px}
+.row-prev{font-size:13.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty{padding:40px 24px;text-align:center;color:var(--muted);display:grid;gap:12px;justify-items:center}
+.empty b{color:var(--ink);font-family:var(--display);font-size:18px}
+
+/* chat pane */
+#main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--chat)}
+#welcome{flex:1;display:grid;place-items:center;text-align:center;padding:24px;color:var(--muted)}
+#welcome .wordmark{justify-content:center;color:var(--ink);font-size:44px;margin-bottom:6px}
+#chat{flex:1;display:flex;flex-direction:column;min-height:0}
+.chat-head{background:var(--panel);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left))}
+.chat-title{display:flex;align-items:center;gap:10px;min-height:52px}
+.chat-title .who{flex:1;min-width:0}
+.chat-title .who b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-title .who span{font-size:12.5px;color:var(--muted)}
+#back{display:none}
+
+/* floating work bubbles */
+.orbit{display:flex;gap:10px;overflow-x:auto;padding:10px 4px 12px;scrollbar-width:none;align-items:center}
+.orbit::-webkit-scrollbar{display:none}
+.wb{flex:none;display:flex;align-items:center;gap:8px;max-width:230px;padding:7px 14px 7px 7px;border-radius:999px;background:var(--task);color:var(--on-task);font-weight:700;font-size:13px;box-shadow:0 6px 16px -6px color-mix(in srgb,var(--task-deep) 70%,transparent);animation:bob 3.4s ease-in-out infinite}
+.wb:nth-child(3n+2){animation-delay:-1.1s}.wb:nth-child(3n){animation-delay:-2.3s}
+.wb .who{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:11px;color:#fff;font-weight:800;flex:none}
+.wb .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wb .due{font-size:11px;font-weight:800;opacity:.75;flex:none}
+.wb.late{background:var(--late);color:#fff;box-shadow:0 6px 16px -6px color-mix(in srgb,var(--late) 70%,transparent)}
+.wb.done{background:var(--sunk);color:var(--muted);box-shadow:none;animation:none;text-decoration:line-through}
+.wb.ai::after{content:"AI";font-size:9px;font-weight:800;letter-spacing:.06em;padding:1px 5px;border-radius:6px;background:rgba(0,0,0,.12)}
+.orbit-empty{font-size:12.5px;color:var(--muted);padding:2px 6px}
+.orbit-toggle{flex:none;font-size:12px;font-weight:700;color:var(--muted);padding:6px 10px;border-radius:999px;border:1px dashed var(--line)}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.wb.new{animation:pop .35s cubic-bezier(.2,1.4,.4,1),bob 3.4s ease-in-out .35s infinite}
+
+#msgs{flex:1;overflow-y:auto;padding:16px max(14px,env(safe-area-inset-right)) 8px max(14px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:3px;
+  background-image:radial-gradient(color-mix(in srgb,var(--line) 70%,transparent) 1px,transparent 1.2px);background-size:22px 22px}
+.day{align-self:center;margin:12px 0 8px;font-size:11.5px;font-weight:700;color:var(--muted);background:var(--panel);padding:4px 12px;border-radius:999px;box-shadow:var(--shadow)}
+.msg{max-width:min(78%,560px);padding:8px 12px 6px;border-radius:18px;background:var(--theirs);align-self:flex-start;position:relative;box-shadow:var(--shadow);word-wrap:break-word;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text}
 .msg.me{align-self:flex-end;background:var(--mine)}
-.msg .t{font-size:11px;color:var(--muted);margin-top:3px;text-align:right}
-.msg img{max-width:100%;border-radius:10px;display:block;margin-bottom:4px}
-.msg a{color:var(--brand)}
-.msg .pin{position:absolute;top:-10px;right:-6px;background:var(--panel);border:1px solid var(--line);border-radius:99px;font-size:12px;padding:2px 6px;opacity:0}
-.msg:hover .pin{opacity:1}
-.msg.flash{outline:2px solid var(--warn)}
-.tasktag{font-size:11px;color:var(--brand);font-weight:600}
-#composer{display:flex;gap:8px;padding:10px;background:var(--panel);border-top:1px solid var(--line);align-items:flex-end;padding-bottom:max(10px,env(safe-area-inset-bottom))}
-#composer textarea{resize:none;height:42px;max-height:120px}
-#attach{background:transparent;font-size:22px;padding:6px}
-#empty{flex:1;display:grid;place-items:center;color:var(--muted);text-align:center;padding:20px}
-/* modal */
-.modal{position:fixed;inset:0;background:#0007;display:grid;place-items:center;padding:16px;z-index:9}
-.modal .card{background:var(--panel);border-radius:16px;padding:20px;width:100%;max-width:420px;display:grid;gap:10px}
-.modal h3{margin:0}.row{display:flex;gap:8px;flex-wrap:wrap}.muted{color:var(--muted);font-size:13px}
-#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 14px;border-radius:10px;font-size:13px;z-index:10}
-@media (max-width:760px){#side{width:100%}#app.inchat #side{display:none}#app:not(.inchat) #main{display:none}#back{display:block}}
+.msg.first{margin-top:8px}
+.msg:not(.me).first{border-top-left-radius:6px}.msg.me.first{border-top-right-radius:6px}
+.msg .meta{display:flex;gap:6px;justify-content:flex-end;align-items:center;font-size:11px;color:var(--muted);margin-top:2px}
+.msg img{display:block;max-width:100%;max-height:340px;border-radius:12px;margin:-2px -6px 6px;cursor:zoom-in;background:var(--sunk);min-height:80px;min-width:120px;object-fit:cover}
+.msg .file{display:flex;align-items:center;gap:10px;padding:8px 10px;margin:-2px -4px 6px;border-radius:12px;background:color-mix(in srgb,var(--ink) 6%,transparent);color:inherit;text-decoration:none;font-weight:600}
+.msg .tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:var(--task-deep);margin-bottom:2px;cursor:pointer}
+.msg .mk{position:absolute;top:50%;transform:translateY(-50%);right:-42px;width:32px;height:32px;border-radius:50%;background:var(--panel);box-shadow:var(--shadow);display:grid;place-items:center;opacity:0;transition:opacity .15s;color:var(--task-deep)}
+.msg.me .mk{right:auto;left:-42px}
+.msg:hover .mk{opacity:1}
+.msg.flash{animation:flash 1.6s}
+@keyframes flash{0%,60%{box-shadow:0 0 0 3px var(--task)}100%{box-shadow:var(--shadow)}}
+#composer{display:flex;gap:8px;align-items:flex-end;padding:8px max(10px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));background:var(--panel);border-top:1px solid var(--line)}
+#composer textarea{flex:1;resize:none;max-height:140px;min-height:44px;line-height:1.4;border-radius:22px;padding:11px 16px}
+#composer .iconbtn{width:44px;height:44px;border-radius:50%}
+.hint{font-size:11.5px;color:var(--muted);padding:0 18px 6px;text-align:center;background:var(--panel)}
+
+/* tasks pane */
+.seg{display:flex;gap:6px;padding:4px 18px 12px;flex-wrap:wrap}
+.seg button{padding:7px 12px;border-radius:999px;font-weight:700;font-size:13px;background:var(--sunk);color:var(--muted)}
+.seg button.on{background:var(--ink);color:var(--panel)}
+.tcard{display:flex;gap:12px;align-items:flex-start;margin:0 14px 8px;padding:12px 14px;border-radius:var(--r);background:var(--panel);border:1px solid var(--line);cursor:pointer;text-align:left;width:calc(100% - 28px)}
+.tcard:hover{border-color:color-mix(in srgb,var(--brand) 40%,var(--line))}
+.check{width:24px;height:24px;border-radius:50%;border:2px solid var(--task-deep);flex:none;display:grid;place-items:center;margin-top:1px}
+.check.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.tcard .tt{font-weight:700}
+.tcard.done .tt{text-decoration:line-through;color:var(--muted)}
+.tcard .ts{font-size:12.5px;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 10px}
+.chip{font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.chip.late{background:color-mix(in srgb,var(--late) 15%,transparent);color:var(--late)}
+.chip.soon{background:color-mix(in srgb,var(--task) 25%,transparent);color:var(--task-deep)}
+.group-h{padding:14px 18px 8px}
+
+/* settings */
+.set{padding:0 14px 30px;display:grid;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px}
+.card h3{margin:0;font-family:var(--display);font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+.card p{margin:0;font-size:13.5px;color:var(--muted)}
+.switch{position:relative;width:48px;height:28px;flex:none}
+.switch input{opacity:0;position:absolute;inset:0;margin:0;cursor:pointer}
+.switch span{position:absolute;inset:0;border-radius:999px;background:var(--line);transition:background .2s;pointer-events:none}
+.switch span::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.switch input:checked+span{background:var(--ok)}
+.switch input:checked+span::after{transform:translateX(20px)}
+.line{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.status{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+.status::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--done)}
+.status.ok::before{background:var(--ok)}.status.bad::before{background:var(--late)}
+.providers{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.providers button{padding:10px;border-radius:12px;border:1.5px solid var(--line);font-weight:700;text-align:left;display:grid;gap:1px}
+.providers button small{font-weight:500;color:var(--muted);font-size:11.5px}
+.providers button.on{border-color:var(--brand);background:var(--brand-soft)}
+.err{font-size:12.5px;color:var(--late);background:color-mix(in srgb,var(--late) 10%,transparent);padding:8px 10px;border-radius:10px}
+.steps{margin:0;padding-left:18px;font-size:13.5px;color:var(--muted);display:grid;gap:4px}
+
+/* sheet / modal */
+.scrim{position:fixed;inset:0;background:rgba(10,14,22,.45);display:flex;align-items:flex-end;justify-content:center;z-index:30;animation:fade .15s}
+.sheet{width:100%;max-width:520px;max-height:92%;overflow:auto;background:var(--panel);border-radius:22px 22px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom));display:grid;gap:12px;animation:up .22s cubic-bezier(.2,.9,.3,1)}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);justify-self:center}
+.sheet h2{margin:0;font-family:var(--display);font-size:22px;font-weight:800;letter-spacing:-.01em}
+.sheet .src{font-size:13px;background:var(--sunk);border-left:3px solid var(--task);padding:8px 10px;border-radius:8px;color:var(--muted);white-space:pre-wrap;max-height:110px;overflow:auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions .btn{flex:1 1 auto}
+@media (min-width:700px){.scrim{align-items:center}.sheet{border-radius:22px}}
+@keyframes fade{from{opacity:0}}@keyframes up{from{transform:translateY(40px);opacity:0}}
+#toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:12px;font-size:13.5px;font-weight:600;z-index:40;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
+#viewer{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:50;display:grid;place-items:center;padding:20px}
+#viewer img{max-width:100%;max-height:100%;border-radius:8px}
+
+/* phone */
+@media (max-width:860px){
+  #side{width:100%;border-right:0}
+  #app.inchat #side{display:none}
+  #app:not(.inchat) #main{display:none}
+  #back{display:grid}
+  .msg .mk{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12z"/></symbol>
+  <symbol id="i-task" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.2 2.4 2.4 4.8-5"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M5 12h13M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 6 4 4H6l4-4z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></symbol>
+</svg>
+
+<!-- AUTH -->
 <div id="auth">
-  <div class="card">
-    <h1>WhatsWork</h1>
-    <small id="authsub">Sign in to your work chats</small>
-    <input id="aname" placeholder="Your name" class="hidden">
-    <input id="aemail" type="email" placeholder="Email">
-    <input id="apass" type="password" placeholder="Password (6+ characters)">
-    <button class="btn" id="abtn">Sign in</button>
-    <button class="btn ghost" id="aswitch">New here? Create account</button>
+  <div class="auth-card">
+    <div class="wordmark"><span class="dot"></span>WhatsWork</div>
+    <div class="muted" style="margin-top:-6px">Chat with your team. Every job you hand out floats above the chat until it's done.</div>
+    <div class="auth-demo" aria-hidden="true">
+      <span class="wb" style="animation-delay:0s"><span class="who" style="background:#7a5af5">S</span><span class="t">Make AILC logo</span><span class="due">Fri</span></span>
+      <span class="wb" style="animation-delay:-1.2s"><span class="who" style="background:#0f9e8a">A</span><span class="t">Post 3 reels</span></span>
+    </div>
+    <div class="auth-tabs" role="tablist">
+      <button id="tabIn" class="on" type="button">Sign in</button>
+      <button id="tabUp" type="button">Create account</button>
+    </div>
+    <form id="authForm" style="display:grid;gap:10px">
+      <input id="aname" class="field hidden" placeholder="Your name (what your team sees)" autocomplete="name">
+      <input id="aemail" class="field" type="email" placeholder="Email" autocomplete="email" required>
+      <input id="apass" class="field" type="password" placeholder="Password (6+ characters)" autocomplete="current-password" required minlength="6">
+      <button class="btn" id="abtn" type="submit">Sign in</button>
+    </form>
   </div>
 </div>
 
+<!-- APP -->
 <div id="app" class="hidden">
   <aside id="side">
-    <header><b>WhatsWork</b><div class="row"><button class="btn" id="newchat">+ Chat</button><button class="btn ghost" id="logout" title="Sign out">⎋</button></div></header>
-    <div id="chats"></div>
+    <div class="side-head">
+      <h1 id="paneTitle">Chats</h1>
+      <button class="iconbtn brand" id="newChat" title="New chat" aria-label="New chat"><svg class="i"><use href="#i-plus"/></svg></button>
+    </div>
+    <div class="pane" id="pChats">
+      <div class="search"><input id="q" class="field" placeholder="Search chats" autocomplete="off"></div>
+      <div id="chatList"></div>
+    </div>
+    <div class="pane hidden" id="pTasks">
+      <div class="seg" id="taskSeg">
+        <button data-f="mine" class="on">For me</button>
+        <button data-f="given">I gave</button>
+        <button data-f="done">Done</button>
+      </div>
+      <div id="taskList"></div>
+    </div>
+    <div class="pane hidden" id="pSettings"><div class="set" id="settings"></div></div>
+    <nav id="nav">
+      <button data-p="Chats" class="on"><svg class="i"><use href="#i-chat"/></svg>Chats</button>
+      <button data-p="Tasks"><svg class="i"><use href="#i-task"/></svg>Tasks<span class="badge hidden" id="navBadge"></span></button>
+      <button data-p="Settings"><svg class="i"><use href="#i-gear"/></svg>Settings</button>
+    </nav>
   </aside>
-  <section id="main">
-    <div id="empty">Pick a chat, or tap <b>+ Chat</b> and enter your teammate's email.</div>
-    <div id="chathead" class="hidden">
-      <div class="top"><button id="back">‹</button><b id="chatname"></b><span class="muted" id="taskcount"></span>
-        <button class="btn ghost" id="showdone" style="margin-left:auto;padding:4px 10px;font-size:12px">Show done</button></div>
-      <div id="bubbles"></div>
-    </div>
-    <div id="msgs" class="hidden"></div>
-    <div id="composer" class="hidden">
-      <button id="attach" title="Send picture or file">📎</button>
-      <input type="file" id="file" class="hidden">
-      <textarea id="text" placeholder="Message…  (start with task: to make a work bubble)"></textarea>
-      <button class="btn" id="send">Send</button>
-    </div>
-  </section>
+
+  <main id="main">
+    <div id="welcome"><div><div class="wordmark"><span class="dot"></span>WhatsWork</div><div>Pick a chat on the left, or start one with <b>+</b>.</div></div></div>
+    <section id="chat" class="hidden">
+      <header class="chat-head">
+        <div class="chat-title">
+          <button class="iconbtn" id="back" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
+          <div class="av sm" id="chatAv"></div>
+          <div class="who"><b id="chatName"></b><span id="chatSub"></span></div>
+        </div>
+        <div class="orbit" id="orbit"></div>
+      </header>
+      <div id="msgs"></div>
+      <div class="hint" id="hint">Long-press a message to make it a task · or start with <b>task:</b></div>
+      <div id="composer">
+        <button class="iconbtn" id="attach" title="Send a picture or file" aria-label="Attach"><svg class="i"><use href="#i-clip"/></svg></button>
+        <input type="file" id="file" class="hidden">
+        <textarea id="text" class="field" rows="1" placeholder="Message"></textarea>
+        <button class="iconbtn brand" id="send" aria-label="Send"><svg class="i"><use href="#i-send"/></svg></button>
+      </div>
+    </section>
+  </main>
 </div>
 
-<div id="taskmodal" class="modal hidden"><div class="card">
-  <h3 id="tmhead">New task</h3>
-  <input id="tmtitle" placeholder="What needs doing?">
-  <textarea id="tmdetails" rows="3" placeholder="Details (optional)"></textarea>
-  <label class="muted">Assigned to</label><select id="tmassignee" style="padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink)"></select>
-  <label class="muted">Due (optional)</label><input id="tmdue" type="datetime-local">
-  <div class="muted" id="tmmeta"></div>
-  <div class="row">
-    <button class="btn" id="tmsave">Save</button>
-    <button class="btn ghost" id="tmdone">Mark done</button>
-    <button class="btn ghost" id="tmjump">Go to message</button>
-    <button class="btn ghost" id="tmdel" style="color:#dc2626">Delete</button>
-    <button class="btn ghost" id="tmclose" style="margin-left:auto">Close</button>
-  </div>
-</div></div>
-
-<div id="toast" class="hidden"></div>
+<div id="sheetRoot"></div>
+<div id="viewer" class="hidden"><img alt=""></div>
+<div id="toast" class="hidden" role="status"></div>
 
 <script>
-// ====== CONFIG (filled in at deploy) ======
+// ====== CONFIG ======
 const SUPABASE_URL = "https://boajcspgqhuhchnvbkxl.supabase.co";
 const SUPABASE_KEY = "sb_publishable_QbVXMyGif27UZnxhjApFUw_ul7EuoC5";
-// ==========================================
+const VAPID_PUBLIC = "BEE0iyCz9dDJXCbIaGUCmRwhgY_dHn4mjBtJ0nMMiZkARk1V6yoArogjir47TSbNW3fPNlRwPX4Urs9NQYOcKIo";
+const WORKER = "whatswork-worker";
+const AI_PROVIDERS = {
+  gemini:     {name:"Gemini",     note:"Google · has a free tier", model:"gemini-3.5-flash-lite", keyUrl:"https://aistudio.google.com/apikey"},
+  claude:     {name:"Claude",     note:"Anthropic",                model:"claude-haiku-5-5",      keyUrl:"https://console.anthropic.com/settings/keys"},
+  openai:     {name:"ChatGPT",    note:"OpenAI",                   model:"",                      keyUrl:"https://platform.openai.com/api-keys"},
+  openrouter: {name:"OpenRouter", note:"Many models, one key",     model:"",                      keyUrl:"https://openrouter.ai/keys"},
+};
+// =====================
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = id => document.getElementById(id);
-const esc = s => (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let me=null, chats=[], cur=null, members=[], tasks=[], msgs=[], showDone=false, editing=null, rt=null, signupMode=false;
-const urlCache={};
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const icon = n => `<svg class="i"><use href="#i-${n}"/></svg>`;
+let me = null, myName = "", chats = [], cur = null, msgs = [], allTasks = [], showDone = false, rt = null, signup = false, pane = "Chats", taskFilter = "mine";
+const urlCache = {}, profiles = {};
 
-function toast(t){const e=$("toast");e.textContent=t;e.classList.remove("hidden");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.add("hidden"),2600)}
-const fmtT=d=>new Date(d).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+function toast(t){const e=$("toast");e.textContent=t;e.classList.remove("hidden");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.add("hidden"),2800)}
+function hue(s){let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))>>>0;return h%360}
+const avColor = s => `hsl(${hue(s)} 62% 48%)`;
+const initials = n => (n||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+const avHtml = (p, cls="") => `<div class="av ${cls}" style="background:${avColor(p.id)}">${esc(initials(p.name||p.email))}</div>`;
+const nameOf = id => id===me?.id ? "You" : (profiles[id]?.name || "Teammate");
+const fmtTime = d => new Date(d).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+function fmtShort(d){const x=new Date(d),n=new Date();if(x.toDateString()===n.toDateString())return fmtTime(d);const y=new Date(n);y.setDate(n.getDate()-1);if(x.toDateString()===y.toDateString())return"Yesterday";return x.toLocaleDateString([], (n-x)<6*864e5?{weekday:"short"}:{day:"numeric",month:"short"})}
+function dayLabel(d){const x=new Date(d),n=new Date();if(x.toDateString()===n.toDateString())return"Today";const y=new Date(n);y.setDate(n.getDate()-1);if(x.toDateString()===y.toDateString())return"Yesterday";return x.toLocaleDateString([], {weekday:"long",day:"numeric",month:"long"})}
+function dueInfo(t){
+  if(!t.due_at) return null;
+  const d=new Date(t.due_at), diff=d-Date.now();
+  if(t.status==="open" && diff<0) return {cls:"late", txt:"Overdue · "+fmtShort(d)};
+  const txt = diff<864e5 && new Date().toDateString()===d.toDateString() ? "Today "+fmtTime(d) : d.toLocaleDateString([], {weekday:"short",day:"numeric",month:"short"})+" "+fmtTime(d);
+  return {cls: diff<864e5 ? "soon" : "", txt};
+}
+const short = t => { const d = t.due_at && new Date(t.due_at); if(!d) return ""; return d.toDateString()===new Date().toDateString() ? fmtTime(d) : d.toLocaleDateString([], {weekday:"short"}); };
 
 // ---------- AUTH ----------
-$("aswitch").onclick=()=>{signupMode=!signupMode;$("aname").classList.toggle("hidden",!signupMode);
-  $("abtn").textContent=signupMode?"Create account":"Sign in";$("aswitch").textContent=signupMode?"Have an account? Sign in":"New here? Create account";
-  $("authsub").textContent=signupMode?"Create your WhatsWork account":"Sign in to your work chats"};
-$("abtn").onclick=async()=>{
+function setMode(up){signup=up;$("tabUp").classList.toggle("on",up);$("tabIn").classList.toggle("on",!up);$("aname").classList.toggle("hidden",!up);$("abtn").textContent=up?"Create account":"Sign in";$("apass").autocomplete=up?"new-password":"current-password"}
+$("tabIn").onclick=()=>setMode(false); $("tabUp").onclick=()=>setMode(true);
+$("authForm").onsubmit=async e=>{
+  e.preventDefault();
   const email=$("aemail").value.trim(), password=$("apass").value;
-  if(!email||password.length<6) return toast("Enter email and a 6+ character password");
   $("abtn").disabled=true;
-  const r = signupMode
+  const r = signup
     ? await sb.auth.signUp({email,password,options:{data:{name:$("aname").value.trim()||email.split("@")[0]}}})
     : await sb.auth.signInWithPassword({email,password});
   $("abtn").disabled=false;
   if(r.error) return toast(r.error.message);
-  if(signupMode && !r.data.session) toast("Check your email to confirm, then sign in");
+  if(signup && !r.data.session) toast("Account made. Check your email to confirm, then sign in.");
 };
-$("logout").onclick=()=>sb.auth.signOut();
-sb.auth.onAuthStateChange((_e,s)=>{ if(s?.user){ if(!me||me.id!==s.user.id){me=s.user;start();} } else {me=null;$("app").classList.add("hidden");$("auth").classList.remove("hidden");} });
+sb.auth.onAuthStateChange((_e,s)=>{
+  if(s?.user){ if(!me||me.id!==s.user.id){ me=s.user; start(); } }
+  else { me=null; $("app").classList.add("hidden"); $("auth").classList.remove("hidden"); }
+});
 
 async function start(){
-  $("auth").classList.add("hidden");$("app").classList.remove("hidden");
-  await loadChats();
+  $("auth").classList.add("hidden"); $("app").classList.remove("hidden");
+  const {data:p}=await sb.from("profiles").select("id,name,email").eq("id",me.id).single();
+  myName=p?.name||me.email; if(p) profiles[p.id]=p;
+  await Promise.all([loadChats(), loadTasks()]);
+  subscribe();
+  const qs=new URLSearchParams(location.search);
+  if(qs.get("c")){ await openChat(qs.get("c")); if(qs.get("t")) openTask(qs.get("t")); history.replaceState(null,"",location.pathname); }
+  if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message",ev=>{ if(ev.data?.url){const u=new URL(ev.data.url,location.href);const c=u.searchParams.get("c");if(c)openChat(c).then(()=>{const t=u.searchParams.get("t");if(t)openTask(t)})} });
+}
+function subscribe(){
   if(rt) sb.removeChannel(rt);
-  rt = sb.channel("all")
+  rt = sb.channel("ww")
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},p=>onMsg(p.new))
-    .on("postgres_changes",{event:"*",schema:"public",table:"tasks"},p=>onTask(p))
+    .on("postgres_changes",{event:"*",schema:"public",table:"tasks"},p=>onTaskChange(p))
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"conversation_members"},()=>loadChats())
     .subscribe();
+}
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && me){ loadChats(); loadTasks(); if(cur) refreshChat(); } });
+
+// ---------- NAV ----------
+document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>showPane(b.dataset.p));
+function showPane(p){
+  pane=p; $("paneTitle").textContent=p;
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.p===p));
+  ["Chats","Tasks","Settings"].forEach(x=>$("p"+x).classList.toggle("hidden",x!==p));
+  $("newChat").classList.toggle("hidden",p!=="Chats");
+  if(p==="Tasks") renderTasks();
+  if(p==="Settings") renderSettings();
 }
 
 // ---------- CHATS ----------
 async function loadChats(){
-  const {data,error}=await sb.from("conversation_members").select("conversation_id,user_id,profiles(name,email)");
+  const {data,error}=await sb.from("conversation_members").select("conversation_id,user_id,profiles(id,name,email)");
   if(error) return toast(error.message);
   const map={};
-  data.forEach(r=>{(map[r.conversation_id]??={id:r.conversation_id,people:[]}).people.push({id:r.user_id,...r.profiles})});
-  chats=Object.values(map);
-  const {data:open}=await sb.from("tasks").select("conversation_id").eq("status","open");
-  chats.forEach(c=>c.open=(open||[]).filter(t=>t.conversation_id===c.id).length);
+  data.forEach(r=>{ if(r.profiles) profiles[r.user_id]=r.profiles; (map[r.conversation_id]??={id:r.conversation_id,people:[]}).people.push({id:r.user_id,...r.profiles}); });
+  const ids=Object.keys(map);
+  if(ids.length){
+    const {data:last}=await sb.from("messages").select("conversation_id,body,file_name,file_type,created_at,sender_id").in("conversation_id",ids).order("created_at",{ascending:false}).limit(300);
+    (last||[]).forEach(m=>{ const c=map[m.conversation_id]; if(c && !c.last) c.last=m; });
+  }
+  chats=Object.values(map).sort((a,b)=>(b.last?.created_at||"").localeCompare(a.last?.created_at||""));
   renderChats();
 }
-const chatName=c=>c.people.filter(p=>p.id!==me.id).map(p=>p.name||p.email).join(", ")||"Just me";
+const chatName = c => c.people.filter(p=>p.id!==me.id).map(p=>p.name||p.email).join(", ") || "Just me";
+const otherOf = c => c.people.find(p=>p.id!==me.id) || c.people[0];
+const preview = m => !m ? "No messages yet" : (m.sender_id===me.id?"You: ":"") + (m.body || (m.file_type?.startsWith("image/")?"📷 Photo":"📎 "+(m.file_name||"File")));
 function renderChats(){
-  $("chats").innerHTML = chats.length? chats.map(c=>`<div class="chatrow ${cur?.id===c.id?"on":""}" data-id="${c.id}"><span>${esc(chatName(c))}</span>${c.open?`<span class="pill">${c.open} task${c.open>1?"s":""}</span>`:""}</div>`).join("")
-    : `<div style="padding:20px" class="muted">No chats yet. Tap + Chat.</div>`;
-  document.querySelectorAll(".chatrow").forEach(r=>r.onclick=()=>openChat(r.dataset.id));
+  const q=$("q").value.trim().toLowerCase();
+  const list=chats.filter(c=>!q||chatName(c).toLowerCase().includes(q));
+  const openBy = id => allTasks.filter(t=>t.conversation_id===id && t.status==="open").length;
+  $("chatList").innerHTML = list.length ? list.map(c=>{
+    const n=openBy(c.id);
+    return `<button class="row ${cur?.id===c.id?"on":""}" data-id="${c.id}">${avHtml(otherOf(c))}
+      <div class="row-main"><div class="row-top"><span class="row-name">${esc(chatName(c))}</span><span class="row-time">${c.last?fmtShort(c.last.created_at):""}</span></div>
+      <div class="row-sub"><span class="row-prev">${esc(preview(c.last))}</span>${n?`<span class="badge" title="Open tasks">${n}</span>`:""}</div></div></button>`;
+  }).join("") : (chats.length ? `<div class="empty">No chats match “${esc(q)}”.</div>` :
+    `<div class="empty"><b>No chats yet</b><span>Tap + and enter your teammate's email. They need to create an account first.</span><button class="btn" onclick="newChat()">${icon("plus")} Start a chat</button></div>`);
+  document.querySelectorAll("#chatList .row").forEach(r=>r.onclick=()=>openChat(r.dataset.id));
 }
-$("newchat").onclick=async()=>{
-  const email=prompt("Teammate's email (they must have signed up):"); if(!email) return;
-  const {data,error}=await sb.rpc("start_dm",{other_email:email});
-  if(error) return toast(error.message);
-  await loadChats(); openChat(data);
-};
-$("back").onclick=()=>{$("app").classList.remove("inchat");cur=null;renderChats()};
+$("q").oninput=renderChats;
+$("newChat").onclick=()=>newChat();
+function newChat(){
+  sheet(`<h2>New chat</h2><p class="muted" style="margin:0">Enter your teammate's email. They need a WhatsWork account first.</p>
+    <input id="ncEmail" class="field" type="email" placeholder="teammate@email.com" autocomplete="off">
+    <div class="actions"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="ncGo">Start chat</button></div>`);
+  $("ncEmail").focus();
+  const go=async()=>{const email=$("ncEmail").value.trim(); if(!email) return;
+    const {data,error}=await sb.rpc("start_dm",{other_email:email});
+    if(error) return toast(error.message.replace(/^.*?:\s*/,""));
+    closeSheet(); await loadChats(); openChat(data); };
+  $("ncGo").onclick=go; $("ncEmail").onkeydown=e=>{if(e.key==="Enter")go()};
+}
+$("back").onclick=()=>{ $("app").classList.remove("inchat"); cur=null; renderChats(); };
 
 async function openChat(id){
-  cur=chats.find(c=>c.id===id); if(!cur) return;
-  members=cur.people;
-  $("app").classList.add("inchat");
-  ["chathead","msgs","composer"].forEach(x=>$(x).classList.remove("hidden"));$("empty").classList.add("hidden");
-  $("chatname").textContent=chatName(cur);
+  if(!chats.find(c=>c.id===id)) await loadChats();
+  cur=chats.find(c=>c.id===id); if(!cur) return toast("Chat not found");
+  if(pane!=="Chats") showPane("Chats");
+  $("app").classList.add("inchat"); $("welcome").classList.add("hidden"); $("chat").classList.remove("hidden");
+  const o=otherOf(cur);
+  $("chatAv").style.background=avColor(o.id); $("chatAv").textContent=initials(o.name||o.email);
+  $("chatName").textContent=chatName(cur);
   renderChats();
-  const [m,t]=await Promise.all([
-    sb.from("messages").select("*").eq("conversation_id",id).order("created_at").limit(500),
-    sb.from("tasks").select("*").eq("conversation_id",id).order("created_at")
-  ]);
-  msgs=m.data||[]; tasks=t.data||[];
-  renderMsgs(); renderBubbles();
+  await refreshChat();
+  if(window.innerWidth>860) $("text").focus();
+}
+async function refreshChat(){
+  const id=cur.id;
+  const {data}=await sb.from("messages").select("*").eq("conversation_id",id).order("created_at",{ascending:false}).limit(400);
+  if(cur?.id!==id) return;
+  msgs=(data||[]).reverse(); renderMsgs(); renderOrbit();
 }
 
 // ---------- MESSAGES ----------
-async function fileUrl(path){
-  if(urlCache[path]) return urlCache[path];
-  const {data}=await sb.storage.from("attachments").createSignedUrl(path,3600);
-  return urlCache[path]=data?.signedUrl;
-}
-function msgHtml(m){
-  const mine=m.sender_id===me.id, isTask=tasks.some(t=>t.message_id===m.id);
+async function fileUrl(path){ if(urlCache[path]) return urlCache[path]; const {data}=await sb.storage.from("attachments").createSignedUrl(path,3600); return urlCache[path]=data?.signedUrl; }
+const taskForMsg = id => allTasks.find(t=>t.message_id===id);
+function msgHtml(m, prev){
+  const mine=m.sender_id===me.id, t=taskForMsg(m.id);
+  const first=!prev || prev.sender_id!==m.sender_id || (new Date(m.created_at)-new Date(prev.created_at))>5*60e3;
   let inner="";
-  if(m.file_path){
-    inner += m.file_type?.startsWith("image/") ? `<img data-path="${esc(m.file_path)}" alt="">` : `<a href="#" data-dl="${esc(m.file_path)}">📄 ${esc(m.file_name)}</a><br>`;
-  }
-  if(m.body) inner+=esc(m.body).replace(/\n/g,"<br>");
-  return `<div class="msg ${mine?"me":""}" id="m-${m.id}" data-id="${m.id}">${isTask?'<div class="tasktag">📌 task</div>':""}${inner}<div class="t">${fmtT(m.created_at)}</div><button class="pin" title="Make task">📌 Task</button></div>`;
+  if(t) inner+=`<div class="tag" data-task="${t.id}">${icon("pin")} ${t.status==="done"?"Done":"Task"} · ${esc(t.title)}</div>`;
+  if(m.file_path) inner += m.file_type?.startsWith("image/") ? `<img data-path="${esc(m.file_path)}" alt="${esc(m.file_name||"Photo")}">` : `<a class="file" href="#" data-dl="${esc(m.file_path)}">${icon("file")}<span>${esc(m.file_name||"File")}</span></a>`;
+  if(m.body) inner+=`<div>${esc(m.body).replace(/\n/g,"<br>")}</div>`;
+  return `<div class="msg ${mine?"me":""} ${first?"first":""}" id="m-${m.id}" data-id="${m.id}">${inner}<div class="meta">${fmtTime(m.created_at)}</div><button class="mk" title="Make this a task" aria-label="Make task">${icon("pin")}</button></div>`;
 }
 function renderMsgs(){
-  const box=$("msgs"); box.innerHTML=msgs.map(msgHtml).join("")||'<div class="muted" style="margin:auto">Say hi 👋</div>';
+  const box=$("msgs"); let html="", lastDay="";
+  msgs.forEach((m,i)=>{ const d=new Date(m.created_at).toDateString(); if(d!==lastDay){html+=`<div class="day">${dayLabel(m.created_at)}</div>`;lastDay=d;} html+=msgHtml(m, i&&new Date(msgs[i-1].created_at).toDateString()===d?msgs[i-1]:null); });
+  box.innerHTML = html || `<div class="empty" style="margin:auto"><b>Say hi 👋</b><span>Try: <i>task: design the Friday poster</i></span></div>`;
   hydrate(box); box.scrollTop=box.scrollHeight;
 }
 function hydrate(root){
-  root.querySelectorAll("img[data-path]").forEach(async i=>{i.src=await fileUrl(i.dataset.path);i.onload=()=>{}; i.onclick=()=>window.open(i.src)});
-  root.querySelectorAll("a[data-dl]").forEach(a=>a.onclick=async e=>{e.preventDefault();window.open(await fileUrl(a.dataset.dl))});
+  root.querySelectorAll("img[data-path]").forEach(async i=>{ i.src=await fileUrl(i.dataset.path); i.onclick=()=>{ $("viewer").querySelector("img").src=i.src; $("viewer").classList.remove("hidden"); }; i.onload=()=>{ const b=$("msgs"); if(b.scrollHeight-b.scrollTop-b.clientHeight<400) b.scrollTop=b.scrollHeight; }; });
+  root.querySelectorAll("a[data-dl]").forEach(a=>a.onclick=async e=>{e.preventDefault(); window.open(await fileUrl(a.dataset.dl),"_blank");});
+  root.querySelectorAll("[data-task]").forEach(el=>el.onclick=e=>{e.stopPropagation(); openTask(el.dataset.task);});
   root.querySelectorAll(".msg").forEach(el=>{
-    el.querySelector(".pin").onclick=()=>newTaskFromMsg(el.dataset.id);
-    let timer; el.addEventListener("touchstart",()=>timer=setTimeout(()=>newTaskFromMsg(el.dataset.id),550),{passive:true});
-    ["touchend","touchmove"].forEach(ev=>el.addEventListener(ev,()=>clearTimeout(timer),{passive:true}));
-    el.oncontextmenu=e=>{e.preventDefault();newTaskFromMsg(el.dataset.id)};
+    el.querySelector(".mk").onclick=()=>taskFromMsg(el.dataset.id);
+    let timer, moved=false;
+    el.addEventListener("touchstart",()=>{moved=false;timer=setTimeout(()=>{ if(!moved){ navigator.vibrate?.(15); taskFromMsg(el.dataset.id);} },500)},{passive:true});
+    el.addEventListener("touchmove",()=>{moved=true;clearTimeout(timer)},{passive:true});
+    el.addEventListener("touchend",()=>clearTimeout(timer),{passive:true});
+    el.oncontextmenu=e=>{ if(window.getSelection()?.toString()) return; e.preventDefault(); taskFromMsg(el.dataset.id); };
   });
 }
+$("viewer").onclick=()=>$("viewer").classList.add("hidden");
 function onMsg(m){
-  if(!cur||m.conversation_id!==cur.id){ if(m.sender_id!==me.id) toast("New message"); return; }
+  const c=chats.find(x=>x.id===m.conversation_id);
+  if(c){ c.last=m; chats.sort((a,b)=>(b.last?.created_at||"").localeCompare(a.last?.created_at||"")); renderChats(); } else loadChats();
+  if(!cur || m.conversation_id!==cur.id){ if(m.sender_id!==me.id) toast(`${nameOf(m.sender_id)}: ${m.body?m.body.slice(0,60):"sent a file"}`); return; }
   if(msgs.some(x=>x.id===m.id)) return;
-  msgs.push(m);
-  const box=$("msgs"); if(msgs.length===1) box.innerHTML="";
-  const wrap=document.createElement("div"); wrap.innerHTML=msgHtml(m); hydrate(wrap); box.appendChild(wrap.firstElementChild);
+  const prev=msgs[msgs.length-1]; msgs.push(m);
+  const box=$("msgs");
+  if(msgs.length===1){ renderMsgs(); return; }
+  if(new Date(prev.created_at).toDateString()!==new Date(m.created_at).toDateString()) box.insertAdjacentHTML("beforeend",`<div class="day">${dayLabel(m.created_at)}</div>`);
+  const w=document.createElement("div"); w.innerHTML=msgHtml(m,prev); hydrate(w); box.appendChild(w.firstElementChild);
   box.scrollTop=box.scrollHeight;
 }
 
 const TASK_RE=/^\s*(task:|\/\/)\s*/i;
 async function send(){
   const body=$("text").value.trim(); if(!body||!cur) return;
-  $("text").value="";
+  $("text").value=""; autosize();
   const {data,error}=await sb.from("messages").insert({conversation_id:cur.id,body}).select().single();
-  if(error) return toast(error.message);
+  if(error){ $("text").value=body; return toast(error.message); }
   onMsg(data);
   if(TASK_RE.test(body)){
-    const other=members.find(p=>p.id!==me.id);
-    await createTask({title:body.replace(TASK_RE,"").split("\n")[0].slice(0,140),details:body.replace(TASK_RE,""),message_id:data.id,assignee_id:other?.id||me.id});
+    const text=body.replace(TASK_RE,""), other=otherOf(cur);
+    await createTask({title:text.split("\n")[0].slice(0,140), details:text.includes("\n")?text:null, message_id:data.id, assignee_id:other?.id||me.id});
   }
 }
 $("send").onclick=send;
-$("text").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!/Mobi/.test(navigator.userAgent)){e.preventDefault();send()}});
+const autosize=()=>{const t=$("text");t.style.height="auto";t.style.height=Math.min(t.scrollHeight,140)+"px"};
+$("text").addEventListener("input",autosize);
+$("text").addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey&&!matchMedia("(pointer:coarse)").matches){e.preventDefault();send()} });
 $("attach").onclick=()=>$("file").click();
 $("file").onchange=async()=>{
   const f=$("file").files[0]; $("file").value=""; if(!f||!cur) return;
-  if(f.size>45*1024*1024) return toast("File too big (max ~45 MB)");
-  toast("Uploading…");
+  if(f.size>45*1024*1024) return toast("That file is over 45 MB. Send a smaller one or a link.");
+  toast("Uploading "+f.name+"…");
   const path=`${cur.id}/${crypto.randomUUID()}-${f.name.replace(/[^\w.\-]/g,"_")}`;
-  const up=await sb.storage.from("attachments").upload(path,f,{contentType:f.type});
+  const up=await sb.storage.from("attachments").upload(path,f,{contentType:f.type||"application/octet-stream"});
   if(up.error) return toast(up.error.message);
-  const caption=$("text").value.trim(); $("text").value="";
+  const caption=$("text").value.trim(); $("text").value=""; autosize();
   const {data,error}=await sb.from("messages").insert({conversation_id:cur.id,body:caption||null,file_path:path,file_name:f.name,file_type:f.type}).select().single();
   if(error) return toast(error.message); onMsg(data);
 };
 
-// ---------- TASKS / BUBBLES ----------
-function renderBubbles(){
-  const list=tasks.filter(t=>showDone||t.status==="open");
-  const open=tasks.filter(t=>t.status==="open").length;
-  $("taskcount").textContent=open?`· ${open} open`:"";
-  $("bubbles").innerHTML=list.length?list.map(t=>{
-    const late=t.status==="open"&&t.due_at&&new Date(t.due_at)<new Date();
-    return `<button class="bubble ${t.status==="done"?"done":""} ${late?"late":""}" data-id="${t.id}" title="${esc(t.title)}">${late?"⏰ ":""}${esc(t.title)}</button>`}).join("")
-    :`<span class="muted" style="font-size:12px">No open work. Long-press a message or start one with <b>task:</b></span>`;
-  document.querySelectorAll(".bubble").forEach(b=>b.onclick=()=>openTask(b.dataset.id));
-}
-$("showdone").onclick=()=>{showDone=!showDone;$("showdone").textContent=showDone?"Hide done":"Show done";renderBubbles()};
-function onTask(p){
-  const t=p.new?.id?p.new:p.old;
-  if(cur && (p.new?.conversation_id===cur.id || tasks.some(x=>x.id===t.id))){
-    tasks=tasks.filter(x=>x.id!==t.id); if(p.eventType!=="DELETE") tasks.push(p.new);
-    tasks.sort((a,b)=>a.created_at.localeCompare(b.created_at)); renderBubbles();
-    const el=$("m-"+(p.new?.message_id)); if(el&&!el.querySelector(".tasktag")) el.insertAdjacentHTML("afterbegin",'<div class="tasktag">📌 task</div>');
-    if(p.eventType==="INSERT"&&p.new.assignee_id===me.id&&p.new.created_by!==me.id) toast("New work for you: "+p.new.title);
-  }
-  loadChats();
-}
-async function createTask(t){
-  const {data,error}=await sb.from("tasks").insert({conversation_id:cur.id,...t}).select().single();
+// ---------- TASKS ----------
+async function loadTasks(){
+  const {data,error}=await sb.from("tasks").select("*").order("created_at",{ascending:false}).limit(500);
   if(error) return toast(error.message);
-  onTask({eventType:"INSERT",new:data}); toast("Work bubble added");
+  allTasks=data||[]; afterTasks();
 }
-function fillAssignees(sel){
-  $("tmassignee").innerHTML=members.map(p=>`<option value="${p.id}" ${p.id===sel?"selected":""}>${esc(p.id===me.id?"Me":(p.name||p.email))}</option>`).join("");
+function afterTasks(newId){
+  const mineOpen=allTasks.filter(t=>t.status==="open"&&t.assignee_id===me.id).length;
+  $("navBadge").textContent=mineOpen; $("navBadge").classList.toggle("hidden",!mineOpen);
+  renderChats(); if(cur){ renderOrbit(newId); syncTags(); } if(pane==="Tasks") renderTasks();
 }
-const toLocal=d=>d?new Date(new Date(d).getTime()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16):"";
-function newTaskFromMsg(mid){
-  const m=msgs.find(x=>x.id===mid); editing={message_id:mid};
-  $("tmhead").textContent="Make this a task";
-  $("tmtitle").value=(m.body||m.file_name||"").split("\n")[0].slice(0,140);
-  $("tmdetails").value=m.body||"";
-  fillAssignees((members.find(p=>p.id!==me.id)||{}).id);
-  $("tmdue").value=""; $("tmmeta").textContent="";
-  ["tmdone","tmdel","tmjump"].forEach(x=>$(x).classList.add("hidden"));
-  $("taskmodal").classList.remove("hidden"); $("tmtitle").focus();
+function syncTags(){
+  msgs.forEach(m=>{ const el=$("m-"+m.id); if(!el) return; const t=taskForMsg(m.id), tag=el.querySelector(".tag");
+    if(t && !tag){ el.insertAdjacentHTML("afterbegin",`<div class="tag" data-task="${t.id}">${icon("pin")} Task · ${esc(t.title)}</div>`); el.querySelector(".tag").onclick=e=>{e.stopPropagation();openTask(t.id)}; }
+    else if(t && tag){ tag.innerHTML=`${icon("pin")} ${t.status==="done"?"Done":"Task"} · ${esc(t.title)}`; }
+    else if(!t && tag) tag.remove(); });
+}
+function renderOrbit(newId){
+  if(!cur) return;
+  const ts=allTasks.filter(t=>t.conversation_id===cur.id).sort((a,b)=>(a.due_at||"9").localeCompare(b.due_at||"9")||a.created_at.localeCompare(b.created_at));
+  const open=ts.filter(t=>t.status==="open"), done=ts.filter(t=>t.status==="done");
+  const list=showDone?[...open,...done]:open;
+  $("chatSub").textContent = open.length ? `${open.length} open task${open.length>1?"s":""}` : "No open work";
+  $("orbit").innerHTML = (list.length ? list.map(t=>{
+    const late=t.status==="open"&&t.due_at&&new Date(t.due_at)<new Date();
+    const a=t.assignee_id;
+    return `<button class="wb ${t.status==="done"?"done":""} ${late?"late":""} ${t.source==="ai"?"ai":""} ${t.id===newId?"new":""}" data-id="${t.id}" title="${esc(t.title)} — for ${esc(nameOf(a))}">
+      <span class="who" style="background:${avColor(a)}">${esc(initials(a===me.id?myName:profiles[a]?.name))}</span><span class="t">${esc(t.title)}</span>${t.due_at&&t.status==="open"?`<span class="due">${late?"late":short(t)}</span>`:""}</button>`;
+  }).join("") : `<span class="orbit-empty">No open work. Long-press a message or start one with <b>task:</b></span>`)
+    + (done.length ? `<button class="orbit-toggle" id="orbitToggle">${showDone?"Hide done":`${done.length} done`}</button>` : "");
+  $("orbit").querySelectorAll(".wb").forEach(b=>b.onclick=()=>openTask(b.dataset.id));
+  const tg=$("orbitToggle"); if(tg) tg.onclick=()=>{showDone=!showDone;renderOrbit()};
+}
+function onTaskChange(p){
+  if(p.eventType==="DELETE"){ allTasks=allTasks.filter(t=>t.id!==p.old.id); afterTasks(); return; }
+  const t=p.new, had=allTasks.some(x=>x.id===t.id);
+  allTasks=allTasks.filter(x=>x.id!==t.id); allTasks.unshift(t);
+  if(!had && t.assignee_id===me.id && t.created_by!==me.id) toast(`New work from ${nameOf(t.created_by)}: ${t.title}`);
+  afterTasks(!had?t.id:null);
+}
+async function createTask(v){
+  const {data,error}=await sb.from("tasks").insert({conversation_id:cur.id,...v}).select().single();
+  if(error) return toast(error.message);
+  onTaskChange({eventType:"INSERT",new:data}); toast("Work bubble added");
+}
+function renderTasks(){
+  document.querySelectorAll("#taskSeg button").forEach(b=>b.classList.toggle("on",b.dataset.f===taskFilter));
+  let list = taskFilter==="mine" ? allTasks.filter(t=>t.status==="open"&&t.assignee_id===me.id)
+           : taskFilter==="given" ? allTasks.filter(t=>t.status==="open"&&t.created_by===me.id&&t.assignee_id!==me.id)
+           : allTasks.filter(t=>t.status==="done");
+  list.sort((a,b)=> taskFilter==="done" ? (b.done_at||"").localeCompare(a.done_at||"") : (a.due_at||"9").localeCompare(b.due_at||"9")||b.created_at.localeCompare(a.created_at));
+  const chatOf = id => { const c=chats.find(x=>x.id===id); return c?chatName(c):""; };
+  $("taskList").innerHTML = list.length ? list.map(t=>{ const d=dueInfo(t);
+    return `<div class="tcard ${t.status==="done"?"done":""}" data-id="${t.id}" role="button" tabindex="0">
+      <button class="check ${t.status==="done"?"on":""}" data-check="${t.id}" aria-label="Mark done">${t.status==="done"?icon("task"):""}</button>
+      <div style="min-width:0;flex:1"><div class="tt">${esc(t.title)}</div>
+      <div class="ts">${d?`<span class="chip ${d.cls}">${esc(d.txt)}</span>`:""}<span>${taskFilter==="given"?"For "+esc(nameOf(t.assignee_id)):"From "+esc(nameOf(t.created_by))}</span><span>· ${esc(chatOf(t.conversation_id))}</span>${t.source==="ai"?'<span class="chip">AI</span>':""}</div></div></div>`;
+  }).join("") : `<div class="empty"><b>${taskFilter==="done"?"Nothing finished yet":"All clear"}</b><span>${taskFilter==="mine"?"Work people give you shows up here.":taskFilter==="given"?"Work you hand out shows up here until it's done.":"Finished work is kept here."}</span></div>`;
+  $("taskList").querySelectorAll(".tcard").forEach(el=>el.onclick=()=>openTask(el.dataset.id));
+  $("taskList").querySelectorAll("[data-check]").forEach(b=>b.onclick=e=>{e.stopPropagation(); toggleDone(allTasks.find(t=>t.id===b.dataset.check));});
+}
+document.querySelectorAll("#taskSeg button").forEach(b=>b.onclick=()=>{taskFilter=b.dataset.f;renderTasks()});
+async function toggleDone(t){
+  const done=t.status!=="done";
+  const {data,error}=await sb.from("tasks").update({status:done?"done":"open",done_at:done?new Date().toISOString():null}).eq("id",t.id).select().single();
+  if(error) return toast(error.message);
+  onTaskChange({eventType:"UPDATE",new:data}); toast(done?"Marked done ✅":"Reopened");
+}
+
+// ---------- SHEET ----------
+function sheet(html){
+  $("sheetRoot").innerHTML=`<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div></div>`;
+  $("scrim").onclick=e=>{ if(e.target.id==="scrim") closeSheet(); };
+  $("sheetRoot").querySelectorAll("[data-close]").forEach(b=>b.onclick=closeSheet);
+}
+const closeSheet=()=>$("sheetRoot").innerHTML="";
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closeSheet(); $("viewer").classList.add("hidden"); } });
+const toLocal = d => d ? new Date(new Date(d).getTime()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16) : "";
+function peopleOptions(sel,convId){ const c=chats.find(x=>x.id===(convId||cur?.id)); const ppl=c?c.people:Object.values(profiles); return ppl.map(p=>`<option value="${p.id}" ${p.id===sel?"selected":""}>${esc(p.id===me.id?"Me":(p.name||p.email))}</option>`).join(""); }
+
+function taskFromMsg(mid){
+  const m=msgs.find(x=>x.id===mid); if(!m) return;
+  const ex=taskForMsg(mid); if(ex) return openTask(ex.id);
+  const text=(m.body||"").replace(TASK_RE,"");
+  sheet(`<h2>Make it a task</h2>
+    ${m.body?`<div class="src">${esc(m.body)}</div>`:""}
+    <input id="tTitle" class="field" placeholder="What needs doing?" value="${esc((text||m.file_name||"").split("\n")[0].slice(0,140))}">
+    <textarea id="tDetails" class="field" rows="2" placeholder="Details (optional)">${esc(text.includes("\n")?text:"")}</textarea>
+    <div class="grid2"><label style="display:grid;gap:6px"><span class="label">For</span><select id="tWho" class="field">${peopleOptions((otherOf(cur)||{}).id)}</select></label>
+    <label style="display:grid;gap:6px"><span class="label">Due</span><input id="tDue" class="field" type="datetime-local"></label></div>
+    <div class="actions"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="tSave">${icon("pin")} Add bubble</button></div>`);
+  $("tTitle").focus(); $("tTitle").select();
+  $("tSave").onclick=async()=>{ const v=readTaskForm(); if(!v) return; closeSheet(); await createTask({...v,message_id:mid}); };
+}
+function readTaskForm(){
+  const v={title:$("tTitle").value.trim(), details:$("tDetails").value.trim()||null, assignee_id:$("tWho").value, due_at:$("tDue").value?new Date($("tDue").value).toISOString():null};
+  if(!v.title){ toast("Give the task a title"); return null; } return v;
+}
+function calLink(t){
+  const s=t.due_at?new Date(new Date(t.due_at).getTime()-30*60e3):new Date(Date.now()+60*60e3), e=new Date(s.getTime()+30*60e3);
+  const f=d=>d.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("WhatsWork: "+t.title)+"&dates="+f(s)+"/"+f(e)+"&details="+encodeURIComponent((t.details||"")+"\n\nFrom "+nameOf(t.created_by)+" in WhatsWork");
 }
 function openTask(id){
-  const t=tasks.find(x=>x.id===id); editing=t;
-  $("tmhead").textContent=t.status==="done"?"✅ Done task":"Work task";
-  $("tmtitle").value=t.title; $("tmdetails").value=t.details||""; fillAssignees(t.assignee_id);
-  $("tmdue").value=toLocal(t.due_at);
-  const by=members.find(p=>p.id===t.created_by);
-  $("tmmeta").textContent=`Given by ${by?(by.id===me.id?"you":by.name):"?"} · ${new Date(t.created_at).toLocaleString()}`;
-  $("tmdone").textContent=t.status==="done"?"Reopen":"Mark done";
-  ["tmdone","tmdel"].forEach(x=>$(x).classList.remove("hidden"));
-  $("tmjump").classList.toggle("hidden",!t.message_id);
-  $("taskmodal").classList.remove("hidden");
+  const t=allTasks.find(x=>x.id===id); if(!t) return toast("Task not found");
+  const m=msgs.find(x=>x.id===t.message_id), d=dueInfo(t);
+  sheet(`<div class="line"><span class="label">${t.source==="ai"?"Spotted by AI":"Task"} · from ${esc(nameOf(t.created_by))}</span>${d?`<span class="chip ${d.cls}">${esc(d.txt)}</span>`:""}</div>
+    <input id="tTitle" class="field" style="font-weight:700;font-size:17px" value="${esc(t.title)}">
+    ${m?.body?`<div class="src">${esc(m.body)}</div>`:""}
+    <textarea id="tDetails" class="field" rows="2" placeholder="Details (optional)">${esc(t.details||"")}</textarea>
+    <div class="grid2"><label style="display:grid;gap:6px"><span class="label">For</span><select id="tWho" class="field">${peopleOptions(t.assignee_id,t.conversation_id)}</select></label>
+    <label style="display:grid;gap:6px"><span class="label">Due</span><input id="tDue" class="field" type="datetime-local" value="${toLocal(t.due_at)}"></label></div>
+    <button class="btn ${t.status==="done"?"ghost":""}" id="tDone" ${t.status==="done"?"":'style="background:var(--ok);color:#fff"'}>${icon("task")} ${t.status==="done"?"Reopen":"Mark done"}</button>
+    <div class="actions">
+      <button class="btn soft sm" id="tSave">Save changes</button>
+      <a class="btn soft sm" href="${calLink(t)}" target="_blank" rel="noopener" style="text-decoration:none">${icon("cal")} Add to calendar</a>
+      ${t.message_id?`<button class="btn soft sm" id="tJump">Go to message</button>`:""}
+      <button class="btn danger sm" id="tDel">Delete</button>
+    </div>`);
+  $("tDone").onclick=()=>{ closeSheet(); toggleDone(t); };
+  $("tSave").onclick=async()=>{ const v=readTaskForm(); if(!v) return; if(v.due_at!==t.due_at) v.reminded_at=null;
+    const {data,error}=await sb.from("tasks").update(v).eq("id",t.id).select().single(); if(error) return toast(error.message);
+    closeSheet(); onTaskChange({eventType:"UPDATE",new:data}); toast("Saved"); };
+  $("tDel").onclick=()=>{ const b=$("tDel"); if(b.dataset.armed){ (async()=>{ const {error}=await sb.from("tasks").delete().eq("id",t.id); if(error) return toast(error.message); closeSheet(); onTaskChange({eventType:"DELETE",old:{id:t.id}}); toast("Task deleted"); })(); } else { b.dataset.armed=1; b.textContent="Tap again to delete"; } };
+  const j=$("tJump"); if(j) j.onclick=async()=>{ closeSheet(); if(!cur||cur.id!==t.conversation_id||$("chat").classList.contains("hidden")||!$("app").classList.contains("inchat")) await openChat(t.conversation_id);
+    const el=$("m-"+t.message_id); if(el){ el.scrollIntoView({behavior:"smooth",block:"center"}); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } else toast("That message is further back"); };
 }
-const closeModal=()=>{$("taskmodal").classList.add("hidden");editing=null};
-$("tmclose").onclick=closeModal;
-$("taskmodal").onclick=e=>{if(e.target.id==="taskmodal")closeModal()};
-$("tmsave").onclick=async()=>{
-  const v={title:$("tmtitle").value.trim(),details:$("tmdetails").value.trim()||null,assignee_id:$("tmassignee").value,due_at:$("tmdue").value?new Date($("tmdue").value).toISOString():null};
-  if(!v.title) return toast("Give the task a title");
-  if(editing.id){const {data,error}=await sb.from("tasks").update(v).eq("id",editing.id).select().single(); if(error) return toast(error.message); onTask({eventType:"UPDATE",new:data});}
-  else await createTask({...v,message_id:editing.message_id});
-  closeModal();
-};
-$("tmdone").onclick=async()=>{
-  const done=editing.status!=="done";
-  const {data,error}=await sb.from("tasks").update({status:done?"done":"open",done_at:done?new Date().toISOString():null}).eq("id",editing.id).select().single();
-  if(error) return toast(error.message); onTask({eventType:"UPDATE",new:data}); toast(done?"Marked done ✅":"Reopened"); closeModal();
-};
-$("tmdel").onclick=async()=>{
-  if(!confirm("Delete this task?")) return;
-  const id=editing.id; const {error}=await sb.from("tasks").delete().eq("id",id); if(error) return toast(error.message);
-  onTask({eventType:"DELETE",old:{id}}); closeModal();
-};
-$("tmjump").onclick=()=>{const el=$("m-"+editing.message_id); closeModal(); if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),2000)} else toast("Message is further back")};
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+// ---------- SETTINGS ----------
+let ai={enabled:false,provider:"gemini",model:"",has_key:false}, aiProvider="gemini";
+async function renderSettings(){
+  const {data}=await sb.rpc("get_ai_settings");
+  ai = (data&&data[0]) || {enabled:false,provider:"gemini",model:"",has_key:false};
+  aiProvider=ai.provider||"gemini";
+  const pushOk = "serviceWorker" in navigator && "PushManager" in window;
+  const perm = "Notification" in window ? Notification.permission : "unsupported";
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  let subbed=false; try{ if(pushOk){ const reg=await navigator.serviceWorker.getRegistration(); subbed=!!(reg && await reg.pushManager.getSubscription()); } }catch{}
+  $("settings").innerHTML = `
+  <div class="card">
+    <h3>${icon("user")} You</h3>
+    <div class="line" style="gap:12px">${avHtml({id:me.id,name:myName})}<div style="flex:1;min-width:0"><input id="sName" class="field" value="${esc(myName)}" maxlength="60"><div class="muted" style="font-size:12.5px;margin-top:4px">${esc(me.email)}</div></div></div>
+    <div class="actions"><button class="btn soft sm" id="sNameSave">Save name</button><button class="btn ghost sm" id="sOut">Sign out</button></div>
+  </div>
+
+  <div class="card">
+    <div class="line"><h3>${icon("bell")} Notifications</h3><span class="status ${subbed&&perm==="granted"?"ok":perm==="denied"?"bad":""}">${subbed&&perm==="granted"?"On":perm==="denied"?"Blocked":"Off"}</span></div>
+    <p>Get a lock-screen alert for new messages, new work for you, and 1 hour before a task is due.</p>
+    ${!pushOk ? (ios&&!standalone ? `<p class="err">On iPhone, add WhatsWork to your Home Screen first (Share → Add to Home Screen), then open it from there and come back here.</p>` : `<p class="err">This browser can't receive notifications. Try Chrome on Android or the installed app on iPhone.</p>`)
+      : perm==="denied" ? `<p class="err">Notifications are blocked for this site. Allow them in your browser or phone settings, then come back.</p>`
+      : `<div class="actions">${subbed?`<button class="btn soft sm" id="sTest">Send a test</button><button class="btn ghost sm" id="sPushOff">Turn off on this device</button>`:`<button class="btn" id="sPushOn">${icon("bell")} Turn on notifications</button>`}</div>`}
+  </div>
+
+  <div class="card">
+    <div class="line"><h3>${icon("spark")} AI work bubbles</h3><label class="switch"><input type="checkbox" id="sAi" ${ai.enabled?"checked":""}><span></span></label></div>
+    <p>When on, AI reads new chat messages every 5 minutes and turns work requests into bubbles automatically. Manual bubbles always work, with or without AI.</p>
+    <div class="providers" id="sProv">${Object.entries(AI_PROVIDERS).map(([k,v])=>`<button data-k="${k}" class="${k===aiProvider?"on":""}">${v.name}<small>${v.note}</small></button>`).join("")}</div>
+    <label style="display:grid;gap:6px"><span class="label">Model</span><input id="sModel" class="field" placeholder="Model name" value="${esc(ai.model||AI_PROVIDERS[aiProvider].model)}"></label>
+    <label style="display:grid;gap:6px"><span class="label">API key</span><input id="sKey" class="field" type="password" autocomplete="off" placeholder="${ai.has_key?"Saved ("+esc(ai.key_hint||"")+") · paste a new one to replace":"Paste your API key"}"></label>
+    <div class="muted" style="font-size:12.5px" id="sKeyHelp">Get a key: <a href="${AI_PROVIDERS[aiProvider].keyUrl}" target="_blank" rel="noopener" style="color:var(--brand)">${AI_PROVIDERS[aiProvider].keyUrl.replace("https://","")}</a>. Your key is stored on the server only. The app can never show it again.</div>
+    ${ai.last_error?`<div class="err">Last run failed: ${esc(ai.last_error)}</div>`:""}
+    ${ai.last_run?`<div class="muted" style="font-size:12.5px">Last checked ${fmtShort(ai.last_run)}${ai.last_error?"":` · found ${ai.last_found||0} task${ai.last_found===1?"":"s"}`}</div>`:""}
+    <div class="actions"><button class="btn sm" id="sAiSave">Save AI settings</button>${ai.has_key?`<button class="btn soft sm" id="sScan">Check chats now</button><button class="btn ghost sm" id="sKeyDel">Remove key</button>`:""}</div>
+  </div>
+
+  <div class="card">
+    <h3>${icon("phone")} Install on your phone</h3>
+    <ol class="steps"><li><b>Android (Chrome):</b> menu ⋮ → Install app / Add to Home screen.</li><li><b>iPhone (Safari):</b> Share → Add to Home Screen, then open it from the Home Screen.</li><li><b>Desktop (Chrome/Edge):</b> the install icon in the address bar.</li></ol>
+  </div>
+  <p class="muted" style="text-align:center;font-size:12px;margin:0">WhatsWork · proof of concept</p>`;
+
+  $("sNameSave").onclick=async()=>{ const n=$("sName").value.trim(); if(!n) return; const {error}=await sb.rpc("set_my_name",{p_name:n}); if(error) return toast(error.message); myName=n; profiles[me.id]={...profiles[me.id],name:n}; toast("Name saved"); };
+  $("sOut").onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
+  const on=$("sPushOn"); if(on) on.onclick=enablePush;
+  const off=$("sPushOff"); if(off) off.onclick=disablePush;
+  const tst=$("sTest"); if(tst) tst.onclick=async()=>{ tst.disabled=true; const {data,error}=await sb.functions.invoke(WORKER,{body:{action:"test_push"}}); tst.disabled=false; if(error) return toast("Test failed: "+error.message); toast(data?.sent?"Test sent. Check your notifications.":"No device found. Turn notifications off and on again."); };
+  $("sProv").querySelectorAll("button").forEach(b=>b.onclick=()=>{ aiProvider=b.dataset.k; $("sProv").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));
+    const p=AI_PROVIDERS[aiProvider]; $("sModel").value = aiProvider===ai.provider&&ai.model ? ai.model : p.model;
+    $("sModel").placeholder = aiProvider==="openai"?"e.g. the model name from your OpenAI dashboard":aiProvider==="openrouter"?"e.g. google/… or anthropic/… from openrouter.ai/models":"Model name";
+    $("sKeyHelp").innerHTML=`Get a key: <a href="${p.keyUrl}" target="_blank" rel="noopener" style="color:var(--brand)">${p.keyUrl.replace("https://","")}</a>. Your key is stored on the server only. The app can never show it again.`;
+    if(aiProvider!==ai.provider) $("sKey").placeholder="Paste your "+p.name+" API key"; });
+  $("sAiSave").onclick=()=>saveAi();
+  const sc=$("sScan"); if(sc) sc.onclick=async()=>{ sc.disabled=true; sc.textContent="Checking…"; const {data,error}=await sb.functions.invoke(WORKER,{body:{action:"scan_now"}}); sc.disabled=false; sc.textContent="Check chats now";
+    if(error) return toast("Check failed: "+error.message); if(data?.skipped) return toast("Turn AI on and save first"); if(data?.error) toast("AI error: "+data.error); else toast(data.found?`Found ${data.found} new task${data.found>1?"s":""}`:"No new tasks found"); loadTasks(); renderSettings(); };
+  const kd=$("sKeyDel"); if(kd) kd.onclick=()=>saveAi("__clear__");
+}
+async function saveAi(forceKey){
+  const key = forceKey ?? $("sKey").value.trim();
+  const model = $("sModel").value.trim();
+  const enabled = forceKey==="__clear__" ? false : $("sAi").checked;
+  if(enabled && !model) return toast("Add a model name first");
+  if(enabled && !key && !(ai.has_key && aiProvider===ai.provider)) return toast("Paste an API key first");
+  const {error}=await sb.rpc("save_ai_settings",{p_enabled:enabled,p_provider:aiProvider,p_model:model,p_key:key,p_tz:Intl.DateTimeFormat().resolvedOptions().timeZone});
+  if(error) return toast(error.message);
+  toast(forceKey==="__clear__"?"Key removed. AI is off.":enabled?"AI is on. It checks new messages every 5 minutes.":"Saved. AI is off.");
+  renderSettings();
+}
+function b64ToBytes(s){ s=s.replace(/-/g,"+").replace(/_/g,"/"); const p=s+"=".repeat((4-s.length%4)%4); return Uint8Array.from(atob(p),c=>c.charCodeAt(0)); }
+async function enablePush(){
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted") { toast("Notifications weren't allowed"); return renderSettings(); }
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64ToBytes(VAPID_PUBLIC)});
+    const j=sub.toJSON();
+    const {error}=await sb.rpc("save_push_sub",{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth});
+    if(error) throw error;
+    toast("Notifications are on for this device");
+  }catch(e){ toast("Couldn't turn on notifications: "+(e.message||e)); }
+  renderSettings();
+}
+async function disablePush(){
+  try{ const reg=await navigator.serviceWorker.ready; const sub=await reg.pushManager.getSubscription(); if(sub){ await sb.rpc("delete_push_sub",{p_endpoint:sub.endpoint}); await sub.unsubscribe(); } toast("Notifications off on this device"); }
+  catch(e){ toast(e.message||String(e)); }
+  renderSettings();
+}
+
+// refresh due labels every minute
+setInterval(()=>{ if(me){ if(cur) renderOrbit(); if(pane==="Tasks") renderTasks(); } }, 60000);
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
 </html>
