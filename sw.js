@@ -1,4 +1,4 @@
-// WhatsWork service worker: shows push notifications and opens the right chat when tapped
+// WhatsWork service worker: shows push notifications and opens the right day when tapped
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', () => {});
