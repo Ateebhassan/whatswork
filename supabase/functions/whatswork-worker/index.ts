@@ -4,7 +4,7 @@
 // - "message" / "task": kept for the old chat; nothing sends these any more
 import postgres from "npm:postgres@3.4.5";
 import webpush from "npm:web-push@3.6.7";
-import { WWCore, normaliseState } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@a03ea7d/core.mjs";
+import { WWCore, normaliseState } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@81c4e90/core.mjs";
 
 const sql = postgres(Deno.env.get("SUPABASE_DB_URL")!, { prepare: false, max: 3 });
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -170,14 +170,11 @@ Rules:
 async function quickAdd(uid: string, text: string, today: string, now: string) {
   const st = await aiSettings(uid);
   const cals = await sql`select name, short_name, billing, kind from public.calendars where user_id = ${uid} and not archived order by sort`;
-  const W = WWCore as any;
   const wd = new Date(today + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" });
   const user = `Today is ${wd} ${today}. The time now is ${now}.
 Calendars: ${(cals as any[]).map((c) => `${c.name}${c.short_name ? ` (also called ${c.short_name})` : ""}${c.billing === "personal" ? " [personal]" : ""}${c.kind === "planner" ? " [college social media]" : ""}`).join("; ")}.
 Note: ${String(text).slice(0, 300)}`;
-  const entry = firstJson(await callAI(st.provider, st.model, st.api_key, QUICK_SYSTEM, user, 400));
-  void W;
-  return entry;
+  return firstJson(await callAI(st.provider, st.model, st.api_key, QUICK_SYSTEM, user, 400));
 }
 
 // ---------- AUTH ----------
