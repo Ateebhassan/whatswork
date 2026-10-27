@@ -684,6 +684,97 @@ var WWCore = (function () {
     return out;
   }
 
+  /* ---------- sleep from health records ---------- */
+  /* row: { date (the morning you woke), sleep_start, sleep_end (ISO), asleep_minutes } */
+  function sleepMinutes(row) {
+    if (row.asleep_minutes != null) return +row.asleep_minutes;
+    if (row.sleep_start && row.sleep_end) return Math.max(0, Math.round((Date.parse(row.sleep_end) - Date.parse(row.sleep_start)) / 60000));
+    return null;
+  }
+
+  /* ---------- reviews ----------
+     input = { today, calendars, events, planner, tracks, postStatus, health: [rows], screen: [{week_start, screen_avg_minutes}] }
+     Returns plain facts (for an AI to write from) and rule-based recommendations (used when there is no AI). */
+  function buildReview(input) {
+    var today = input.today, cals = (input.calendars || []).filter(function (c) { return !c.archived; });
+    var byId = {}; cals.forEach(function (c) { byId[c.id] = c; });
+    var mon = addDays(today, -((weekday(dnum(today)) + 6) % 7));
+    var lastMon = addDays(mon, -7), nextMon = addDays(mon, 7);
+    var occs = occurrences(input.events || [], cals, addDays(lastMon, -1), addDays(today, 8));
+    var thisWeek = weekHours(mon, occs), lastWeek = weekHours(lastMon, occs);
+    var tot = billingTotals(thisWeek, cals), lastTot = billingTotals(lastWeek, cals);
+    var ahead = occs.filter(function (o) { return o.date >= addDays(today, -1) && o.date <= addDays(today, 7); });
+    var an = analyse(ahead);
+    var clashes = an.clashes.filter(function (c) { return c.date >= today; });
+    var shortSleep = an.shortSleep.filter(function (s) { return s.date >= today; });
+    var ctx = { planner: input.planner, tracks: input.tracks, calendars: cals, postStatus: input.postStatus || {}, occs: occs };
+    var postsSoon = [];
+    for (var i = 0; i < 3; i++) {
+      var d = addDays(today, i), seen = {};
+      postsOn(d, ctx).forEach(function (p) {
+        var k = p.title + '|' + statusText(p.status);
+        if (seen[k]) { seen[k].calendar += ', ' + shortName(p.cal); return; }
+        seen[k] = { date: d, title: p.title, calendar: shortName(p.cal), status: statusText(p.status), ready: p.status.scheduled }; postsSoon.push(seen[k]);
+      });
+    }
+    var tight = [];
+    for (i = 0; i < 7; i++) { var dd = addDays(today, i), sp = daySplit(dd, occs), free = 0; sp.groups.forEach(function (g) { if (g.id === 'free') free = g.minutes; }); if (free < 120) tight.push({ date: dd, free: free }); }
+    var nights = (input.health || []).filter(function (h) { return h.date >= addDays(today, -7) && h.date < today; }).map(function (h) { return { date: h.date, minutes: sleepMinutes(h) }; }).filter(function (n) { return n.minutes != null; });
+    var avgSleep = nights.length ? Math.round(nights.reduce(function (a, n) { return a + n.minutes; }, 0) / nights.length) : null;
+    var shortNights = nights.filter(function (n) { return n.minutes < 360; });
+    var screen = (input.screen || []).slice().sort(function (a, b) { return a.week_start < b.week_start ? 1 : -1; });
+    var unpaidCals = cals.filter(function (c) { return c.billing === 'unpaid' && thisWeek.byCal[c.id]; });
+    var shiftEnd = null;
+    (input.events || []).forEach(function (e) { if (e.kind === 'shift' && e.repeat_until && e.repeat_until >= today && dnum(e.repeat_until) - dnum(today) <= 45) shiftEnd = e.repeat_until; });
+
+    var dayName = function (s) { return s === today ? 'today' : s === addDays(today, 1) ? 'tomorrow' : DAYNAMES[weekday(dnum(s))]; };
+    var items = [];
+    clashes.slice(0, 3).forEach(function (c) {
+      items.push({ type: 'warning', text: cap(dayName(c.date)) + ' at ' + fmtTime(c.start) + ': ' + c.a.ev.title + ' (' + shortName(c.a.cal) + ') and ' + c.b.ev.title + ' (' + shortName(c.b.cal) + ') overlap. Move one of them.' });
+    });
+    shortSleep.slice(0, 2).forEach(function (s) {
+      var prev = addDays(s.date, -1);
+      var when = dayName(prev), rest = (when === 'today' || when === 'tomorrow') ? 'Rest ' + when : 'Rest on ' + when;
+      items.push({ type: 'warning', text: 'Your sleep ' + (dayName(s.date) === 'today' || dayName(s.date) === 'tomorrow' ? '' : 'on ') + dayName(s.date) + ' is cut to ' + fmtDur(Math.max(0, s.left)) + ' by ' + s.by.map(function (o) { return o.ev.title; }).join(' and ') + '. ' + rest + ' or move it.' });
+    });
+    if (tot.unpaid >= 180) {
+      var parts = unpaidCals.map(function (c) { return shortName(c) + ' ' + fmtDur(thisWeek.byCal[c.id]); }).join(', ');
+      var up = tot.unpaid - lastTot.unpaid;
+      items.push({ type: 'tip', text: 'You have ' + fmtDur(tot.unpaid) + ' of unpaid work planned this week (' + parts + ')' + (lastTot.unpaid && up > 60 ? ', ' + fmtDur(up) + ' more than last week' : '') + '. Decide what each one is worth before it grows.' });
+    }
+    var notReady = postsSoon.filter(function (p) { return !p.ready; });
+    if (notReady.length) items.push({ type: 'tip', text: notReady.length + ' post' + (notReady.length > 1 ? 's' : '') + ' in the next 3 days ' + (notReady.length > 1 ? 'aren\'t' : 'isn\'t') + ' scheduled yet: ' + notReady.slice(0, 4).map(function (p) { return p.title + ' (' + p.calendar + ', ' + dayName(p.date) + ')'; }).join('; ') + '.' });
+    tight.slice(0, 2).forEach(function (t) { items.push({ type: 'tip', text: cap(dayName(t.date)) + ' has only ' + fmtDur(t.free) + ' free. Keep it light or move something.' }); });
+    if (avgSleep != null) {
+      if (avgSleep < 390) items.push({ type: 'warning', text: 'You slept ' + fmtDur(avgSleep) + ' a night on average over the last ' + nights.length + ' nights' + (shortNights.length ? ', with ' + shortNights.length + ' under 6 hours' : '') + '. Protect one long sleep this week.' });
+      else items.push({ type: 'win', text: 'You averaged ' + fmtDur(avgSleep) + ' of sleep over the last ' + nights.length + ' nights.' });
+    }
+    if (screen[0] && screen[0].screen_avg_minutes >= 360) items.push({ type: 'tip', text: 'Screen time was ' + fmtDur(screen[0].screen_avg_minutes) + ' a day last week' + (screen[1] ? ' (' + fmtDur(screen[1].screen_avg_minutes) + ' the week before)' : '') + '.' });
+    if (shiftEnd) items.push({ type: 'tip', text: 'Your night shift ends on ' + shiftEnd + '. Plan the switch to the day shift: your sleep block and university times will need to move.' });
+    if (!items.length) items.push({ type: 'win', text: 'No clashes, no short sleep and nothing late in the next week. Good shape.' });
+
+    var facts = {
+      today: today, week: mon + ' to ' + addDays(mon, 6),
+      hours_this_week: cals.filter(function (c) { return thisWeek.byCal[c.id]; }).map(function (c) { return { calendar: c.name, paid: c.billing, hours: +(thisWeek.byCal[c.id] / 60).toFixed(1), last_week_hours: +((lastWeek.byCal[c.id] || 0) / 60).toFixed(1) }; }),
+      totals_hours: { paid: +(tot.paid / 60).toFixed(1), unpaid: +(tot.unpaid / 60).toFixed(1), personal: +(tot.personal / 60).toFixed(1) },
+      clashes_next_7_days: clashes.map(function (c) { return { date: c.date, time: fmtTime(c.start), a: c.a.ev.title + ' (' + c.a.cal.name + ')', b: c.b.ev.title + ' (' + c.b.cal.name + ')' }; }),
+      short_sleep_planned: shortSleep.map(function (s) { return { date: s.date, sleep_left: fmtDur(Math.max(0, s.left)), cut_by: s.by.map(function (o) { return o.ev.title; }) }; }),
+      days_with_under_2h_free: tight.map(function (t) { return { date: t.date, free: fmtDur(t.free) }; }),
+      posts_next_3_days: postsSoon,
+      sleep_last_nights: nights.map(function (n) { return { woke_on: n.date, slept: fmtDur(n.minutes) }; }),
+      screen_time_daily_average_by_week: screen.slice(0, 4).map(function (s) { return { week_of: s.week_start, per_day: fmtDur(s.screen_avg_minutes) }; }),
+      night_shift_ends: shiftEnd
+    };
+    return {
+      period_start: today, period_end: addDays(today, 6),
+      title: 'Week of ' + (+mon.slice(8)) + ' ' + MONTH_NAMES[+mon.slice(5, 7) - 1].slice(0, 3),
+      summary: fmtDur(tot.paid) + ' paid, ' + fmtDur(tot.unpaid) + ' unpaid planned this week' + (clashes.length ? ', ' + clashes.length + ' clash' + (clashes.length > 1 ? 'es' : '') + ' ahead' : '') + (avgSleep != null ? ', ' + fmtDur(avgSleep) + ' average sleep' : '') + '.',
+      items: items.slice(0, 8), facts: facts
+    };
+  }
+  var DAYNAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
   /* ---------- quick add without AI: "meeting with Sam Thursday 11pm" ---------- */
   var WD = { sunday: 0, sun: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, tues: 2, wednesday: 3, wed: 3, thursday: 4, thu: 4, thur: 4, thurs: 4, friday: 5, fri: 5, saturday: 6, sat: 6 };
   var MO = { jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4, may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8, sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12 };
@@ -799,6 +890,7 @@ var WWCore = (function () {
     occurrences: occurrences, timed: timed, analyse: analyse, daySplit: daySplit, overlap: overlap,
     postsOn: postsOn, statusText: statusText, mergePosts: mergePosts, briefing: briefing, fallbackCalendars: fallbackCalendars,
     weekHours: weekHours, billingTotals: billingTotals, parseQuick: parseQuick, hm: hm,
+    buildReview: buildReview, sleepMinutes: sleepMinutes,
     resetPlannerCache: function () { clearCache(); }
   };
 })();

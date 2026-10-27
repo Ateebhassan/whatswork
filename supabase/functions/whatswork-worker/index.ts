@@ -1,6 +1,7 @@
 // WhatsWork background worker
-// - "cron" (every 5 min): the 9 am and 8 pm briefings across all calendars
-// - "test_push", "quick_add": called from the app by a signed-in user
+// - "cron" (every 5 min): the 9 am and 8 pm briefings across all calendars, and the Sunday evening review
+// - "test_push", "quick_add", "review_now": called from the app by a signed-in user
+// - "health": posted by the iPhone Shortcut with an x-health-token header
 // - "message" / "task": kept for the old chat; nothing sends these any more
 import postgres from "npm:postgres@3.4.5";
 import webpush from "npm:web-push@3.6.7";
@@ -111,7 +112,8 @@ async function briefings() {
 
 async function cron() {
   const sent = await briefings();
-  return { briefings: sent };
+  const reviews = await weeklyReviews();
+  return { briefings: sent, reviews };
 }
 
 // ---------- AI (your saved provider and key) ----------
@@ -177,6 +179,115 @@ Note: ${String(text).slice(0, 300)}`;
   return firstJson(await callAI(st.provider, st.model, st.api_key, QUICK_SYSTEM, user, 400));
 }
 
+// ---------- HEALTH (from the iPhone Shortcut) ----------
+async function sha256hex(text: string) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function tzOf(uid: string) {
+  try { const [p] = await sql`select tz from public.profiles where id = ${uid}`; return p?.tz || "Asia/Karachi"; } catch { return "Asia/Karachi"; }
+}
+function localDateOf(iso: string, tz: string) {
+  const f = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
+  return f.format(new Date(iso));
+}
+/* Shortcuts can send dates in a few shapes; accept ISO 8601 and "YYYY-MM-DD HH:MM". */
+function parseWhen(v: unknown): string | null {
+  if (typeof v !== "string" || !v.trim()) return null;
+  let t = v.trim().replace(/^(\d{4}-\d{2}-\d{2}) (\d{1,2}:\d{2})/, "$1T$2");
+  const d = new Date(t);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+async function healthFromShortcut(token: string, body: any) {
+  const hash = await sha256hex(token.trim());
+  const [row] = await sql`select user_id from private.health_tokens where token_hash = ${hash}`;
+  if (!row) return { ok: false, error: "This Shortcut's key isn't recognised. Make a new key in WhatsWork (Review tab, Sleep, Set up iPhone Shortcut)." };
+  const uid = row.user_id, tz = await tzOf(uid);
+  const start = parseWhen(body.sleep_start), end = parseWhen(body.sleep_end);
+  const asleep = Number.isFinite(+body.asleep_minutes) && body.asleep_minutes !== "" && body.asleep_minutes != null ? Math.round(+body.asleep_minutes) : null;
+  const screen = Number.isFinite(+body.screen_minutes) && body.screen_minutes !== "" && body.screen_minutes != null ? Math.round(+body.screen_minutes) : null;
+  if (!end && asleep == null && screen == null) return { ok: false, error: "No sleep found. Check the Shortcut finds Sleep samples from the last day." };
+  if (start && end) {
+    const mins = (Date.parse(end) - Date.parse(start)) / 60000;
+    if (mins <= 0 || mins > 20 * 60) return { ok: false, error: "The sleep times look wrong (start must be before end, under 20 hours)." };
+  }
+  const date = end ? localDateOf(end, tz) : (typeof body.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : localParts(tz).date);
+  await sql`insert into public.health_days (user_id, date, sleep_start, sleep_end, asleep_minutes, screen_minutes, source, updated_at)
+    values (${uid}, ${date}, ${start}, ${end}, ${asleep != null ? Math.max(0, Math.min(1440, asleep)) : null}, ${screen != null ? Math.max(0, Math.min(1440, screen)) : null}, 'shortcut', now())
+    on conflict (user_id, date) do update set
+      sleep_start = coalesce(excluded.sleep_start, public.health_days.sleep_start), sleep_end = coalesce(excluded.sleep_end, public.health_days.sleep_end),
+      asleep_minutes = coalesce(excluded.asleep_minutes, public.health_days.asleep_minutes), screen_minutes = coalesce(excluded.screen_minutes, public.health_days.screen_minutes),
+      source = 'shortcut', updated_at = now()`;
+  await sql`update private.health_tokens set last_used = now() where user_id = ${uid}`;
+  const W = WWCore as any;
+  const mins = asleep ?? (start && end ? Math.round((Date.parse(end) - Date.parse(start)) / 60000) : null);
+  return { ok: true, date, slept: mins != null ? W.fmtDur(mins) : null };
+}
+
+// ---------- REVIEWS ----------
+const REVIEW_SYSTEM = `You write a short weekly review for one person's planner app. Use ONLY the facts given; never invent events, people or numbers.
+Write in plain, friendly English with short sentences. Be concrete: name the day, time, calendar and what to do.
+Answer ONLY with JSON: {"title": string (at most 8 words), "summary": string (one sentence), "items": [{"type": "warning" | "tip" | "win", "text": string (one or two sentences)}]}
+Give 3 to 6 items, most urgent first: clashes and short sleep first, then posts that aren't scheduled, then unpaid hours (name them and how many hours), then sleep and screen time, then one thing that went well if there is one.`;
+
+async function reviewInput(uid: string, today: string) {
+  const W = WWCore as any;
+  const ctx = await contextFor(uid, today, await exists("public.calendars"));
+  const events = (await exists("public.events")) ? await sql`select id, calendar_id, title, kind, to_char(date,'YYYY-MM-DD') as date,
+      to_char(start_time,'HH24:MI') as start_time, to_char(end_time,'HH24:MI') as end_time, repeat, repeat_days,
+      to_char(repeat_until,'YYYY-MM-DD') as repeat_until, (select array_agg(to_char(x,'YYYY-MM-DD')) from unnest(skip_dates) x) as skip_dates
+      from public.events where user_id = ${uid}` : [];
+  const health = await sql`select to_char(date,'YYYY-MM-DD') as date, sleep_start, sleep_end, asleep_minutes from public.health_days where user_id = ${uid} and date >= ${W.addDays(today, -14)}::date`;
+  const screen = await sql`select to_char(week_start,'YYYY-MM-DD') as week_start, screen_avg_minutes from public.health_weeks where user_id = ${uid} and screen_avg_minutes is not null order by week_start desc limit 6`;
+  return { today, calendars: ctx.calendars, events, planner: ctx.planner, tracks: ctx.tracks, postStatus: ctx.postStatus,
+    health: (health as any[]).map((h) => ({ ...h, sleep_start: h.sleep_start ? new Date(h.sleep_start).toISOString() : null, sleep_end: h.sleep_end ? new Date(h.sleep_end).toISOString() : null })),
+    screen };
+}
+function cleanItems(items: any): { type: string; text: string }[] {
+  if (!Array.isArray(items)) return [];
+  return items.filter((i) => i && typeof i.text === "string" && i.text.trim())
+    .map((i) => ({ type: ["warning", "tip", "win"].includes(i.type) ? i.type : "tip", text: String(i.text).trim().slice(0, 400) })).slice(0, 8);
+}
+async function writeReview(uid: string, kind: "weekly" | "on_demand") {
+  const W = WWCore as any;
+  const tz = await tzOf(uid), today = localParts(tz).date;
+  const base = W.buildReview(await reviewInput(uid, today));
+  let row = { title: base.title, summary: base.summary, items: base.items, source: "rules", model: null as string | null, note: "" };
+  try {
+    const st = await aiSettings(uid);
+    const out = firstJson(await callAI(st.provider, st.model, st.api_key, REVIEW_SYSTEM,
+      `Facts:\n${JSON.stringify(base.facts)}\n\nPoints found by simple rules (use them, improve the wording, add anything they missed):\n${base.items.map((i: any) => "- " + i.text).join("\n")}`, 1200));
+    const items = cleanItems(out.items);
+    if (items.length) row = { title: String(out.title || base.title).slice(0, 120), summary: String(out.summary || base.summary).slice(0, 600), items, source: "ai", model: `${st.provider}: ${st.model}`, note: "" };
+  } catch (e: any) { row.note = String(e?.message ?? e); }
+  const [saved] = await sql`insert into public.reviews (user_id, period_start, period_end, kind, source, model, title, summary, items)
+    values (${uid}, ${base.period_start}, ${base.period_end}, ${kind}, ${row.source}, ${row.model}, ${row.title}, ${row.summary}, ${sql.json(row.items)})
+    returning id, title, summary, items, source, created_at`;
+  return { review: saved, aiNote: row.source === "rules" ? row.note : "" };
+}
+/* Sunday between 7 and 11 pm local: one review a week, then a notification. */
+async function weeklyReviews() {
+  if (!(await exists("public.reviews"))) return 0;
+  const W = WWCore as any;
+  const users = await sql`select distinct user_id as id from public.calendars`;
+  let n = 0;
+  for (const u of users as any[]) {
+    try {
+      const tz = await tzOf(u.id), { date, hour } = localParts(tz);
+      if (W.weekday(W.dnum(date)) !== 0 || hour < 19 || hour >= 23) continue;
+      const key = `review:week:${u.id}`;
+      const [prev] = await sql`select value from private.app_config where key = ${key}`;
+      if (prev?.value === date) continue;
+      await sql`insert into private.app_config (key, value) values (${key}, ${date}) on conflict (key) do update set value = excluded.value`;
+      const { review } = await writeReview(u.id, "weekly");
+      const first = (review.items || [])[0]?.text || review.summary || "";
+      await pushTo([u.id], { title: "📝 Your weekly review is ready", body: first.slice(0, 180), tag: "review", url: "./?review=1" });
+      n++;
+    } catch (e) { console.error("weekly review", u.id, e); }
+  }
+  return n;
+}
+
 // ---------- AUTH ----------
 async function signedInUser(req: Request): Promise<string | null> {
   const auth = req.headers.get("Authorization");
@@ -194,6 +305,11 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const c = await config();
     const secret = req.headers.get("x-worker-secret");
+    const healthToken = req.headers.get("x-health-token");
+    if (healthToken) {
+      const r = await healthFromShortcut(healthToken, body);
+      return json(r, r.ok ? 200 : 400);
+    }
 
     if (secret && secret === c.worker_secret) {
       if (body.action === "cron") return json(await cron());
@@ -216,6 +332,7 @@ Deno.serve(async (req) => {
       try { return json({ entry: await quickAdd(uid, body.text, body.today, body.now) }); }
       catch (e: any) { return json({ error: String(e?.message ?? e) }); }
     }
+    if (body.action === "review_now") return json(await writeReview(uid, "on_demand"));
     if (body.action === "briefing_now") {
       // the app's "show me tomorrow's briefing" button
       const W = WWCore as any;

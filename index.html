@@ -207,6 +207,21 @@ select.field{appearance:none;-webkit-appearance:none}
 @media (min-width:700px){.scrim{align-items:center}.sheet{border-radius:22px}}
 @keyframes up{from{transform:translateY(40px);opacity:0}}
 
+/* review charts: one bar per night or week */
+.schart{position:relative;display:flex;align-items:flex-end;gap:2px;height:calc(var(--h) + 36px);padding-top:16px}
+.sbar{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;height:100%}
+.sbar .b{width:min(70%,28px);border-radius:4px 4px 0 0;background:#6c7bd0}
+.sbar .b.short{background:repeating-linear-gradient(135deg,#6c7bd0 0 4px,color-mix(in srgb,#6c7bd0 55%,var(--panel)) 4px 8px)}
+.sbar .b.screen{background:#0891b2}
+.sbar .v{font-size:11px;font-weight:700;color:var(--muted);min-height:14px}
+.sbar .d{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;line-height:16px;height:16px}
+.schart .guide{position:absolute;left:0;right:0;border-top:1.5px dashed var(--faint);pointer-events:none}
+.schart .guide span{position:absolute;left:-2px;top:-8px;font-size:10.5px;font-weight:700;color:var(--muted);background:var(--panel);padding-right:3px}
+.schart{padding-left:22px}
+.sbar{position:relative;z-index:1}
+.sbar .v{background:var(--panel);padding:0 2px;border-radius:4px}
+code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 11px;user-select:all;-webkit-user-select:all}
+
 /* settings */
 .calrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);width:100%;text-align:left}
 .calrow:first-of-type{border-top:0}
@@ -258,6 +273,10 @@ select.field{appearance:none;-webkit-appearance:none}
   <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
   <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></symbol>
+  <symbol id="i-review" viewBox="0 0 24 24"><path d="M9 4h6l1 2h3v15H5V6h3z"/><path d="m9 13 2 2 4-4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.2 2.4 2.4 4.8-5"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
 </svg>
 
 <!-- SIGN IN -->
@@ -295,6 +314,11 @@ select.field{appearance:none;-webkit-appearance:none}
     <button id="fab" aria-label="Add to calendar"><svg class="i"><use href="#i-plus"/></svg></button>
   </section>
 
+  <section class="screen hidden" id="sReview">
+    <div class="head"><div><h1>Review</h1></div><button class="btn soft sm" id="rNow">Write one now</button></div>
+    <div class="scroll" id="reviewBody"></div>
+  </section>
+
   <section class="screen hidden" id="sSettings">
     <div class="head"><div><h1>Settings</h1></div></div>
     <div class="scroll" id="settingsBody"></div>
@@ -306,6 +330,7 @@ select.field{appearance:none;-webkit-appearance:none}
     <button data-tab="today" class="on"><svg class="i"><use href="#i-home"/></svg>Today</button>
     <button data-tab="cal"><svg class="i"><use href="#i-cal"/></svg>Calendar</button>
     <button data-tab="planner"><svg class="i"><use href="#i-plan"/></svg>Planner</button>
+    <button data-tab="review"><svg class="i"><use href="#i-review"/></svg>Review</button>
     <button data-tab="settings"><svg class="i"><use href="#i-gear"/></svg>Settings</button>
   </nav>
 </div>
@@ -355,7 +380,7 @@ function relDay(s){ const t=todayStr(); if(s===t) return "Today"; if(s===W.addDa
 
 /* ---------- data ---------- */
 let sb = null, me = null, myName = "", cals = [], events = [], postRows = [], plannerTracks = {}, plannerState = null;
-let aiOn = false;
+let aiOn = false, health = [], screenWeeks = [], reviews = [], healthMissing = false;
 let tab = store.get("tab","today"), calView = store.get("calView","day"), calDate = todayStr(), started = false;
 
 const api = window.WW_TEST_API || {
@@ -385,6 +410,9 @@ const api = window.WW_TEST_API || {
       .on("postgres_changes",{event:"*",schema:"public",table:"events",filter:f},onChange)
       .on("postgres_changes",{event:"*",schema:"public",table:"post_status",filter:f},onChange)
       .on("postgres_changes",{event:"*",schema:"public",table:"planner_docs",filter:f},onChange)
+      .on("postgres_changes",{event:"*",schema:"public",table:"reviews",filter:f},onChange)
+      .on("postgres_changes",{event:"*",schema:"public",table:"health_days",filter:f},onChange)
+      .on("postgres_changes",{event:"*",schema:"public",table:"health_weeks",filter:f},onChange)
       .subscribe();
   },
   saveCalendar(c){ const {id,...v}=c; return id ? sb.from("calendars").update(v).eq("id",id).select().single() : sb.from("calendars").insert(v).select().single(); },
@@ -407,6 +435,23 @@ const api = window.WW_TEST_API || {
   deletePush(endpoint){ return sb.rpc("delete_push_sub",{p_endpoint:endpoint}); },
   testPush(){ return sb.functions.invoke(WORKER,{body:{action:"test_push"}}); },
   quickAI(text, today, now){ return sb.functions.invoke(WORKER,{body:{action:"quick_add", text, today, now}}); },
+  async loadHealth(){
+    const since = new Date(Date.now()-70*864e5).toISOString().slice(0,10);
+    const [h,w,r] = await Promise.all([
+      sb.from("health_days").select("*").gte("date",since).order("date"),
+      sb.from("health_weeks").select("*").order("week_start",{ascending:false}).limit(12),
+      sb.from("reviews").select("*").order("created_at",{ascending:false}).limit(20),
+    ]);
+    if (h.error || w.error || r.error) return { missing:true };
+    return { health:h.data, weeks:w.data, reviews:r.data };
+  },
+  saveHealthDay(row){ return sb.from("health_days").upsert({...row, updated_at:new Date().toISOString()},{onConflict:"user_id,date"}).select().single(); },
+  deleteHealthDay(date){ return sb.from("health_days").delete().eq("user_id",me.id).eq("date",date); },
+  saveHealthWeek(row){ return sb.from("health_weeks").upsert({...row, updated_at:new Date().toISOString()},{onConflict:"user_id,week_start"}).select().single(); },
+  reviewNow(){ return sb.functions.invoke(WORKER,{body:{action:"review_now"}}); },
+  markRead(id){ return sb.from("reviews").update({read:true}).eq("id",id); },
+  setHealthToken(hash){ return sb.rpc("ww_set_health_token",{p_hash:hash}); },
+  healthTokenInfo(){ return sb.rpc("ww_health_token_info"); },
 };
 
 function applyData(d){
@@ -419,8 +464,12 @@ function applyData(d){
   plannerState = main ? normaliseState(main) : null;
   W.resetPlannerCache();
 }
+async function loadHealth(){
+  try { const h = await api.loadHealth(); healthMissing = !!h.missing; if (!h.missing) { health=h.health||[]; screenWeeks=h.weeks||[]; reviews=h.reviews||[]; } }
+  catch { healthMissing = true; }
+}
 async function reload(){
-  const d = await api.loadAll();
+  const [d] = await Promise.all([api.loadAll(), loadHealth()]);
   if (d.error) { if (d.missing) return showSetup(); return toast("Couldn't load: "+(d.error.message||d.error)); }
   applyData(d); render();
 }
@@ -455,6 +504,7 @@ function showTab(t){
   $("sToday").classList.toggle("hidden",t!=="today");
   $("sCal").classList.toggle("hidden",t!=="cal");
   $("sSettings").classList.toggle("hidden",t!=="settings");
+  $("sReview").classList.toggle("hidden",t!=="review");
   render();
 }
 function render(){
@@ -462,6 +512,7 @@ function render(){
   if (tab==="today") renderToday();
   else if (tab==="cal") renderCal();
   else if (tab==="settings") renderSettings();
+  else if (tab==="review") renderReview();
 }
 function openDay(date){ calDate=date; calView="day"; store.set("calView","day"); showTab("cal"); }
 
@@ -520,7 +571,9 @@ function renderToday(){
   const alerts = alertsFrom(an, t);
   const notReady = pToday.filter(p=>!p.status.scheduled).length;
   const free = sp.groups.find(g=>g.id==="free")?.minutes||0;
+  const latest = reviews[0];
   $("todayBody").innerHTML = `
+    ${latest && latest.items?.length ? `<button class="card" id="tReview" style="text-align:left;width:100%"><span class="label">From your review · ${esc(fmtDay(latest.created_at.slice(0,10),{day:"numeric",month:"short"}))}</span><span style="display:flex;gap:9px;align-items:flex-start">${itemIcon(latest.items[0].type)}<span>${esc(latest.items[0].text)}</span></span></button>` : ""}
     <div class="card"><h3>Your 24 hours <span class="small muted num">${W.fmtDur(free)} free</span></h3>${splitHtml(sp,true)}</div>
     ${alerts.length?`<div class="card"><h3>Heads-up <span class="small muted">next 7 days</span></h3>${alerts.slice(0,6).map(a=>alertHtml(a,true)).join("")}</div>`:""}
     <div class="card"><h3>Posts today <span class="small muted">${pToday.length?(notReady?notReady+" not scheduled":"all scheduled"):""}</span></h3>${pToday.length?pToday.map(postRowHtml).join(""):`<div class="empty">No posts due today.</div>`}</div>
@@ -529,6 +582,7 @@ function renderToday(){
     <div class="card"><h3>Posts tomorrow</h3>${pTom.length?pTom.map(postRowHtml).join(""):`<div class="empty">No posts due tomorrow.</div>`}</div>
     ${hoursCardHtml()}`;
   $("hMore").onclick=openPastWeeks;
+  if ($("tReview")) $("tReview").onclick=()=>showTab("review");
   wirePosts($("todayBody"));
   $("todayBody").querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>openDay(b.dataset.day));
   $("todayBody").querySelectorAll("[data-ev]").forEach(b=>b.onclick=()=>openEvent(events.find(e=>e.id===b.dataset.ev), b.dataset.date));
@@ -843,6 +897,125 @@ function openCalendar(c){
     const r=await api.saveCalendar({id:c.id, archived:true}); if(r.error) return toast(r.error.message); closeSheet(); toast("Calendar removed"); reload(); };
 }
 
+/* ---------- REVIEW ---------- */
+function itemIcon(type){ const m={warning:["warn","var(--bad)"],tip:["bulb","var(--warn-ink)"],win:["check","var(--ok)"]}[type]||["bulb","var(--muted)"]; return `<span style="color:${m[1]};display:inline-flex">${icon(m[0])}</span>`; }
+function sourceLabel(r){ return r.source==="ai" ? "Written by AI"+(r.model?" ("+esc(r.model.split(": ").pop())+")":"") : r.source==="claude" ? "Written by Claude in a chat" : "From your calendar, without AI"; }
+function reviewHtml(r, full){
+  return `<div class="label">${esc(fmtDay(r.created_at.slice(0,10),{weekday:"short",day:"numeric",month:"short"}))} · ${r.kind==="weekly"?"Weekly":"On request"}</div>
+    <h3 style="justify-content:flex-start">${esc(r.title)}</h3>
+    ${r.summary?`<div class="muted small">${esc(r.summary)}</div>`:""}
+    ${(r.items||[]).map(i=>`<div style="display:flex;gap:9px;align-items:flex-start">${itemIcon(i.type)}<span>${esc(i.text)}</span></div>`).join("")}
+    <div class="small muted">${sourceLabel(r)}</div>`;
+}
+function hhmmLocal(iso){ const d=new Date(iso); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+/* one bar per night, a dashed line at 6 hours */
+function sleepChartHtml(){
+  const t=todayStr(), days=[]; for(let i=7;i>=1;i--) days.push(W.addDays(t,-i+1));
+  const byDate={}; health.forEach(h=>byDate[h.date]=h);
+  const vals=days.map(d=>{ const h=byDate[d]; return h?W.sleepMinutes(h):null; });
+  const max=Math.max(9*60,...vals.filter(v=>v!=null)), H=120;
+  const bars=days.map((d,i)=>{ const v=vals[i], hgt=v!=null?Math.max(3,v/max*H):0, h=byDate[d];
+    const tip = v!=null ? `${fmtDay(d,{weekday:"long"})}: ${W.fmtDur(v)}${h&&h.sleep_start&&h.sleep_end?` (${W.fmtTime(W.tmin(hhmmLocal(h.sleep_start)))} to ${W.fmtTime(W.tmin(hhmmLocal(h.sleep_end)))})`:""}` : `${fmtDay(d,{weekday:"long"})}: no data`;
+    return `<button class="sbar" data-sleep="${d}" title="${esc(tip)}" aria-label="${esc(tip)}"><span class="v num">${v!=null?(v/60).toFixed(1):""}</span><span class="b ${v!=null&&v<360?"short":""}" style="height:${hgt}px"></span><span class="d">${fmtDay(d,{weekday:"short"}).slice(0,2)}</span></button>`; }).join("");
+  const have=vals.filter(v=>v!=null), avg=have.length?Math.round(have.reduce((a,b)=>a+b,0)/have.length):null;
+  return `<div class="schart" style="--h:${H}px"><div class="guide" style="bottom:${360/max*H+19}px"><span>6h</span></div>${bars}</div>
+    <div class="small muted">${avg!=null?`Average ${W.fmtDur(avg)} over ${have.length} night${have.length>1?"s":""}. Tap a bar for the times.`:"No sleep recorded in the last 7 days yet."}</div>`;
+}
+function screenChartHtml(){
+  const rows=screenWeeks.slice(0,6).reverse();
+  if (!rows.length) return `<div class="empty">No screen time added yet. On iPhone: Settings, Screen Time, See All Activity, then Week shows your daily average.</div>`;
+  const max=Math.max(...rows.map(r=>r.screen_avg_minutes||0),60), H=90;
+  return `<div class="schart" style="--h:${H}px">${rows.map(r=>`<div class="sbar" title="${esc("Week of "+fmtDay(r.week_start,{day:"numeric",month:"short"})+": "+W.fmtDur(r.screen_avg_minutes)+" a day")}"><span class="v num">${(r.screen_avg_minutes/60).toFixed(1)}</span><span class="b screen" style="height:${Math.max(3,r.screen_avg_minutes/max*H)}px"></span><span class="d">${fmtDay(r.week_start,{day:"numeric",month:"short"})}</span></div>`).join("")}</div>
+    <div class="small muted">Hours a day, average for each week.</div>`;
+}
+function renderReview(){
+  if (healthMissing) { $("reviewBody").innerHTML=`<div class="card"><h3>One more database step</h3><p class="small muted" style="margin:0">Reviews and sleep tracking need the latest setup file run in Supabase (SQL Editor, New query, paste, Run). Then reopen the app.</p></div>`; return; }
+  const latest=reviews[0];
+  $("reviewBody").innerHTML = `
+    ${latest?`<div class="card">${reviewHtml(latest,true)}</div>`:`<div class="card"><h3>No review yet</h3><p class="small muted" style="margin:0">Tap <b>Write one now</b>. ${aiOn?"Your AI key writes it from your calendars, hours and sleep.":"Without an AI key it's written from simple rules about your calendar. Add a key in Settings for a fuller review."} A new one also arrives every Sunday evening.</p></div>`}
+    <div class="card"><h3>Sleep <span class="small muted">last 7 nights</span></h3>${sleepChartHtml()}
+      <div class="actions"><button class="btn soft sm" id="hAdd">Add last night</button><button class="btn ghost sm" id="hShortcut">${icon("phone")} iPhone Shortcut</button></div></div>
+    <div class="card"><h3>Screen time</h3>${screenChartHtml()}<div class="actions"><button class="btn soft sm" id="hScreen">Add last week's average</button></div></div>
+    ${reviews.length>1?`<div class="card"><h3>Earlier reviews</h3>${reviews.slice(1).map(r=>`<button class="calrow" data-rev="${r.id}"><span class="t"><b>${esc(r.title)}</b><span class="small muted">${esc(fmtDay(r.created_at.slice(0,10),{day:"numeric",month:"short"}))} · ${sourceLabel(r)}</span></span>${icon("right")}</button>`).join("")}</div>`:""}
+    <p class="small muted" style="margin:14px 2px">You can also ask Claude in a chat to "write my WhatsWork review". It reads your planner and the review appears here.</p>`;
+  $("hAdd").onclick=()=>openSleepEntry(W.addDays(todayStr(),0));
+  $("hShortcut").onclick=openShortcut;
+  $("hScreen").onclick=openScreenEntry;
+  $("reviewBody").querySelectorAll("[data-sleep]").forEach(b=>b.onclick=()=>openSleepEntry(b.dataset.sleep));
+  $("reviewBody").querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>{ const r=reviews.find(x=>x.id===b.dataset.rev); sheet(`${reviewHtml(r,true)}<button class="btn ghost" data-close>Close</button>`); });
+  if (latest && !latest.read) api.markRead(latest.id).then(()=>{ latest.read=true; }).catch(()=>{});
+}
+$("rNow").onclick=async()=>{
+  if (healthMissing) return toast("Run the latest setup file first");
+  const b=$("rNow"); b.disabled=true; b.textContent="Writing…";
+  try {
+    const {data,error}=await api.reviewNow();
+    if (error) toast("Couldn't write a review: "+error.message);
+    else { if (data?.aiNote) toast("AI wasn't available, so I wrote it from your calendar"); await loadHealth(); renderReview(); $("reviewBody").scrollTop=0; }
+  } finally { b.disabled=false; b.textContent="Write one now"; }
+};
+function openSleepEntry(date){
+  const h=health.find(x=>x.date===date);
+  const bed=h?.sleep_start?hhmmLocal(h.sleep_start):"06:00", wake=h?.sleep_end?hhmmLocal(h.sleep_end):"13:00";
+  sheet(`<h2>Sleep</h2>
+    <label class="fl"><span class="label">Woke up on</span><input id="sDate" class="field" type="date" value="${date}"></label>
+    <div class="grid2"><label class="fl"><span class="label">Fell asleep</span><input id="sBed" class="field" type="time" value="${bed}"></label>
+      <label class="fl"><span class="label">Woke up</span><input id="sWake" class="field" type="time" value="${wake}"></label></div>
+    <div class="small muted" id="sHint"></div>
+    <div class="actions"><button class="btn" id="sSave">Save</button>${h?`<button class="btn danger" id="sDel">Delete</button>`:""}</div>`);
+  const calc=()=>{ const d=$("sDate").value, [bh,bm]=$("sBed").value.split(":").map(Number), [wh,wm]=$("sWake").value.split(":").map(Number);
+    const end=new Date(...d.split("-").map((x,i)=>i===1?+x-1:+x), wh, wm), start=new Date(end); start.setHours(bh,bm,0,0); if (start>=end) start.setDate(start.getDate()-1);
+    return {start,end,mins:Math.round((end-start)/60000)}; };
+  const hint=()=>{ try{ const c=calc(); $("sHint").textContent=W.fmtDur(c.mins)+" of sleep"; }catch{} };
+  ["sDate","sBed","sWake"].forEach(id=>$(id).oninput=hint); hint();
+  $("sSave").onclick=async()=>{ const c=calc(); if(c.mins<=0||c.mins>20*60) return toast("Check the times");
+    const r=await api.saveHealthDay({ user_id:me.id, date:$("sDate").value, sleep_start:c.start.toISOString(), sleep_end:c.end.toISOString(), asleep_minutes:null, source:"manual" });
+    if (r.error) return toast(r.error.message); closeSheet(); toast("Saved"); await loadHealth(); render(); };
+  if ($("sDel")) $("sDel").onclick=async()=>{ const r=await api.deleteHealthDay(date); if(r.error) return toast(r.error.message); closeSheet(); await loadHealth(); render(); };
+}
+function openScreenEntry(){
+  const thisMon=mondayOf(todayStr()), lastMon=W.addDays(thisMon,-7);
+  sheet(`<h2>Screen time</h2>
+    <p class="small muted" style="margin:0">On iPhone: Settings, Screen Time, See All Activity, Week. Enter the daily average shown there.</p>
+    <div class="seg3" id="wPick"><button data-w="${lastMon}" class="on">Last week</button><button data-w="${thisMon}">This week</button></div>
+    <div class="grid2"><label class="fl"><span class="label">Hours a day</span><input id="wH" class="field" type="number" inputmode="numeric" min="0" max="24" value="5"></label>
+      <label class="fl"><span class="label">Minutes</span><input id="wM" class="field" type="number" inputmode="numeric" min="0" max="59" value="0"></label></div>
+    <button class="btn" id="wSave">Save</button>`);
+  let wk=lastMon;
+  $("wPick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ wk=b.dataset.w; $("wPick").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); });
+  $("wSave").onclick=async()=>{ const m=(+$("wH").value||0)*60+(+$("wM").value||0); if(m<=0||m>1440) return toast("Check the numbers");
+    const r=await api.saveHealthWeek({ user_id:me.id, week_start:wk, screen_avg_minutes:m }); if(r.error) return toast(r.error.message); closeSheet(); toast("Saved"); await loadHealth(); render(); };
+}
+async function sha256hex(t){ const b=await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join(""); }
+async function openShortcut(){
+  let info=null; try{ const {data}=await api.healthTokenInfo(); info=data&&data[0]; }catch{}
+  const url = SUPABASE_URL+"/functions/v1/"+WORKER;
+  sheet(`<h2>Sleep from your iPhone</h2>
+    <p class="small muted" style="margin:0">A Shortcut reads last night's sleep from Apple Health and sends it here every afternoon. Sleep is recorded by an Apple Watch, by a sleep app that saves to Health, or by the iPhone itself if Sleep Focus is on with "Track Time in Bed with iPhone".</p>
+    <div id="kBox">${info?`<div class="small">Key made ${esc(fmtDay(info.created_at.slice(0,10),{day:"numeric",month:"short"}))}${info.last_used?`, last used ${esc(fmtDay(info.last_used.slice(0,10),{day:"numeric",month:"short"}))}`:", not used yet"}. Lost it? Make a new one; the old one stops working.</div>`:""}
+      <button class="btn" id="kMake">${info?"Make a new key":"Make my key"}</button></div>
+    <div class="fl"><span class="label">Web address for the Shortcut</span><div class="line"><code class="field small" style="overflow-wrap:anywhere">${esc(url)}</code><button class="ib" data-copy="${esc(url)}" aria-label="Copy address">${icon("copy")}</button></div></div>
+    <ol class="small" style="margin:0;padding-left:18px;display:grid;gap:6px">
+      <li>Open <b>Shortcuts</b>, tap <b>+</b>, name it <b>WhatsWork sleep</b>.</li>
+      <li>Add <b>Find Health Samples</b>: Type <b>Sleep</b>, filter <b>Start Date is in the last 1 days</b>, sort by <b>Start Date</b>, <b>Oldest First</b>.</li>
+      <li>Add <b>Get Item from List</b> (First Item), then <b>Get Details of Health Sample</b> (Start Date), then <b>Format Date</b> set to <b>ISO 8601</b>, then <b>Set Variable</b> named <b>Start</b>.</li>
+      <li>Add <b>Get Item from List</b> again on the Health Samples (Last Item), then <b>Get Details</b> (End Date), <b>Format Date</b> (ISO 8601), <b>Set Variable</b> named <b>End</b>.</li>
+      <li>Add <b>Get Contents of URL</b>: paste the web address, Method <b>POST</b>. Headers: add <b>x-health-token</b> with your key. Request Body <b>JSON</b>: add <b>sleep_start</b> = Start and <b>sleep_end</b> = End.</li>
+      <li>Optional: add <b>Show Notification</b> with the Contents of URL, so you see "slept 7h 5m".</li>
+      <li>Go to <b>Automation</b>, <b>+</b>, <b>Time of Day</b>, 2:00 pm, Daily, <b>Run Immediately</b>, choose <b>WhatsWork sleep</b>.</li>
+    </ol>
+    <button class="btn ghost" data-close>Done</button>`);
+  const wireCopy=()=>$("sheetRoot").querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{ try{ await navigator.clipboard.writeText(b.dataset.copy); toast("Copied"); }catch{ toast("Press and hold the text to copy it"); } });
+  wireCopy();
+  $("kMake").onclick=async()=>{
+    const bytes=new Uint8Array(24); crypto.getRandomValues(bytes);
+    const key="ww_"+[...bytes].map(x=>x.toString(16).padStart(2,"0")).join("");
+    const {error}=await api.setHealthToken(await sha256hex(key)); if(error) return toast(error.message);
+    $("kBox").innerHTML=`<div class="fl"><span class="label">Your key (shown once, copy it into the Shortcut now)</span><div class="line"><code class="field small" style="overflow-wrap:anywhere">${key}</code><button class="ib" data-copy="${key}" aria-label="Copy key">${icon("copy")}</button></div></div>`;
+    wireCopy();
+  };
+}
+
 /* ---------- SETTINGS ---------- */
 let ai={enabled:false,provider:"gemini",model:"",has_key:false}, aiProvider="gemini";
 async function renderSettings(){
@@ -924,7 +1097,7 @@ async function disablePush(){
 
 /* ---------- one database step left ---------- */
 function showSetup(){
-  ["sToday","sCal","sSettings"].forEach(id=>$(id).classList.add("hidden")); $("nav").classList.add("hidden"); $("sSetup").classList.remove("hidden");
+  ["sToday","sCal","sSettings","sReview"].forEach(id=>$(id).classList.add("hidden")); $("nav").classList.add("hidden"); $("sSetup").classList.remove("hidden");
   $("setup").innerHTML=`<div class="wordmark"><span class="dot"></span>Almost ready</div>
     <p style="margin:0">WhatsWork's new calendar needs one database step: open Supabase, then SQL Editor, then New query. Paste the setup file, press Run, then come back here.</p>
     <button class="btn" onclick="location.reload()">Done, reload</button>
@@ -944,6 +1117,7 @@ window.addEventListener("popstate",()=>{ if(!$("plannerView").classList.contains
 function handleLink(url){
   const u=new URL(url, location.href);
   if (u.searchParams.get("planner")) { openPlanner(); return; }
+  if (u.searchParams.get("review")) { showTab("review"); return; }
   const d=u.searchParams.get("d"); if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) openDay(d);
 }
 (async function boot(){
@@ -954,6 +1128,7 @@ function handleLink(url){
     me=user; $("auth").classList.add("hidden"); $("app").classList.remove("hidden");
     const d=await api.loadAll();
     if (d.error) { if (d.missing) return showSetup(); toast("Couldn't load: "+(d.error.message||d.error)); return; }
+    await loadHealth();
     applyData(d); started=true; api.subscribe(reloadSoon);
     api.getAi().then(r=>{ const a=r?.data?.[0]; aiOn=!!(a && a.enabled && a.has_key); }).catch(()=>{});
     showTab(tab==="planner"?"today":tab);
