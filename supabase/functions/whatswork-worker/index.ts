@@ -4,7 +4,7 @@
 // - "message" / "task": kept for the old chat; nothing sends these any more
 import postgres from "npm:postgres@3.4.5";
 import webpush from "npm:web-push@3.6.7";
-import { WWCore, normaliseState } from "https://ateebhassan.github.io/whatswork/core.mjs?v=2026-10-27a";
+import { WWCore, normaliseState } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@a03ea7d/core.mjs";
 
 const sql = postgres(Deno.env.get("SUPABASE_DB_URL")!, { prepare: false, max: 3 });
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
