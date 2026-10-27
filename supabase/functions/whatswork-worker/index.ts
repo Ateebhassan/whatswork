@@ -5,7 +5,7 @@
 // - "message" / "task": kept for the old chat; nothing sends these any more
 import postgres from "npm:postgres@3.4.5";
 import webpush from "npm:web-push@3.6.7";
-import { WWCore, normaliseState } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@81c4e90/core.mjs";
+import { WWCore, normaliseState } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@299cb66/core.mjs";
 
 const sql = postgres(Deno.env.get("SUPABASE_DB_URL")!, { prepare: false, max: 3 });
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -194,14 +194,14 @@ function localDateOf(iso: string, tz: string) {
 /* Shortcuts can send dates in a few shapes; accept ISO 8601 and "YYYY-MM-DD HH:MM". */
 function parseWhen(v: unknown): string | null {
   if (typeof v !== "string" || !v.trim()) return null;
-  let t = v.trim().replace(/^(\d{4}-\d{2}-\d{2}) (\d{1,2}:\d{2})/, "$1T$2");
+  const t = v.trim().replace(/^(\d{4}-\d{2}-\d{2}) (\d{1,2}:\d{2})/, "$1T$2");
   const d = new Date(t);
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 async function healthFromShortcut(token: string, body: any) {
   const hash = await sha256hex(token.trim());
   const [row] = await sql`select user_id from private.health_tokens where token_hash = ${hash}`;
-  if (!row) return { ok: false, error: "This Shortcut's key isn't recognised. Make a new key in WhatsWork (Review tab, Sleep, Set up iPhone Shortcut)." };
+  if (!row) return { ok: false, error: "This Shortcut's key isn't recognised. Make a new key in WhatsWork (Review tab, iPhone Shortcut)." };
   const uid = row.user_id, tz = await tzOf(uid);
   const start = parseWhen(body.sleep_start), end = parseWhen(body.sleep_end);
   const asleep = Number.isFinite(+body.asleep_minutes) && body.asleep_minutes !== "" && body.asleep_minutes != null ? Math.round(+body.asleep_minutes) : null;
