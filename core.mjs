@@ -669,6 +669,123 @@ var WWCore = (function () {
     return { title: title, body: shown.join('\n'), posts: posts.length, notReady: notReady };
   }
 
+  /* ---------- hours per calendar for a week (Monday to Sunday) ---------- */
+  function weekHours(monday, occs) {
+    var byCal = {}, total = 0;
+    for (var i = 0; i < 7; i++) {
+      var sp = daySplit(addDays(monday, i), occs);
+      for (var k in sp.byCal) { byCal[k] = (byCal[k] || 0) + sp.byCal[k]; total += sp.byCal[k]; }
+    }
+    return { byCal: byCal, total: total };
+  }
+  function billingTotals(hours, calendars) {
+    var out = { paid: 0, unpaid: 0, personal: 0 };
+    calendars.forEach(function (c) { var m = hours.byCal[c.id] || 0; out[c.billing || 'paid'] = (out[c.billing || 'paid'] || 0) + m; });
+    return out;
+  }
+
+  /* ---------- quick add without AI: "meeting with Sam Thursday 11pm" ---------- */
+  var WD = { sunday: 0, sun: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, tues: 2, wednesday: 3, wed: 3, thursday: 4, thu: 4, thur: 4, thurs: 4, friday: 5, fri: 5, saturday: 6, sat: 6 };
+  var MO = { jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4, may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8, sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12 };
+  var KIND_WORDS = [
+    ['call', /\b(call|calls|phone|zoom|whatsapp call|video call)\b/],
+    ['meeting', /\b(meeting|meet|meetup|interview|discussion|sync)\b/],
+    ['university', /\b(class|classes|lecture|uni|university|exam|presentation|viva|quiz)\b/],
+    ['post', /\b(post|upload|publish)\b/],
+    ['shift', /\bshift\b/],
+    ['sleep', /\b(sleep|nap)\b/],
+    ['work', /\b(shoot|edit|editing|design|ad|ads|reel|reels|video|work|deadline|draft|script)\b/]
+  ];
+  function parseQuick(text, calendars, today, nowMinutes) {
+    var raw = String(text || '').trim(), t = ' ' + raw.toLowerCase().replace(/[,.!?]/g, ' ') + ' ';
+    var cut = [];   /* bits of the text that were dates or times, removed from the title */
+    function take(re) { var m = t.match(re); if (m) { cut.push(m[0]); t = t.replace(m[0], ' '); } return m; }
+    var out = { title: raw, date: today, start_time: null, end_time: null, kind: null, calendar_id: null, repeat: 'none', repeat_days: [], guessed: [] };
+    var tn = dnum(today), m;
+    /* repeats */
+    if ((m = take(/\b(every ?day|daily)\b/))) out.repeat = 'daily';
+    else if ((m = take(/\bevery ((?:(?:sun|mon|tue|tues|wed|thu|thur|thurs|fri|sat)[a-z]*(?:\s*(?:and|&|\s)\s*)?)+)/))) {
+      out.repeat = 'weekly';
+      m[1].split(/\s*(?:and|&|\s)\s*/).forEach(function (w) { if (WD[w] !== undefined && out.repeat_days.indexOf(WD[w]) < 0) out.repeat_days.push(WD[w]); });
+    }
+    /* dates */
+    if (take(/\bday after tomorrow\b/)) out.date = dstr(tn + 2);
+    else if (take(/\b(tomorrow|tmrw|tmr)\b/)) out.date = dstr(tn + 1);
+    else if (take(/\b(today|tonight)\b/)) out.date = today;
+    else if ((m = take(/\b(next )?(sunday|sun|monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thur|thu|friday|fri|saturday|sat)\b/))) {
+      /* "Thursday" and "next Thursday" both mean the coming one; said on a Thursday, "next" means a week later */
+      var want = WD[m[2]], diff = (want - weekday(tn) + 7) % 7;
+      if (m[1] && diff === 0) diff = 7;
+      out.date = dstr(tn + diff);
+      if (out.repeat === 'weekly' && !out.repeat_days.length) out.repeat_days = [want];
+    } else if ((m = take(/\b(\d{1,2})(?:st|nd|rd|th)? (jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december)\b/)) ||
+               (m = take(/\b(jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december) (\d{1,2})(?:st|nd|rd|th)?\b/))) {
+      var dd = /\d/.test(m[1]) ? +m[1] : +m[2], mm = MO[/\d/.test(m[1]) ? m[2] : m[1]], yy = +today.slice(0, 4);
+      var cand = dnum(yy + '-' + pad(mm) + '-' + pad(dd)); if (cand < tn) cand = dnum((yy + 1) + '-' + pad(mm) + '-' + pad(dd));
+      out.date = dstr(cand);
+    } else if ((m = take(/\b(\d{1,2})\/(\d{1,2})\b/))) {
+      var y2 = +today.slice(0, 4), c2 = dnum(y2 + '-' + pad(+m[2]) + '-' + pad(+m[1])); if (c2 < tn) c2 = dnum((y2 + 1) + '-' + pad(+m[2]) + '-' + pad(+m[1]));
+      out.date = dstr(c2);
+    }
+    /* times */
+    var night = /\b(night|tonight|evening)\b/.test(t), morning = /\b(morning|am)\b/.test(t);
+    function hhmm(h, mi, mer, other) {
+      h = +h; mi = +(mi || 0);
+      if (mer === 'pm' && h < 12) h += 12;
+      else if (mer === 'am' && h === 12) h = 0;
+      else if (!mer) {
+        if (other === 'pm' && h < 12) h += 12;
+        else if (other !== 'am' && !morning && (night || (h >= 1 && h <= 7))) { if (h < 12) h += 12; out.guessed.push('pm'); }
+      }
+      return h * 60 + mi;
+    }
+    var range = take(/\b(?:from )?(\d{1,2})(?::(\d{2}))? ?(am|pm)? ?(?:-|–|to|till|until) ?(\d{1,2})(?::(\d{2}))? ?(am|pm)?\b/);
+    if (range) {
+      var s = hhmm(range[1], range[2], range[3], range[6]), e = hhmm(range[4], range[5], range[6], range[3]);
+      out.start_time = hm(s); out.end_time = hm(e);
+    } else {
+      var one = take(/\b(?:at )?(\d{1,2})(?::(\d{2}))? ?(am|pm)\b/) || take(/\bat (\d{1,2})(?::(\d{2}))?\b/) || take(/\b(\d{1,2}):(\d{2})\b/);
+      if (take(/\bnoon\b/)) out.start_time = '12:00';
+      else if (take(/\bmidnight\b/)) out.start_time = '00:00';
+      else if (one) out.start_time = hm(hhmm(one[1], one[2], one[3]));
+    }
+    /* kind and calendar */
+    for (var k = 0; k < KIND_WORDS.length; k++) if (KIND_WORDS[k][1].test(' ' + raw.toLowerCase() + ' ')) { out.kind = KIND_WORDS[k][0]; break; }
+    var defaultKind = !out.kind;
+    if (!out.kind) out.kind = /\bwith\b/.test(raw.toLowerCase()) ? 'meeting' : 'work';
+    var low = ' ' + raw.toLowerCase() + ' ';
+    var best = null;
+    (calendars || []).forEach(function (c) {
+      var names = [c.name, c.short_name].concat(c.kind === 'planner' && c.planner_college === 'law' ? ['ailc', 'law college', 'allama iqbal'] : [])
+        .concat(/chamber/i.test(c.name) ? ['chamber', 'lawyer'] : []).concat(/tariq/i.test(c.name) ? ['tariq', 'studio'] : []);
+      names.forEach(function (n) {
+        if (!n) return; n = String(n).toLowerCase().replace(/'s\b/, '');
+        var w = n.split(/\s+/)[0];
+        if (low.indexOf(' ' + n) >= 0 || (w.length > 3 && low.indexOf(' ' + w) >= 0)) if (!best || n.length > best.len) best = { id: c.id, len: n.length };
+      });
+    });
+    if (best) out.calendar_id = best.id;
+    else if (defaultKind && out.kind === 'work') out.kind = 'personal';
+    if (!out.calendar_id && (out.kind === 'university' || out.kind === 'sleep' || out.kind === 'personal')) { var per = (calendars || []).filter(function (c) { return c.billing === 'personal'; })[0]; if (per) out.calendar_id = per.id; }
+    /* end time and all-day */
+    if (out.kind === 'post') { out.start_time = null; out.end_time = null; }
+    else if (out.start_time && !out.end_time) {
+      var dur = take(/\bfor (\d+(?:\.\d+)?) ?(hours?|hrs?|h|minutes?|mins?|m)\b/), mins = out.kind === 'call' ? 30 : 60;
+      if (dur) mins = /^m/.test(dur[2]) ? Math.round(+dur[1]) : Math.round(+dur[1] * 60);
+      out.end_time = hm((tmin(out.start_time) + mins) % DAY);
+    } else if (!out.start_time) {
+      var st = nowMinutes != null ? (Math.floor(nowMinutes / 30) + 1) * 30 : 9 * 60;
+      out.start_time = hm(st % DAY); out.end_time = hm((st + 60) % DAY); out.guessed.push('time');
+    }
+    /* title: what's left once dates and times are taken out */
+    var title = raw;
+    cut.forEach(function (c) { var re = new RegExp(c.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'); title = title.replace(re, ' '); });
+    title = title.replace(/\b(on|at|from|for|by)\s*$/i, '').replace(/\s+(on|at|by)\s+(?=\s|$)/gi, ' ').replace(/\s{2,}/g, ' ').trim().replace(/[,\-–]+$/, '').trim();
+    out.title = title ? title.charAt(0).toUpperCase() + title.slice(1) : raw;
+    return out;
+  }
+  function hm(m) { m = ((m % DAY) + DAY) % DAY; return pad(Math.floor(m / 60)) + ':' + pad(m % 60); }
+
   /* calendars to use when none are set up yet: the two college calendars from the planner */
   function fallbackCalendars() {
     return [
@@ -681,6 +798,7 @@ var WWCore = (function () {
     DAY: DAY, KINDS: KINDS, dnum: dnum, dstr: dstr, weekday: weekday, tmin: tmin, addDays: addDays, fmtTime: fmtTime, fmtDur: fmtDur,
     occurrences: occurrences, timed: timed, analyse: analyse, daySplit: daySplit, overlap: overlap,
     postsOn: postsOn, statusText: statusText, mergePosts: mergePosts, briefing: briefing, fallbackCalendars: fallbackCalendars,
+    weekHours: weekHours, billingTotals: billingTotals, parseQuick: parseQuick, hm: hm,
     resetPlannerCache: function () { clearCache(); }
   };
 })();

@@ -1,6 +1,6 @@
 // WhatsWork background worker
 // - "cron" (every 5 min): the 9 am and 8 pm briefings across all calendars
-// - "test_push": called from the app's Settings by a signed-in user
+// - "test_push", "quick_add": called from the app by a signed-in user
 // - "message" / "task": kept for the old chat; nothing sends these any more
 import postgres from "npm:postgres@3.4.5";
 import webpush from "npm:web-push@3.6.7";
@@ -114,6 +114,72 @@ async function cron() {
   return { briefings: sent };
 }
 
+// ---------- AI (your saved provider and key) ----------
+async function callAI(provider: string, model: string, key: string, system: string, user: string, maxTokens = 1200): Promise<string> {
+  if (provider === "gemini") {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }],
+        generationConfig: { responseMimeType: "application/json", temperature: 0.2 } }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j?.error?.message ?? `Gemini error ${r.status}`);
+    return (j.candidates?.[0]?.content?.parts ?? []).map((p: any) => p.text ?? "").join("");
+  }
+  if (provider === "claude") {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j?.error?.message ?? `Claude error ${r.status}`);
+    return (j.content ?? []).map((c: any) => c.text ?? "").join("");
+  }
+  const base = provider === "openrouter" ? "https://openrouter.ai/api/v1" : "https://api.openai.com/v1";
+  const body: any = { model, messages: [{ role: "system", content: system }, { role: "user", content: user }] };
+  if (provider === "openai") body.response_format = { type: "json_object" };
+  const r = await fetch(`${base}/chat/completions`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` }, body: JSON.stringify(body) });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j?.error?.message ?? `${provider} error ${r.status}`);
+  return j.choices?.[0]?.message?.content ?? "";
+}
+function firstJson(text: string): any {
+  const s = text.indexOf("{"), e = text.lastIndexOf("}");
+  if (s < 0 || e < 0) throw new Error("The AI didn't answer in the expected format");
+  return JSON.parse(text.slice(s, e + 1));
+}
+async function aiSettings(uid: string) {
+  const [st] = await sql`select enabled, provider, model, api_key from private.ai_settings where user_id = ${uid}`;
+  if (!st?.enabled || !st.api_key || !st.model) throw new Error("AI is off. Turn it on in Settings.");
+  return st;
+}
+
+// ---------- QUICK ADD ----------
+const QUICK_SYSTEM = `You turn one short note into one calendar entry for a planner app.
+Answer ONLY with JSON: {"title": string, "calendar": string, "kind": string, "date": "YYYY-MM-DD", "start": "HH:MM" or null, "end": "HH:MM" or null, "repeat": "none"|"daily"|"weekly", "repeat_days": [numbers 0-6, 0 = Sunday]}
+Rules:
+- title: short and clear, without the date or time words (e.g. "Meeting with Sam").
+- calendar: exactly one of the calendar names given. Pick by meaning (a client, a college, a job). If nothing fits, use the personal calendar.
+- kind: one of sleep, shift, university, work, meeting, call, personal, post. A "post" is an all-day social media post with start and end null.
+- date: work it out from today's date given. A weekday name means the next one coming (today if it is that weekday and the time has not passed). "next Thursday" said on a Thursday means a week later.
+- times are 24-hour local time. If a time has no am/pm, choose the sensible one: this person works night shifts, so late-evening times are common. If no end time, meetings and work last 1 hour, calls 30 minutes.
+- If the note says "every day" use repeat "daily"; "every Monday and Wednesday" use "weekly" with those days.`;
+
+async function quickAdd(uid: string, text: string, today: string, now: string) {
+  const st = await aiSettings(uid);
+  const cals = await sql`select name, short_name, billing, kind from public.calendars where user_id = ${uid} and not archived order by sort`;
+  const W = WWCore as any;
+  const wd = new Date(today + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" });
+  const user = `Today is ${wd} ${today}. The time now is ${now}.
+Calendars: ${(cals as any[]).map((c) => `${c.name}${c.short_name ? ` (also called ${c.short_name})` : ""}${c.billing === "personal" ? " [personal]" : ""}${c.kind === "planner" ? " [college social media]" : ""}`).join("; ")}.
+Note: ${String(text).slice(0, 300)}`;
+  const entry = firstJson(await callAI(st.provider, st.model, st.api_key, QUICK_SYSTEM, user, 400));
+  void W;
+  return entry;
+}
+
 // ---------- AUTH ----------
 async function signedInUser(req: Request): Promise<string | null> {
   const auth = req.headers.get("Authorization");
@@ -148,6 +214,10 @@ Deno.serve(async (req) => {
     if (body.action === "test_push") {
       const sent = await pushTo([uid], { title: "WhatsWork", body: "Notifications are working ✅", tag: "test", url: "./" });
       return json({ sent });
+    }
+    if (body.action === "quick_add") {
+      try { return json({ entry: await quickAdd(uid, body.text, body.today, body.now) }); }
+      catch (e: any) { return json({ error: String(e?.message ?? e) }); }
     }
     if (body.action === "briefing_now") {
       // the app's "show me tomorrow's briefing" button

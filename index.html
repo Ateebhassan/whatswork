@@ -51,7 +51,7 @@ select.field{appearance:none;-webkit-appearance:none}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--brand);color:var(--on-brand);font-weight:700;border-radius:12px;padding:11px 16px}
 .btn:active{transform:scale(.97)}.btn:disabled{opacity:.5}
 .btn.soft{background:var(--brand-soft);color:var(--brand)}
-.btn.ghost{background:transparent;border:1px solid var(--line)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
 .btn.danger{background:transparent;color:var(--bad);border:1px solid var(--line)}
 .btn.sm{padding:7px 11px;font-size:13px;border-radius:10px}
 .muted{color:var(--muted)} .small{font-size:12.5px}
@@ -196,6 +196,7 @@ select.field{appearance:none;-webkit-appearance:none}
 .actions .btn{flex:1 1 auto}
 .days{display:flex;gap:5px;flex-wrap:wrap}
 .days button{min-width:38px;height:34px;border-radius:9px;border:1px solid var(--line);font-size:12px;font-weight:800;color:var(--muted);padding:0 6px}
+#qEx button{height:auto;padding:6px 10px;text-align:left;font-weight:700}
 .days button.on{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
 .palette{display:flex;gap:8px;flex-wrap:wrap}
 .palette button{width:30px;height:30px;border-radius:50%;border:3px solid transparent}
@@ -354,6 +355,7 @@ function relDay(s){ const t=todayStr(); if(s===t) return "Today"; if(s===W.addDa
 
 /* ---------- data ---------- */
 let sb = null, me = null, myName = "", cals = [], events = [], postRows = [], plannerTracks = {}, plannerState = null;
+let aiOn = false;
 let tab = store.get("tab","today"), calView = store.get("calView","day"), calDate = todayStr(), started = false;
 
 const api = window.WW_TEST_API || {
@@ -404,6 +406,7 @@ const api = window.WW_TEST_API || {
   savePush(j){ return sb.rpc("save_push_sub",{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth}); },
   deletePush(endpoint){ return sb.rpc("delete_push_sub",{p_endpoint:endpoint}); },
   testPush(){ return sb.functions.invoke(WORKER,{body:{action:"test_push"}}); },
+  quickAI(text, today, now){ return sb.functions.invoke(WORKER,{body:{action:"quick_add", text, today, now}}); },
 };
 
 function applyData(d){
@@ -523,18 +526,20 @@ function renderToday(){
     <div class="card"><h3>Posts today <span class="small muted">${pToday.length?(notReady?notReady+" not scheduled":"all scheduled"):""}</span></h3>${pToday.length?pToday.map(postRowHtml).join(""):`<div class="empty">No posts due today.</div>`}</div>
     <div class="card"><h3>Your day <button class="btn soft sm" data-day="${t}">Day view</button></h3>
       ${todays.length?todays.map(o=>`<button class="erow ${o.start<=nm&&o.end>nm?"now":""}" data-ev="${o.ev.id}" data-date="${o.date}"><span class="tm num">${o.start<t0?"until "+W.fmtTime(o.end):W.fmtTime(o.start)}</span><span class="bar" style="background:${o.cal.color}"></span><span class="t"><b>${esc(o.ev.title)}</b><span class="small muted">${esc(shortName(o.cal))}${o.start<t0?"":" · until "+W.fmtTime(o.end)}${an.flagged[o.key]?" · <span style='color:var(--bad)'>clash</span>":""}</span></span></button>`).join(""):`<div class="empty">Nothing planned. Tap + to add something.</div>`}</div>
-    <div class="card"><h3>Posts tomorrow</h3>${pTom.length?pTom.map(postRowHtml).join(""):`<div class="empty">No posts due tomorrow.</div>`}</div>`;
+    <div class="card"><h3>Posts tomorrow</h3>${pTom.length?pTom.map(postRowHtml).join(""):`<div class="empty">No posts due tomorrow.</div>`}</div>
+    ${hoursCardHtml()}`;
+  $("hMore").onclick=openPastWeeks;
   wirePosts($("todayBody"));
   $("todayBody").querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>openDay(b.dataset.day));
   $("todayBody").querySelectorAll("[data-ev]").forEach(b=>b.onclick=()=>openEvent(events.find(e=>e.id===b.dataset.ev), b.dataset.date));
 }
-$("tAdd").onclick=()=>openEvent(null, todayStr());
+$("tAdd").onclick=()=>openQuick(todayStr());
 
 /* ---------- CALENDAR ---------- */
 document.querySelectorAll("#calSeg button").forEach(b=>b.onclick=()=>{ calView=b.dataset.v; store.set("calView",calView); renderCal(); });
 $("calPrev").onclick=()=>moveCal(-1); $("calNext").onclick=()=>moveCal(1);
 $("calTitle").onclick=()=>{ calDate=todayStr(); renderCal(); };
-$("fab").onclick=()=>openEvent(null, calDate);
+$("fab").onclick=()=>openQuick(calDate);
 function moveCal(dir){
   if (calView==="day") calDate=W.addDays(calDate,dir);
   else if (calView==="week") calDate=W.addDays(calDate,7*dir);
@@ -684,15 +689,90 @@ function openPost(p){
   if ($("pEdit")) $("pEdit").onclick=()=>{ closeSheet(); openEvent(p.occ.ev, p.occ.date); };
 }
 
-function openEvent(ev, date, startMin){
+/* ---------- quick add ---------- */
+const QUICK_EXAMPLES = ["Meeting with Sam Thursday 11pm","Tariq ad shoot tomorrow 3-5pm","Chamber reel post Saturday","Uni class every Mon and Wed 2-4:30pm"];
+function openQuick(date){
+  sheet(`<h2>Add to calendar</h2>
+    <input id="qText" class="field" placeholder="Type it like you'd say it" maxlength="200" enterkeyhint="go" autocomplete="off">
+    <div class="days" id="qEx">${QUICK_EXAMPLES.map(x=>`<button>${esc(x)}</button>`).join("")}</div>
+    <div class="small muted">${aiOn?"AI reads it and fills in the form for you to check.":"I'll read the date, time and calendar, and you check the form. Turn on AI in Settings for smarter reading."}</div>
+    <div class="actions"><button class="btn" id="qGo">Next</button><button class="btn ghost" id="qForm">Fill in a form instead</button></div>`);
+  const go = async()=>{
+    const text=$("qText").value.trim(); if(!text) return toast("Type what you want to add");
+    const btn=$("qGo"); btn.disabled=true; btn.textContent="Reading…";
+    const nm=nowMin()%DAY, local = W.parseQuick(text, cals, todayStr(), nm);
+    let entry = local;
+    if (aiOn) {
+      try {
+        const {data,error} = await api.quickAI(text, todayStr(), hm(nm));
+        if (!error && data?.entry) entry = fromAI(data.entry, local);
+        else toast("AI couldn't read it, so I filled it in myself");
+      } catch { toast("AI couldn't read it, so I filled it in myself"); }
+    }
+    if (!entry.via) entry.via = "local";
+    closeSheet(); openEvent(null, entry.date || date, null, entry);
+  };
+  $("qGo").onclick=go; $("qText").onkeydown=e=>{ if(e.key==="Enter") go(); };
+  $("qEx").querySelectorAll("button").forEach(b=>b.onclick=()=>{ $("qText").value=b.textContent; $("qText").focus(); });
+  $("qForm").onclick=()=>{ closeSheet(); openEvent(null, date); };
+  if (matchMedia("(pointer:fine)").matches) $("qText").focus();
+}
+/* trust the AI's answer only where it is well formed; fall back to the simple reader for the rest */
+function fromAI(a, local){
+  const ok = (v,re)=>typeof v==="string" && re.test(v);
+  const cal = cals.find(c=>[c.name,c.short_name].filter(Boolean).some(n=>n.toLowerCase()===String(a.calendar||"").toLowerCase()));
+  return {
+    via:"ai", guessed:[],
+    title: (typeof a.title==="string" && a.title.trim()) ? a.title.trim().slice(0,140) : local.title,
+    calendar_id: cal ? cal.id : local.calendar_id,
+    kind: W.KINDS[a.kind] ? a.kind : local.kind,
+    date: ok(a.date,/^\d{4}-\d{2}-\d{2}$/) ? a.date : local.date,
+    start_time: a.kind==="post" ? null : ok(a.start,/^\d{2}:\d{2}$/) ? a.start : local.start_time,
+    end_time: a.kind==="post" ? null : ok(a.end,/^\d{2}:\d{2}$/) ? a.end : local.end_time,
+    repeat: ["none","daily","weekly"].includes(a.repeat) ? a.repeat : local.repeat,
+    repeat_days: Array.isArray(a.repeat_days) ? a.repeat_days.filter(x=>Number.isInteger(x)&&x>=0&&x<=6) : local.repeat_days,
+  };
+}
+
+/* ---------- hours per calendar ---------- */
+function hoursFor(monday){ return W.weekHours(monday, occs(W.addDays(monday,-1), W.addDays(monday,7))); }
+function hoursCardHtml(){
+  const mon=mondayOf(todayStr()), h=hoursFor(mon), last=hoursFor(W.addDays(mon,-7)), tot=W.billingTotals(h,cals);
+  const rows = cals.filter(c=>(h.byCal[c.id]||0)+(last.byCal[c.id]||0)>0).sort((a,b)=>(h.byCal[b.id]||0)-(h.byCal[a.id]||0));
+  const bar = h.total ? rows.map(c=>`<i style="width:${((h.byCal[c.id]||0)/h.total*100).toFixed(2)}%;background:${c.color}"></i>`).join("") : "";
+  const delta = (a,b)=>{ if (!b) return a ? "nothing last week" : ""; const d=Math.round((a-b)/60); return d===0?"same as last week":(d>0?"+":"")+d+"h on last week"; };
+  return `<div class="card"><h3>This week's hours <button class="btn soft sm" id="hMore">Past weeks</button></h3>
+    ${h.total?`<div class="split">${bar}</div>
+    <div class="legend"><span><b>Paid</b> ${W.fmtDur(tot.paid)}</span><span style="color:${tot.unpaid?"var(--warn-ink)":""}"><b>Unpaid</b> ${W.fmtDur(tot.unpaid)}</span><span><b>Personal</b> ${W.fmtDur(tot.personal)}</span></div>
+    ${rows.map(c=>`<div class="prow"><span class="sw" style="background:${c.color};border-radius:50%"></span><div class="t"><b>${esc(c.name)}${c.billing==="unpaid"?` <span class="tag" style="vertical-align:1px">unpaid</span>`:""}</b><span>${delta(h.byCal[c.id]||0,last.byCal[c.id]||0)}</span></div><b class="num">${W.fmtDur(h.byCal[c.id]||0)}</b></div>`).join("")}`
+    :`<div class="empty">No time blocks this week yet. Add your work, meetings and calls and the hours add up here.</div>`}
+    <div class="small muted">Planned hours from your calendar, Monday to Sunday. Sleep isn't counted.</div></div>`;
+}
+function openPastWeeks(){
+  const mon=mondayOf(todayStr()), weeks=[];
+  for (let i=0;i<8;i++){ const m=W.addDays(mon,-7*i), h=hoursFor(m); if (i===0 || h.total) weeks.push({m,h,tot:W.billingTotals(h,cals)}); }
+  sheet(`<h2>Hours by week</h2>
+    ${weeks.map(w=>{ const rows=cals.filter(c=>w.h.byCal[c.id]).sort((a,b)=>w.h.byCal[b.id]-w.h.byCal[a.id]);
+      return `<div class="fl"><div class="line"><b>${fmtDay(w.m,{day:"numeric",month:"short"})} – ${fmtDay(W.addDays(w.m,6),{day:"numeric",month:"short"})}</b><span class="small muted num">${W.fmtDur(w.h.total)}</span></div>
+      ${w.h.total?`<div class="split">${rows.map(c=>`<i style="width:${(w.h.byCal[c.id]/w.h.total*100).toFixed(2)}%;background:${c.color}"></i>`).join("")}</div>
+      <div class="legend small">${rows.map(c=>`<span><i class="sw" style="background:${c.color}"></i>${esc(shortName(c))} <b class="num">${W.fmtDur(w.h.byCal[c.id])}</b></span>`).join("")}</div>
+      <div class="small muted">Paid ${W.fmtDur(w.tot.paid)} · <span style="color:${w.tot.unpaid?"var(--warn-ink)":""}">Unpaid ${W.fmtDur(w.tot.unpaid)}</span> · Personal ${W.fmtDur(w.tot.personal)}</div>`:`<div class="small muted">Nothing planned.</div>`}</div>`; }).join("")}
+    ${weeks.length<2?`<div class="small muted">Earlier weeks show up here as you keep using the calendar.</div>`:""}
+    <button class="btn ghost" data-close>Close</button>`);
+}
+
+function openEvent(ev, date, startMin, prefill){
   if (!cals.length) return toast("Add a calendar first, in Settings");
   const isNew=!ev, repeating = !!(ev && ev.repeat && ev.repeat!=="none");
   const lastCal = store.get("lastCal", null);
   const defCal = calById(lastCal) ? lastCal : (cals.find(c=>c.kind!=="planner")||cals[0]).id;
   const startM = startMin ?? Math.min(23*60, (Math.floor((nowMin()%DAY)/30)+1)*30);
   const e = ev ? {...ev} : { calendar_id:defCal, title:"", kind:"meeting", date, start_time:hm(startM), end_time:hm((startM+60)%DAY), repeat:"none", repeat_days:[], repeat_until:null, notes:"" };
+  if (prefill) { for (const k of Object.keys(prefill)) if (prefill[k]!=null && k!=="guessed" && k!=="via") e[k]=prefill[k]; if (!prefill.start_time && prefill.kind!=="post") { e.start_time=hm(startM); e.end_time=hm((startM+60)%DAY); } if (prefill.kind==="post") { e.start_time=null; e.end_time=null; } }
   const allDay = e.start_time==null;
-  sheet(`<h2>${isNew?"Add to calendar":repeating?"Repeating: "+esc(ev.title):"Edit"}</h2>
+  const guess = prefill ? [prefill.via==="ai"?"Filled in by AI.":"Read from what you typed.", ...(prefill.guessed||[]).map(g=>g==="pm"?"I took the time as pm.":g==="time"?"No time given, so I picked the next half hour.":"")].filter(Boolean).join(" ")+" Check it, then press Add." : "";
+  sheet(`<h2>${isNew?(prefill?"Check and add":"Add to calendar"):repeating?"Repeating: "+esc(ev.title):"Edit"}</h2>
+    ${guess?`<div class="small muted">${esc(guess)}</div>`:""}
     <input id="eTitle" class="field" placeholder="What is it? e.g. Meeting with Sam" value="${esc(e.title)}" maxlength="140">
     <div class="grid2">
       <label class="fl"><span class="label">Calendar</span><select id="eCal" class="field">${cals.map(c=>`<option value="${c.id}" ${c.id===e.calendar_id?"selected":""}>${esc(c.name)}</option>`).join("")}</select></label>
@@ -710,6 +790,7 @@ function openEvent(ev, date, startMin){
     <div class="actions"><button class="btn" id="eSave">${isNew?"Add":repeating?"Save all days":"Save"}</button>${repeating?`<button class="btn soft" id="eOne">Change ${esc(fmtDay(date,{day:"numeric",month:"short"}))} only</button>`:""}</div>
     ${isNew?"":`<div class="actions">${repeating?`<button class="btn danger sm" id="eDelOne">Delete ${esc(fmtDay(date,{day:"numeric",month:"short"}))} only</button>`:""}<button class="btn danger sm" id="eDel">${repeating?"Delete all days":"Delete"}</button></div>`}`);
   let rep=e.repeat||"none";
+  if (rep==="weekly") $("eUntilW").classList.remove("hidden");
   const hint=()=>{ if($("eAll").checked){ $("eHint").textContent=""; return; } const s=W.tmin($("eStart").value), en=W.tmin($("eEnd").value); $("eHint").textContent = (s!=null&&en!=null) ? (en<=s?"Ends the next morning · ":"")+W.fmtDur(((en-s)+DAY)%DAY||DAY) : ""; };
   const syncAll=()=>{ if($("eKind").value==="post") $("eAll").checked=true; $("eTimes").classList.toggle("hidden",$("eAll").checked); hint(); };
   $("eAll").onchange=syncAll; $("eKind").onchange=syncAll; $("eStart").oninput=hint; $("eEnd").oninput=hint; syncAll();
@@ -819,6 +900,7 @@ async function saveAi(forceKey){
   if (enabled && !key && !(ai.has_key && aiProvider===ai.provider)) return toast("Paste an API key first");
   const {error}=await api.saveAi({p_enabled:enabled,p_provider:aiProvider,p_model:model,p_key:key,p_tz:Intl.DateTimeFormat().resolvedOptions().timeZone});
   if (error) return toast(error.message);
+  aiOn = enabled && (!!key || ai.has_key) && forceKey!=="__clear__";
   toast(forceKey==="__clear__"?"Key removed":enabled?"AI is on":"Saved. AI is off."); renderSettings();
 }
 function b64ToBytes(s){ s=s.replace(/-/g,"+").replace(/_/g,"/"); const p=s+"=".repeat((4-s.length%4)%4); return Uint8Array.from(atob(p),c=>c.charCodeAt(0)); }
@@ -873,6 +955,7 @@ function handleLink(url){
     const d=await api.loadAll();
     if (d.error) { if (d.missing) return showSetup(); toast("Couldn't load: "+(d.error.message||d.error)); return; }
     applyData(d); started=true; api.subscribe(reloadSoon);
+    api.getAi().then(r=>{ const a=r?.data?.[0]; aiOn=!!(a && a.enabled && a.has_key); }).catch(()=>{});
     showTab(tab==="planner"?"today":tab);
     if (location.search) { handleLink(location.href); history.replaceState(null,"",location.pathname); }
   });
