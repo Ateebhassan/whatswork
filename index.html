@@ -385,7 +385,8 @@ let tab = store.get("tab","today"), calView = store.get("calView","day"), calDat
 
 const api = window.WW_TEST_API || {
   async init(){ sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); window.wwSupabase = sb; },
-  onAuth(cb){ sb.auth.onAuthStateChange((_e,s)=>cb(s?.user||null)); },
+  // Supabase freezes if the database is called from inside this callback, so hand off first
+  onAuth(cb){ sb.auth.onAuthStateChange((_e,s)=>{ const u=s?.user||null; setTimeout(()=>cb(u),0); }); },
   signIn(email,password){ return sb.auth.signInWithPassword({email,password}); },
   signUp(email,password,name){ return sb.auth.signUp({email,password,options:{data:{name}}}); },
   signOut(){ return sb.auth.signOut(); },
@@ -1126,8 +1127,8 @@ function handleLink(url){
     if (!user) { me=null; started=false; $("app").classList.add("hidden"); $("auth").classList.remove("hidden"); return; }
     if (me && me.id===user.id) return;
     me=user; $("auth").classList.add("hidden"); $("app").classList.remove("hidden");
-    const d=await api.loadAll();
-    if (d.error) { if (d.missing) return showSetup(); toast("Couldn't load: "+(d.error.message||d.error)); return; }
+    let d; try { d=await api.loadAll(); } catch(e){ d={error:e}; }
+    if (d.error) { if (d.missing) return showSetup(); toast("Couldn't load: "+(d.error.message||d.error)); me=null; return; }
     await loadHealth();
     applyData(d); started=true; api.subscribe(reloadSoon);
     api.getAi().then(r=>{ const a=r?.data?.[0]; aiOn=!!(a && a.enabled && a.has_key); }).catch(()=>{});

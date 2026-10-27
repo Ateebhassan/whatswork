@@ -1,5 +1,5 @@
 // WhatsWork background worker
-// - "cron" (every 5 min): the 9 am and 8 pm briefings across all calendars, and the Sunday evening review
+// - "cron" (every 5 min): the 9 am and 8 pm briefings, reminders before each entry, and the Sunday evening review
 // - "test_push", "quick_add", "review_now": called from the app by a signed-in user
 // - "health": posted by the iPhone Shortcut with an x-health-token header
 // - "message" / "task": kept for the old chat; nothing sends these any more
@@ -21,7 +21,7 @@ const json = (b: unknown, s = 200) =>
 let cfg: Record<string, string> | null = null;
 async function config() {
   if (cfg) return cfg;
-  const rows = await sql`select key, value from private.app_config where key not like 'pdigest:%'`;
+  const rows = await sql`select key, value from private.app_config where key not like 'pdigest:%' and key not like 'remind:%' and key not like 'review:%'`;
   cfg = Object.fromEntries(rows.map((r: any) => [r.key, r.value]));
   webpush.setVapidDetails(cfg.vapid_subject, cfg.vapid_public, cfg.vapid_private);
   return cfg;
@@ -110,10 +110,44 @@ async function briefings() {
   return sent;
 }
 
+/* A heads-up shortly before each timed entry: 30 min before a shift, 15 min before anything else. Sleep is skipped. */
+function localMinute(tz: string) {
+  const f = new Intl.DateTimeFormat("en-CA", { timeZone: tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  const p = Object.fromEntries(f.formatToParts(new Date()).map((x) => [x.type, x.value]));
+  return Number(p.hour) * 60 + Number(p.minute);
+}
+async function reminders() {
+  if (!(await exists("public.events"))) return 0;
+  const W = WWCore as any;
+  const users = await sql`select distinct e.user_id as id from public.events e join public.push_subscriptions s on s.user_id = e.user_id`;
+  let sent = 0;
+  for (const u of users as any[]) {
+    try {
+      const tz = await tzOf(u.id), { date } = localParts(tz);
+      const now = W.dnum(date) * W.DAY + localMinute(tz);
+      const ctx = await contextFor(u.id, date, true);
+      const due = (ctx.occs as any[]).filter((o) => !o.allDay && o.kind !== "sleep" && !o.cal.archived &&
+        o.start > now && o.start - now <= (o.kind === "shift" ? 30 : 15));
+      for (const o of due) {
+        const key = `remind:${u.id}:${o.key}`;
+        const [prev] = await sql`select 1 from private.app_config where key = ${key}`;
+        if (prev) continue;
+        await sql`insert into private.app_config (key, value) values (${key}, ${o.date}) on conflict (key) do nothing`;
+        const mins = o.start - now, at = W.fmtTime(o.start % W.DAY);
+        const icon = o.kind === "shift" ? "💼" : o.kind === "meeting" ? "👥" : o.kind === "call" ? "📞" : o.kind === "university" ? "🎓" : "⏰";
+        sent += await pushTo([u.id], { title: `${icon} ${o.ev.title} in ${mins} min`, body: `${at} · ${o.cal.short_name || o.cal.name}`, tag: `remind-${o.key}`, url: `./?d=${o.date}` });
+      }
+    } catch (e) { console.error("reminders", u.id, e); }
+  }
+  await sql`delete from private.app_config where key like 'remind:%' and value < ${new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10)}`;
+  return sent;
+}
+
 async function cron() {
   const sent = await briefings();
+  const reminded = await reminders();
   const reviews = await weeklyReviews();
-  return { briefings: sent, reviews };
+  return { briefings: sent, reminders: reminded, reviews };
 }
 
 // ---------- AI (your saved provider and key) ----------
