@@ -6,8 +6,8 @@ A personal life planner: separate calendars, a 24-hour day view, clashes, post b
 
 | Part | Where |
 |---|---|
-| The app (Today, Calendar, Planner, Review, Settings) | `index.html` |
-| College Planner (opens as the Planner tab) | `planner.html`, `planner-bridge.js` |
+| The app (Today dashboard, Calendar day/week/month, Add with voice, Review, Settings) | `index.html` |
+| College planner data lives in the app (posts, birthdays, to confirm); the old page is kept for designer sheets and backup (Settings) | `planner.html`, `planner-bridge.js` |
 | Planner rules, world days, birthdays | `planner-core.js` |
 | Calendars, clashes, 24-hour split, posts, briefings, hours, quick add, reviews | `ww-core.js` |
 | The same two files bundled for the background worker | `core.mjs` (made by `build-worker-core.sh`) |

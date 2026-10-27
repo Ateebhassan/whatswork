@@ -172,7 +172,7 @@ select.field{appearance:none;-webkit-appearance:none}
 .wk .col .nowline::before{display:none}
 
 /* month view */
-.mo{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:0 max(10px,env(safe-area-inset-right)) 90px max(10px,env(safe-area-inset-left))}
+.mo{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:4px max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left))}
 .mo .dn{text-align:center;font-size:11px;font-weight:800;color:var(--muted);padding:2px 0 4px}
 .mc{min-height:70px;border-radius:10px;background:var(--panel);border:1px solid var(--line);padding:4px;display:flex;flex-direction:column;gap:3px;text-align:left;position:relative;min-width:0}
 .mc.out{opacity:.4}
@@ -253,6 +253,109 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
 
 #toast{position:fixed;left:50%;bottom:calc(var(--navh) + 24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:12px;font-size:13.5px;font-weight:600;z-index:40;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
 #setup{padding:24px max(16px,env(safe-area-inset-right)) 24px max(16px,env(safe-area-inset-left));display:grid;gap:14px}
+
+/* ===== v2 layout: clearer sections, bigger labels ===== */
+.sec{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:22px 2px 0}
+.sec h2{margin:0;font-family:var(--display);font-size:19px;font-weight:800;letter-spacing:-.01em}
+.sec .more{font-size:13px;font-weight:700;color:var(--brand)}
+.card{border-radius:18px}
+.head h1{font-size:28px}
+/* bottom bar with a big add button in the middle */
+#nav{position:relative;overflow:visible}
+#nav .add{position:relative;display:grid;place-items:center}
+#nav .add span{width:56px;height:56px;margin-top:-22px;border-radius:20px;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;box-shadow:0 10px 22px -8px color-mix(in srgb,var(--brand) 75%,transparent),0 0 0 5px var(--bg)}
+#nav .add svg{width:26px;height:26px}
+/* now / next hero */
+.hero{background:linear-gradient(150deg,color-mix(in srgb,var(--brand) 92%,#000) 0%,var(--brand) 60%,color-mix(in srgb,var(--brand) 70%,#7c5cff) 100%);color:#fff;border:0;border-radius:22px;padding:16px;display:grid;gap:12px;margin-top:6px}
+@media (prefers-color-scheme:dark){.hero{background:linear-gradient(150deg,#1f2c5c,#2b3f8f)}}
+.hero .lbl{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;opacity:.8}
+.hero .big{font-family:var(--display);font-size:24px;font-weight:800;line-height:1.15;letter-spacing:-.01em}
+.hero .meta{font-size:13.5px;opacity:.9;font-weight:600}
+.hero .prog{height:6px;border-radius:3px;background:rgba(255,255,255,.25);overflow:hidden}
+.hero .prog i{display:block;height:100%;background:#fff;border-radius:3px}
+.hero .nx{display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.13);border-radius:14px;padding:10px 12px;text-align:left;color:#fff;width:100%}
+.hero .nx .when{font-weight:800;font-size:13px;white-space:nowrap;background:rgba(255,255,255,.2);padding:3px 8px;border-radius:8px}
+.hero .nx b{display:block;font-size:15px}
+.hero .nx small{opacity:.85;font-weight:600}
+.hero .dotc{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.7)}
+/* stat tiles */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;text-align:left;display:grid;gap:2px;min-width:0}
+.tile .k{font-size:12px;font-weight:700;color:var(--muted)}
+.tile .v{font-family:var(--display);font-size:23px;font-weight:800;letter-spacing:-.01em}
+.tile .s{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile.warn .v{color:var(--warn-ink)} .tile.bad .v{color:var(--bad)} .tile.good .v{color:var(--ok)}
+/* donut */
+.donut{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center}
+@media (max-width:360px){.donut{grid-template-columns:1fr;justify-items:center}}
+.donut svg{width:150px;height:150px;display:block}
+.donut .ctr{font-family:var(--display);font-weight:800}
+.dleg{display:grid;gap:7px;min-width:0;width:100%}
+.dleg div{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;font-size:13.5px}
+.dleg span.n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.dleg b{font-variant-numeric:tabular-nums;font-weight:800}
+.dleg i{width:12px;height:12px;border-radius:4px}
+.dleg i.free{background:repeating-linear-gradient(135deg,var(--faint) 0 2px,transparent 2px 4px);border:1px solid var(--faint)}
+/* agenda list (Today "Coming up", Week view, month day) */
+.ag-day{display:grid;gap:2px;padding:10px 0;border-top:1px solid var(--line)}
+.ag-day:first-child{border-top:0;padding-top:2px}
+.ag-dh{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;width:100%;text-align:left}
+.ag-dh .dt{font-family:var(--display);font-size:15px}
+.ag-dh .badge{font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.ag-dh .badge.today{background:var(--brand);color:var(--on-brand)}
+.ag-it{display:grid;grid-template-columns:62px 4px 1fr auto;gap:10px;align-items:center;padding:6px 0;width:100%;text-align:left;min-width:0}
+.ag-it .tm{font-size:12.5px;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums}
+.ag-it .bar{align-self:stretch;border-radius:2px;min-height:26px}
+.ag-it .t{min-width:0}.ag-it .t b{display:block;font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ag-it .t span{font-size:12px;color:var(--muted)}
+.ag-it .pill{font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.ag-it .pill.ok{background:var(--ok-soft);color:var(--ok)} .ag-it .pill.todo{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--warn-ink)}
+.ag-it.routine{opacity:.62}
+.ag-it.now{background:var(--brand-soft);border-radius:12px;margin:0 -8px;padding:6px 8px;width:calc(100% + 16px)}
+.ag-empty{font-size:13px;color:var(--muted);padding:4px 0}
+/* 24h strip used in week rows */
+.strip{position:relative;height:12px;border-radius:6px;background:var(--sunk);overflow:hidden;margin:4px 0 2px}
+.strip i{position:absolute;top:0;bottom:0}
+.strip i.sl{background:repeating-linear-gradient(135deg,color-mix(in srgb,#6c7bd0 45%,transparent) 0 3px,transparent 3px 6px)}
+.ticks{display:flex;justify-content:space-between;font-size:9.5px;color:var(--faint);font-weight:700;margin-bottom:2px}
+/* calendar header */
+.calhead{padding:calc(8px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 8px max(14px,env(safe-area-inset-left));display:grid;gap:10px;flex:none}
+.calnav{display:flex;align-items:center;gap:4px}
+.calnav h1{flex:1;margin:0;font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.calnav .todayb{font-size:13px;font-weight:800;color:var(--brand);background:var(--brand-soft);padding:7px 12px;border-radius:10px;margin-right:4px}
+.seg.wide{display:grid;grid-template-columns:repeat(3,1fr);width:100%}
+.seg.wide button{padding:8px;font-size:14px}
+/* week strip above the day timeline */
+.dstrip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:2px 0 6px}
+.dstrip button{display:grid;justify-items:center;gap:1px;padding:6px 0;border-radius:12px;font-size:11px;font-weight:700;color:var(--muted)}
+.dstrip button b{font-family:var(--display);font-size:17px;color:var(--ink)}
+.dstrip button.on{background:var(--ink);color:var(--panel)} .dstrip button.on b{color:var(--panel)}
+.dstrip button.td:not(.on) b{color:var(--brand)}
+.dstrip .mk{height:5px;display:flex;gap:2px}.dstrip .mk i{width:5px;height:5px;border-radius:50%}
+.tl .hr span{font-size:11.5px}
+.blk{border-radius:10px;padding:5px 9px;font-size:12.5px}
+.blk b{font-size:13.5px}
+/* month cells with words */
+.mo{gap:3px}
+.mc{min-height:84px;border-radius:12px;padding:4px 3px;gap:2px}
+.mc .d{font-size:13px;margin-left:2px}
+.mc .ev{display:block;font-size:10px;font-weight:700;line-height:1.25;padding:1px 3px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:clip;border-left:3px solid;background:color-mix(in srgb,var(--c) 14%,var(--panel));color:var(--ink)}
+.mc .mo-more{font-size:10px;font-weight:800;color:var(--muted);padding-left:3px}
+.mc.sel{outline:2.5px solid var(--ink);outline-offset:-1px}
+.mo-below{padding:4px max(14px,env(safe-area-inset-right)) 100px max(14px,env(safe-area-inset-left))}
+/* add sheet */
+.mic{width:84px;height:84px;border-radius:50%;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;justify-self:center;box-shadow:0 12px 26px -10px color-mix(in srgb,var(--brand) 80%,transparent)}
+.mic svg{width:34px;height:34px}
+.mic.rec{background:var(--bad);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 14px color-mix(in srgb,var(--bad) 20%,transparent)}}
+.typegrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.typegrid button{display:grid;justify-items:center;gap:4px;padding:10px 4px;border-radius:14px;border:1.5px solid var(--line);font-size:12px;font-weight:700;color:var(--muted)}
+.typegrid button.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}
+.vlist{display:grid;gap:8px}
+.vitem{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px;text-align:left;width:100%}
+.vitem .t{flex:1;min-width:0}.vitem .t b{display:block}
+.vitem input{width:20px;height:20px;accent-color:var(--brand)}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -276,6 +379,10 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
   <symbol id="i-review" viewBox="0 0 24 24"><path d="M9 4h6l1 2h3v15H5V6h3z"/><path d="m9 13 2 2 4-4"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.2 2.4 2.4 4.8-5"/></symbol>
   <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18M12 8S10 3 7.5 4.5 9 8 12 8zm0 0s2-5 4.5-3.5S15 8 12 8z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></symbol>
+  <symbol id="i-q" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"/></symbol>
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
 </svg>
 
@@ -297,21 +404,23 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
 <!-- APP -->
 <div id="app" class="hidden">
   <section class="screen" id="sToday">
-    <div class="head"><div><div class="eyebrow" id="tEyebrow"></div><h1 id="tTitle">Today</h1></div><button class="ib" id="tAdd" aria-label="Add to calendar"><svg class="i"><use href="#i-plus"/></svg></button></div>
+    <div class="head"><div><div class="eyebrow" id="tEyebrow"></div><h1 id="tTitle">Today</h1></div></div>
     <div class="scroll" id="todayBody"></div>
   </section>
 
   <section class="screen hidden" id="sCal" style="position:relative">
-    <div class="calbar">
-      <div class="seg" id="calSeg"><button data-v="day">Day</button><button data-v="week">Week</button><button data-v="month">Month</button></div>
-      <button class="ib" id="calPrev" aria-label="Earlier"><svg class="i"><use href="#i-left"/></svg></button>
-      <button class="title" id="calTitle" title="Back to today"></button>
-      <button class="ib" id="calNext" aria-label="Later"><svg class="i"><use href="#i-right"/></svg></button>
+    <div class="calhead">
+      <div class="calnav">
+        <h1 id="calTitle"></h1>
+        <button class="todayb" id="calToday">Today</button>
+        <button class="ib" id="calPrev" aria-label="Earlier"><svg class="i"><use href="#i-left"/></svg></button>
+        <button class="ib" id="calNext" aria-label="Later"><svg class="i"><use href="#i-right"/></svg></button>
+      </div>
+      <div class="seg wide" id="calSeg"><button data-v="day">Day</button><button data-v="week">Week</button><button data-v="month">Month</button></div>
     </div>
     <div class="chips" id="calChips"></div>
     <div id="calTop"></div>
     <div id="calBody"></div>
-    <button id="fab" aria-label="Add to calendar"><svg class="i"><use href="#i-plus"/></svg></button>
   </section>
 
   <section class="screen hidden" id="sReview">
@@ -329,7 +438,7 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
   <nav id="nav">
     <button data-tab="today" class="on"><svg class="i"><use href="#i-home"/></svg>Today</button>
     <button data-tab="cal"><svg class="i"><use href="#i-cal"/></svg>Calendar</button>
-    <button data-tab="planner"><svg class="i"><use href="#i-plan"/></svg>Planner</button>
+    <button class="add" id="navAdd" aria-label="Add something"><span><svg class="i"><use href="#i-plus"/></svg></span></button>
     <button data-tab="review"><svg class="i"><use href="#i-review"/></svg>Review</button>
     <button data-tab="settings"><svg class="i"><use href="#i-gear"/></svg>Settings</button>
   </nav>
@@ -338,7 +447,7 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
 <div id="plannerView" class="hidden">
   <div class="pv-bar">
     <button class="pv-back" id="pvBack"><svg class="i"><use href="#i-left"/></svg> Back</button>
-    <b>College Planner</b>
+    <b>Designer sheets and backup</b>
     <a class="pv-open" href="planner.html" target="_blank" rel="noopener">Full screen</a>
   </div>
   <iframe id="pvFrame" title="College Planner"></iframe>
@@ -435,6 +544,9 @@ const api = window.WW_TEST_API || {
   savePush(j){ return sb.rpc("save_push_sub",{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth}); },
   deletePush(endpoint){ return sb.rpc("delete_push_sub",{p_endpoint:endpoint}); },
   testPush(){ return sb.functions.invoke(WORKER,{body:{action:"test_push"}}); },
+  async loadPlannerMain(){ const r=await sb.from("planner_docs").select("json").eq("user_id",me.id).eq("name","main").maybeSingle(); return {data:r.data?.json||null, error:r.error}; },
+  savePlannerMain(json){ return sb.rpc("planner_save",{p_name:"main",p_json:json}); },
+  voiceAI(audio, mime, today, now){ return sb.functions.invoke(WORKER,{body:{action:"voice_add", audio, mime, today, now}}); },
   quickAI(text, today, now){ return sb.functions.invoke(WORKER,{body:{action:"quick_add", text, today, now}}); },
   async loadHealth(){
     const since = new Date(Date.now()-70*864e5).toISOString().slice(0,10);
@@ -497,11 +609,12 @@ $("authForm").onsubmit=async e=>{
 };
 
 /* ---------- navigation ---------- */
-document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+document.querySelectorAll("#nav button[data-tab]").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+$("navAdd").onclick=()=>openAdd(tab==="cal"?(calView==="month"&&monthSel?monthSel:calDate):todayStr());
 function showTab(t){
-  if (t==="planner") { openPlanner(); return; }
+  if (!["today","cal","review","settings"].includes(t)) t="today";
   tab=t; store.set("tab",t);
-  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  document.querySelectorAll("#nav button[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
   $("sToday").classList.toggle("hidden",t!=="today");
   $("sCal").classList.toggle("hidden",t!=="cal");
   $("sSettings").classList.toggle("hidden",t!=="settings");
@@ -534,10 +647,13 @@ function postRowHtml(p){
     <button class="st ${st.made?"on":""}" data-pk="${esc(p.id)}" data-f="made">Made</button>
     <button class="st ${st.scheduled?"on":""}" data-pk="${esc(p.id)}" data-f="scheduled">Scheduled</button></div>`;
 }
-function wirePosts(root){
+function wire(root){
   root.querySelectorAll("[data-pk]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const p=postIndex[b.dataset.pk]; if(p) togglePost(p, b.dataset.f); });
-  root.querySelectorAll("[data-post]").forEach(b=>b.onclick=()=>openPost(postIndex[b.dataset.post]));
+  root.querySelectorAll("[data-post]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openPost(postIndex[b.dataset.post]); });
+  root.querySelectorAll("[data-ev]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openEvent(events.find(x=>x.id===b.dataset.ev), b.dataset.date); });
+  root.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>openDay(b.dataset.day));
 }
+const wirePosts = wire;
 async function togglePost(p, field){
   const on = !p.status[field], date = p.key.split("@").pop();
   const r = p.source==="planner"
@@ -547,11 +663,14 @@ async function togglePost(p, field){
   toast(on ? (field==="scheduled"?"Marked scheduled":field==="made"?"Marked made":"Marked with designer") : "Unticked");
   reload();
 }
+function postPill(st){ return st.scheduled?`<span class="pill ok">Scheduled</span>`:st.made?`<span class="pill todo">Made</span>`:`<span class="pill todo">To do</span>`; }
 
-/* ---------- TODAY ---------- */
-function splitHtml(sp, withLegend, max){
+/* ---------- shared helpers ---------- */
+const ROUTINE = o => o.kind==="sleep" || ((o.kind==="shift"||o.kind==="university") && o.ev.repeat && o.ev.repeat!=="none");
+function dur(min){ min=Math.max(0,Math.round(min)); if(min<60) return min+" min"; const h=Math.floor(min/60), m=min%60; return h+"h"+(m?" "+m+"m":""); }
+function splitHtml(sp, withLegend){
   const bar = sp.runs.map(r=>`<i class="${r.id==="free"?"free":""}" style="width:${(r.len/DAY*100).toFixed(3)}%;${r.id==="free"?"":"background:"+r.color}" title="${esc(r.label)}"></i>`).join("");
-  const leg = sp.groups.slice(0,max||99).map(g=>`<span><i class="sw ${g.id==="free"?"free":""}" style="${g.id==="free"?"":"background:"+g.color}"></i>${esc(g.label)} <b class="num">${W.fmtDur(g.minutes)}</b></span>`).join("");
+  const leg = sp.groups.map(g=>`<span><i class="sw ${g.id==="free"?"free":""}" style="${g.id==="free"?"":"background:"+g.color}"></i>${esc(g.label)} <b class="num">${W.fmtDur(g.minutes)}</b></span>`).join("");
   return `<div class="split">${bar}</div>${withLegend?`<div class="legend">${leg}</div>`:""}`;
 }
 function alertsFrom(an, fromDate, onlyDate){
@@ -560,45 +679,154 @@ function alertsFrom(an, fromDate, onlyDate){
     .sort((a,b)=>a.date.localeCompare(b.date));
 }
 function alertHtml(a, clickable){ return `<${clickable?"button":"div"} class="alert ${a.cls}" ${clickable?`data-day="${a.date}"`:""}>${icon(a.cls?"moon":"warn")}<span>${esc(a.text.charAt(0).toUpperCase()+a.text.slice(1))}</span></${clickable?"button":"div"}>`; }
-function renderToday(){
-  const t=todayStr(), list=occs(W.addDays(t,-1), W.addDays(t,7)), vis=list.filter(o=>o.cal.visible!==false), nm=nowMin(), t0=W.dnum(t)*DAY;
-  $("tEyebrow").textContent = fmtDay(t,{weekday:"long"});
-  $("tTitle").textContent = fmtDay(t,{day:"numeric",month:"long"});
-  const sp = W.daySplit(t, vis), an = W.analyse(list);
-  postIndex = {};
-  const pToday = groupPosts(postsFor(t,list)), pTom = groupPosts(postsFor(W.addDays(t,1),list));
-  pToday.concat(pTom).forEach(p=>postIndex[p.id]=p);
-  const todays = W.timed(vis).filter(o=>o.end>t0 && o.start<t0+DAY);
-  const alerts = alertsFrom(an, t);
-  const notReady = pToday.filter(p=>!p.status.scheduled).length;
-  const free = sp.groups.find(g=>g.id==="free")?.minutes||0;
-  const latest = reviews[0];
-  $("todayBody").innerHTML = `
-    ${latest && latest.items?.length ? `<button class="card" id="tReview" style="text-align:left;width:100%"><span class="label">From your review · ${esc(fmtDay(latest.created_at.slice(0,10),{day:"numeric",month:"short"}))}</span><span style="display:flex;gap:9px;align-items:flex-start">${itemIcon(latest.items[0].type)}<span>${esc(latest.items[0].text)}</span></span></button>` : ""}
-    <div class="card"><h3>Your 24 hours <span class="small muted num">${W.fmtDur(free)} free</span></h3>${splitHtml(sp,true)}</div>
-    ${alerts.length?`<div class="card"><h3>Heads-up <span class="small muted">next 7 days</span></h3>${alerts.slice(0,6).map(a=>alertHtml(a,true)).join("")}</div>`:""}
-    <div class="card"><h3>Posts today <span class="small muted">${pToday.length?(notReady?notReady+" not scheduled":"all scheduled"):""}</span></h3>${pToday.length?pToday.map(postRowHtml).join(""):`<div class="empty">No posts due today.</div>`}</div>
-    <div class="card"><h3>Your day <button class="btn soft sm" data-day="${t}">Day view</button></h3>
-      ${todays.length?todays.map(o=>`<button class="erow ${o.start<=nm&&o.end>nm?"now":""}" data-ev="${o.ev.id}" data-date="${o.date}"><span class="tm num">${o.start<t0?"until "+W.fmtTime(o.end):W.fmtTime(o.start)}</span><span class="bar" style="background:${o.cal.color}"></span><span class="t"><b>${esc(o.ev.title)}</b><span class="small muted">${esc(shortName(o.cal))}${o.start<t0?"":" · until "+W.fmtTime(o.end)}${an.flagged[o.key]?" · <span style='color:var(--bad)'>clash</span>":""}</span></span></button>`).join(""):`<div class="empty">Nothing planned. Tap + to add something.</div>`}</div>
-    <div class="card"><h3>Posts tomorrow</h3>${pTom.length?pTom.map(postRowHtml).join(""):`<div class="empty">No posts due tomorrow.</div>`}</div>
-    ${hoursCardHtml()}`;
-  $("hMore").onclick=openPastWeeks;
-  if ($("tReview")) $("tReview").onclick=()=>showTab("review");
-  wirePosts($("todayBody"));
-  $("todayBody").querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>openDay(b.dataset.day));
-  $("todayBody").querySelectorAll("[data-ev]").forEach(b=>b.onclick=()=>openEvent(events.find(e=>e.id===b.dataset.ev), b.dataset.date));
+/* free stretches of an hour or more */
+function gapsOf(vis, d){
+  const d0=W.dnum(d)*DAY, busy=W.timed(vis).filter(o=>o.end>d0&&o.start<d0+DAY).map(o=>[Math.max(o.start,d0)-d0, Math.min(o.end,d0+DAY)-d0]).sort((a,b)=>a[0]-b[0]);
+  const gaps=[]; let c=0; busy.forEach(r=>{ if(r[0]-c>=60) gaps.push([c,r[0]]); c=Math.max(c,r[1]); }); if(DAY-c>=60) gaps.push([c,DAY]); return gaps;
 }
-$("tAdd").onclick=()=>openQuick(todayStr());
+
+/* one agenda row: a timed entry, an all-day entry or a post */
+function agItemHtml(x, nm, an){
+  if (x.post) { const p=x.post; postIndex[p.id]=p;
+    return `<button class="ag-it" data-post="${esc(p.id)}"><span class="tm">${p.source==="planner"&&p.cat==="birthday"?"Birthday":"Post"}</span><span class="bar" style="background:${p.cal.color}"></span><span class="t"><b>${esc(p.title)}</b><span>${esc(p.calNames)}</span></span>${postPill(p.status)}</button>`; }
+  const o=x.o, now = !o.allDay && o.start<=nm && o.end>nm, d0=W.dnum(x.date)*DAY;
+  const tm = o.allDay ? "All day" : o.start<d0 ? "until "+W.fmtTime(o.end).replace(" ","") : W.fmtTime(o.start).replace(" ","");
+  const sub = esc(o.cal.name) + (o.allDay||o.start<d0 ? "" : " · until "+W.fmtTime(o.end));
+  return `<button class="ag-it ${x.routine?"routine":""} ${now?"now":""}" data-ev="${o.ev.id}" data-date="${o.date}"><span class="tm">${tm}</span><span class="bar" style="background:${o.cal.color}"></span><span class="t"><b>${esc(o.ev.title)}</b><span>${sub}</span></span>${an&&an.flagged[o.key]?`<span class="pill" style="background:var(--bad-soft);color:var(--bad)">Clash</span>`:now?`<span class="pill ok">Now</span>`:""}</button>`;
+}
+/* what's on one date, in time order */
+function dayAgenda(d, list, opts={}){
+  const vis=list.filter(o=>o.cal.visible!==false), d0=W.dnum(d)*DAY;
+  const rows=[];
+  vis.filter(o=>o.allDay && o.kind!=="post" && o.date===d).forEach(o=>rows.push({o,date:d,sort:-1}));
+  W.timed(vis).filter(o=>o.kind!=="sleep" && o.end>d0 && o.start<d0+DAY).forEach(o=>{ const r=ROUTINE(o); if(opts.skipRoutine&&r) return; rows.push({o,date:d,sort:o.start,routine:r&&!opts.noFade}); });
+  rows.sort((a,b)=>a.sort-b.sort);
+  const posts=opts.noPosts?[]:groupPosts(postsFor(d,list));
+  return {rows, posts};
+}
+function agendaDayHtml(d, list, an, opts={}){
+  const nm=nowMin(), {rows,posts}=dayAgenda(d,list,opts), t=todayStr();
+  const flag = an && (an.clashes.some(c=>c.date===d) || an.shortSleep.some(s=>s.date===d));
+  let postsHtml="";
+  if (posts.length > (opts.maxPosts??99)) { posts.forEach(p=>postIndex[p.id]=p); const todo=posts.filter(p=>!p.status.scheduled).length;
+    postsHtml=`<button class="ag-it" data-day="${d}"><span class="tm">Posts</span><span class="bar" style="background:var(--faint)"></span><span class="t"><b>${posts.length} posts</b><span>${esc(posts.slice(0,2).map(p=>p.title).join(", "))}${posts.length>2?"…":""}</span></span>${todo?`<span class="pill todo">${todo} to do</span>`:`<span class="pill ok">All set</span>`}</button>`; }
+  else postsHtml = posts.map(p=>agItemHtml({post:p},nm)).join("");
+  const body = rows.map(x=>agItemHtml(x,nm,an)).join("") + postsHtml;
+  if (!body && opts.hideEmpty) return "";
+  return `<div class="ag-day">${opts.noHead?"":`<button class="ag-dh" data-day="${d}"><span class="dt">${esc(fmtDay(d,{weekday:"long"}))}</span><span class="muted small">${esc(fmtDay(d,{day:"numeric",month:"short"}))}</span>${d===t?`<span class="badge today">Today</span>`:d===W.addDays(t,1)?`<span class="badge">Tomorrow</span>`:""}${flag?`<span style="color:var(--bad);display:inline-flex">${icon("warn")}</span>`:""}</button>`}
+    ${opts.strip?stripHtml(d,list):""}
+    ${body || `<div class="ag-empty">Nothing planned.</div>`}</div>`;
+}
+/* a thin 24-hour bar: where the day's time goes */
+function stripHtml(d, list){
+  const vis=list.filter(o=>o.cal.visible!==false), d0=W.dnum(d)*DAY;
+  const bits=W.timed(vis).filter(o=>o.end>d0&&o.start<d0+DAY).map(o=>{ const s=Math.max(o.start,d0)-d0, e=Math.min(o.end,d0+DAY)-d0;
+    return `<i class="${o.kind==="sleep"?"sl":""}" style="left:${(s/DAY*100).toFixed(2)}%;width:${((e-s)/DAY*100).toFixed(2)}%;${o.kind==="sleep"?"":"background:"+o.cal.color}"></i>`; }).join("");
+  return `<div class="strip">${bits}</div><div class="ticks"><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>12am</span></div>`;
+}
+
+/* ---------- donut: where the 24 hours go ---------- */
+function donutGroups(groups){
+  const named=groups.filter(g=>g.id!=="free"&&g.minutes>0).sort((a,b)=>b.minutes-a.minutes), free=groups.find(g=>g.id==="free");
+  let list=named.slice(0,5);
+  const rest=named.slice(5).reduce((a,g)=>a+g.minutes,0);
+  if (rest) list.push({id:"other",label:"Other",color:"#94a3b8",minutes:rest});
+  if (free && free.minutes) list.push(free);
+  return list;
+}
+function donutHtml(groups, total, centre, sub){
+  const R=60, C=2*Math.PI*R, gap=groups.length>1?2.5:0; let off=0;
+  const arcs=groups.map(g=>{ const len=g.minutes/total*C, a=`<circle r="${R}" cx="75" cy="75" fill="none" stroke="${g.id==="free"?"var(--sunk)":g.color}" stroke-width="20" stroke-dasharray="${Math.max(0,len-gap).toFixed(2)} ${(C-Math.max(0,len-gap)).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 75 75)"><title>${esc(g.label)}: ${W.fmtDur(g.minutes)}</title></circle>`; off+=len; return a; }).join("");
+  const leg=groups.map(g=>`<div><i class="${g.id==="free"?"free":""}" style="${g.id==="free"?"":"background:"+g.color}"></i><span class="n">${esc(g.label)}</span><b>${W.fmtDur(g.minutes)}</b></div>`).join("");
+  return `<div class="donut"><svg viewBox="0 0 150 150" role="img" aria-label="${esc(groups.map(g=>g.label+" "+W.fmtDur(g.minutes)).join(", "))}">${arcs}
+    <text x="75" y="72" text-anchor="middle" class="ctr" font-size="21" fill="currentColor">${esc(centre)}</text><text x="75" y="92" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--muted)">${esc(sub)}</text></svg>
+    <div class="dleg">${leg}</div></div>`;
+}
+let donutMode = store.get("donut","day");
+function donutCardHtml(t){
+  if (donutMode==="week"){
+    const mon=mondayOf(t), list=occs(W.addDays(mon,-1),W.addDays(mon,7)).filter(o=>o.cal.visible!==false), acc={};
+    for (let i=0;i<7;i++) W.daySplit(W.addDays(mon,i),list).groups.forEach(g=>{ (acc[g.id] ||= {...g,minutes:0}).minutes+=g.minutes; });
+    const groups=donutGroups(Object.values(acc)), total=7*DAY, free=acc.free?.minutes||0;
+    return donutHtml(groups.map(g=>({...g})), total, Math.round((total-free)/60)+"h", "planned this week");
+  }
+  const sp=W.daySplit(t, occs(W.addDays(t,-1),W.addDays(t,1)).filter(o=>o.cal.visible!==false));
+  const free=sp.groups.find(g=>g.id==="free")?.minutes||0;
+  return donutHtml(donutGroups(sp.groups), DAY, W.fmtDur(free), "free today");
+}
+
+/* ---------- TODAY ---------- */
+function greeting(){ const h=new Date().getHours(); return h<5?"Working late":h<12?"Good morning":h<17?"Good afternoon":"Good evening"; }
+function renderToday(){
+  const t=todayStr(), list=occs(W.addDays(t,-1), W.addDays(t,8)), vis=list.filter(o=>o.cal.visible!==false), nm=nowMin(), t0=W.dnum(t)*DAY;
+  $("tEyebrow").textContent = fmtDay(t,{weekday:"long",day:"numeric",month:"long"});
+  $("tTitle").textContent = greeting()+(myName?", "+myName.split(" ")[0]:"");
+  const an = W.analyse(list); postIndex = {};
+  const timedV = W.timed(vis).filter(o=>o.kind!=="sleep");
+  const nowO = timedV.filter(o=>o.start<=nm && o.end>nm).sort((a,b)=>b.start-a.start)[0] || W.timed(vis).find(o=>o.kind==="sleep"&&o.start<=nm&&o.end>nm);
+  const upcoming = timedV.filter(o=>o.start>nm).sort((a,b)=>a.start-b.start);
+  const next=upcoming[0], after=upcoming.slice(1,3);
+  const pToday = groupPosts(postsFor(t,list)); pToday.forEach(p=>postIndex[p.id]=p);
+  const todo = pToday.filter(p=>!p.status.scheduled);
+  const alerts = alertsFrom(an, t);
+  const sp = W.daySplit(t, vis), free=sp.groups.find(g=>g.id==="free")?.minutes||0;
+  const gaps = gapsOf(vis,t).map(g=>[Math.max(g[0],nm-t0),g[1]]).filter(g=>g[1]-g[0]>=60), big = gaps.sort((a,b)=>(b[1]-b[0])-(a[1]-a[0]))[0];
+  const sleepTonight = W.timed(vis).filter(o=>o.kind==="sleep" && o.start>=nm-60 && o.start<nm+DAY).sort((a,b)=>a.start-b.start)[0];
+  let sleepLeft=null; if (sleepTonight){ const cut=an.shortSleep.find(s=>s.sleep.key===sleepTonight.key); sleepLeft = cut?Math.max(0,cut.left):sleepTonight.end-sleepTonight.start; }
+  const mon=mondayOf(t), h=hoursFor(mon), tot=W.billingTotals(h,cals);
+  let weekTodo=0; for(let i=0;i<7;i++) weekTodo+=groupPosts(postsFor(W.addDays(t,i),list)).filter(p=>!p.status.scheduled).length;
+  const latest = reviews[0];
+  const ym=t.slice(0,7), notes = plannerState ? notesFor(+ym.slice(0,4), +ym.slice(5), plannerState, "both").concat(undatedNotes(plannerState,"both")) : [];
+  const nxRow = (o,lbl)=>`<button class="nx" data-ev="${o.ev.id}" data-date="${o.date}"><i class="dotc" style="background:${o.cal.color}"></i><span style="flex:1;min-width:0"><b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.ev.title)}</b><small>${esc(lbl)}</small></span><span class="when">${o.start-nm<DAY?"in "+dur(o.start-nm):esc(relDay(o.date))}</span></button>`;
+  const hero = `<div class="hero">
+    ${nowO ? `<div><div class="lbl">Now</div><div class="big">${esc(nowO.ev.title)}</div><div class="meta">${esc(nowO.cal.name)} · ends ${W.fmtTime(nowO.end)} · ${dur(nowO.end-nm)} left</div></div>
+      <div class="prog"><i style="width:${Math.min(100,Math.max(2,(nm-nowO.start)/(nowO.end-nowO.start)*100)).toFixed(1)}%"></i></div>`
+      : `<div><div class="lbl">Now</div><div class="big">Free time</div><div class="meta">${next?`${dur(next.start-nm)} until ${esc(next.ev.title)}`:"Nothing else planned"}</div></div>`}
+    ${next?`<div class="lbl" style="margin-top:2px">Up next</div>${nxRow(next, W.fmtTime(next.start)+" – "+W.fmtTime(next.end)+" · "+shortName(next.cal))}`:""}
+    ${after.map(o=>nxRow(o, relDay(o.date)+", "+W.fmtTime(o.start)+" · "+shortName(o.cal))).join("")}
+  </div>`;
+  const tiles = `<div class="tiles">
+    <div class="tile"><span class="k">Free today</span><span class="v num">${W.fmtDur(free)}</span><span class="s">${big?(big[0]<=nm-t0+1?`Now until ${W.fmtTime(big[1])}`:`Longest: ${W.fmtTime(big[0])} to ${W.fmtTime(big[1])}`):"No free hour left"}</span></div>
+    <div class="tile ${sleepLeft!=null&&sleepLeft<360?"bad":""}"><span class="k">Next sleep</span><span class="v num">${sleepLeft!=null?W.fmtDur(sleepLeft):"–"}</span><span class="s">${sleepTonight?`${W.fmtTime(sleepTonight.start)} – ${W.fmtTime(sleepTonight.end)}`:"Not planned"}</span></div>
+    <button class="tile ${todo.length?"warn":"good"}" id="tPosts"><span class="k">Posts today</span><span class="v num">${pToday.length?`${pToday.length-todo.length}/${pToday.length}`:"0"}</span><span class="s">${pToday.length?(todo.length?todo.length+" not scheduled":"All scheduled"):"None due"}${weekTodo?` · ${weekTodo} this week`:""}</span></button>
+    <div class="tile ${tot.unpaid?"warn":""}"><span class="k">Unpaid this week</span><span class="v num">${W.fmtDur(tot.unpaid)}</span><span class="s">Paid ${W.fmtDur(tot.paid)}</span></div>
+  </div>`;
+  const coming=[]; for (let i=1;i<=6;i++){ const html=agendaDayHtml(W.addDays(t,i), list, an, {skipRoutine:true, maxPosts:2, hideEmpty:true}); if(html) coming.push(html); }
+  $("todayBody").innerHTML = `
+    ${hero}
+    ${alerts.length?`<div class="card">${alerts.slice(0,3).map(a=>alertHtml(a,true)).join("")}${alerts.length>3?`<div class="small muted">and ${alerts.length-3} more this week</div>`:""}</div>`:""}
+    ${tiles}
+    <div class="sec"><h2>Your 24 hours</h2><div class="seg" id="dMode"><button data-m="day" class="${donutMode==="day"?"on":""}">Today</button><button data-m="week" class="${donutMode==="week"?"on":""}">This week</button></div></div>
+    <div class="card">${donutCardHtml(t)}</div>
+    <div class="sec" id="postsSec"><h2>Posts today</h2><span class="small muted">${todo.length?todo.length+" to schedule":""}</span></div>
+    <div class="card">${pToday.length?pToday.map(postRowHtml).join(""):`<div class="empty">No posts due today.</div>`}</div>
+    <div class="sec"><h2>Today</h2><button class="more" data-day="${t}">Open day</button></div>
+    <div class="card">${agendaDayHtml(t, list, an, {noHead:true, noPosts:true, noFade:true})}</div>
+    <div class="sec"><h2>Coming up</h2><button class="more" id="tWeek">Week view</button></div>
+    <div class="card">${coming.join("") || `<div class="empty">Nothing else in the next 6 days.</div>`}</div>
+    ${notes.length?`<div class="sec"><h2>To confirm</h2><button class="more" id="tNotes">Manage</button></div><div class="card">${notes.slice(0,5).map(n=>`<div class="prow">${icon("q")}<div class="t"><b style="white-space:normal">${esc(n.text)}</b><span>${n.undated?"No month yet":"This month"} · ${esc(COLLEGES[n.college]?.name||"")}</span></div></div>`).join("")}</div>`:""}
+    ${hoursCardHtml()}
+    ${latest && latest.items?.length ? `<div class="sec"><h2>From your review</h2></div><button class="card" id="tReview" style="text-align:left;width:100%"><span style="display:flex;gap:9px;align-items:flex-start">${itemIcon(latest.items[0].type)}<span>${esc(latest.items[0].text)}</span></span></button>` : ""}
+    <div style="height:20px"></div>`;
+  const body=$("todayBody");
+  wire(body);
+  $("hMore").onclick=openPastWeeks;
+  $("tWeek").onclick=()=>{ calView="week"; calDate=t; store.set("calView","week"); showTab("cal"); };
+  if ($("tReview")) $("tReview").onclick=()=>showTab("review");
+  if ($("tNotes")) $("tNotes").onclick=openNotes;
+  $("tPosts").onclick=()=>$("postsSec").scrollIntoView({behavior:"smooth",block:"start"});
+  $("dMode").querySelectorAll("button").forEach(b=>b.onclick=()=>{ donutMode=b.dataset.m; store.set("donut",donutMode); renderToday(); });
+}
 
 /* ---------- CALENDAR ---------- */
 document.querySelectorAll("#calSeg button").forEach(b=>b.onclick=()=>{ calView=b.dataset.v; store.set("calView",calView); renderCal(); });
 $("calPrev").onclick=()=>moveCal(-1); $("calNext").onclick=()=>moveCal(1);
-$("calTitle").onclick=()=>{ calDate=todayStr(); renderCal(); };
-$("fab").onclick=()=>openQuick(calDate);
+$("calToday").onclick=()=>{ calDate=todayStr(); monthSel=null; renderCal(); };
+let monthSel=null, keepScroll=false;
 function moveCal(dir){
   if (calView==="day") calDate=W.addDays(calDate,dir);
   else if (calView==="week") calDate=W.addDays(calDate,7*dir);
-  else { const d=dateObj(calDate); d.setDate(1); d.setMonth(d.getMonth()+dir); calDate=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-01"; }
+  else { const d=dateObj(calDate); d.setDate(1); d.setMonth(d.getMonth()+dir); calDate=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-01"; monthSel=null; }
   renderCal();
 }
 function renderChips(){
@@ -610,8 +838,9 @@ function renderChips(){
 }
 function renderCal(){
   document.querySelectorAll("#calSeg button").forEach(b=>b.classList.toggle("on",b.dataset.v===calView));
+  $("calToday").classList.toggle("hidden", calView==="month" ? calDate.slice(0,7)===todayStr().slice(0,7) : calView==="week" ? mondayOf(calDate)===mondayOf(todayStr()) : calDate===todayStr());
   renderChips();
-  $("calTop").innerHTML="";
+  $("calTop").innerHTML=""; postIndex={};
   if (calView==="day") renderDayView(); else if (calView==="week") renderWeekView(); else renderMonthView();
 }
 /* side-by-side lanes for blocks that overlap */
@@ -633,82 +862,89 @@ function dayItems(vis, d){
   items.filter(x=>x.o.kind==="sleep").forEach(x=>{ x.lane=0; x.cols=1; });
   return { items, sleeps: items.filter(x=>x.o.kind==="sleep"), lanes };
 }
-function blockHtml(x, H, an, small){
-  const o=x.o, top=x.s/60*H, h=Math.max((x.e-x.s)/60*H, small?6:20), sleep=o.kind==="sleep";
+function blockHtml(x, H, an){
+  const o=x.o, top=x.s/60*H, h=Math.max((x.e-x.s)/60*H, 22), sleep=o.kind==="sleep";
   const left = sleep ? "0%" : (x.lane/x.cols*100).toFixed(2)+"%", width = sleep ? "100%" : `calc(${(100/x.cols).toFixed(2)}% - 3px)`;
-  const label = small ? (h>16&&!sleep?`<b>${esc(o.ev.title)}</b>`:"") : `<b>${esc(o.ev.title)}</b>${h>36?`<small>${W.fmtTime(o.start)} – ${W.fmtTime(o.end)} · ${esc(shortName(o.cal))}</small>`:""}`;
+  const label = `<b>${esc(o.ev.title)}</b>${h>40?`<small>${W.fmtTime(o.start)} – ${W.fmtTime(o.end)} · ${esc(o.cal.name)}</small>`:""}`;
   return `<button class="blk ${sleep?"sleep":""} ${an.flagged[o.key]?"clash":""}" style="--c:${o.cal.color};background:${o.cal.color};top:${top}px;height:${h}px;left:${left};width:${width};z-index:${sleep?1:2}" data-ev="${o.ev.id}" data-date="${o.date}" aria-label="${esc(o.ev.title)}, ${W.fmtTime(o.start)} to ${W.fmtTime(o.end)}">${label}</button>`;
 }
 function hourLabel(h){ return h===0?"12am":h<12?h+"am":h===12?"12pm":(h-12)+"pm"; }
+function dstripHtml(d, list){
+  const mon=mondayOf(d), t=todayStr(), an=W.analyse(list);
+  return `<div class="dstrip">${[0,1,2,3,4,5,6].map(i=>{ const x=W.addDays(mon,i), ps=groupPosts(postsFor(x,list)), fl=an.clashes.some(c=>c.date===x)||an.shortSleep.some(s=>s.date===x);
+    return `<button class="${x===d?"on":""} ${x===t?"td":""}" data-pick="${x}">${fmtDay(x,{weekday:"short"}).slice(0,3)}<b class="num">${+x.slice(8)}</b><span class="mk">${ps.length?`<i style="background:var(--warn)"></i>`:""}${fl?`<i style="background:var(--bad)"></i>`:""}</span></button>`; }).join("")}</div>`;
+}
 let showAllAlerts=false, alertsFor="";
 function renderDayView(){
   if (alertsFor!==calDate) { showAllAlerts=false; alertsFor=calDate; }
-  const d=calDate, list=occs(W.addDays(d,-1), W.addDays(d,1)), vis=list.filter(o=>o.cal.visible!==false), an=W.analyse(list);
+  const d=calDate, list=occs(W.addDays(mondayOf(d),-1), W.addDays(mondayOf(d),7)), vis=list.filter(o=>o.cal.visible!==false), an=W.analyse(list);
   const rd=relDay(d);
-  $("calTitle").textContent = ["Today","Tomorrow","Yesterday"].includes(rd) ? rd+", "+fmtDay(d,{day:"numeric",month:"short"}) : fmtDay(d,{weekday:"short",day:"numeric",month:"short"});
-  const d0=W.dnum(d)*DAY, H=46;
-  postIndex={};
+  $("calTitle").textContent = ["Today","Tomorrow","Yesterday"].includes(rd) ? rd : fmtDay(d,{weekday:"long",day:"numeric",month:"short"});
+  const d0=W.dnum(d)*DAY, H=56;
   const posts=groupPosts(postsFor(d,list)); posts.forEach(p=>postIndex[p.id]=p);
   const allDay = vis.filter(o=>o.allDay && o.kind!=="post" && o.date===d);
   const {items, sleeps, lanes} = dayItems(vis, d);
-  const busy=items.map(x=>[x.s,x.e]).sort((a,b)=>a[0]-b[0]); const gaps=[]; let c=0;
-  busy.forEach(r=>{ if(r[0]-c>=60) gaps.push([c,r[0]]); c=Math.max(c,r[1]); }); if(DAY-c>=60) gaps.push([c,DAY]);
+  const gaps=gapsOf(vis,d);
   const sp=W.daySplit(d,vis), alerts=alertsFrom(an, d, d).map(a=>alertHtml(a,false));
   let hrs=""; for(let h=0;h<=24;h++) hrs+=`<div class="hr" style="top:${h*H}px">${h<24?`<span>${hourLabel(h)}</span>`:""}</div>`;
   const nm=nowMin(), nowLine = (nm>=d0 && nm<d0+DAY) ? `<div class="nowline" style="top:${(nm-d0)/60*H}px"></div>` : "";
-  $("calTop").innerHTML = `
-    ${posts.length||allDay.length?`<div class="allday">${posts.map(p=>`<button class="pchip" style="border-color:${p.cal.color}" data-post="${esc(p.id)}"><i class="dot ${stClass(p.status)}"></i><span>${esc(p.title)}</span><span class="muted small">${esc(p.calNames)}</span></button>`).join("")}${allDay.map(o=>`<button class="pchip" style="border-color:${o.cal.color}" data-ev="${o.ev.id}" data-date="${o.date}"><span>${esc(o.ev.title)}</span></button>`).join("")}</div>`:""}
+  const nm2=nowMin();
+  $("calTop").innerHTML = `${dstripHtml(d,list)}
+    ${posts.length||allDay.length?`<div style="max-height:150px;overflow:auto">${allDay.map(o=>agItemHtml({o,date:d},nm2,an)).join("")}${posts.map(p=>agItemHtml({post:p},nm2)).join("")}</div>`:""}
     ${splitHtml(sp,false)}<div class="legend one small">${sp.groups.map(g=>`<span><i class="sw ${g.id==="free"?"free":""}" style="${g.id==="free"?"":"background:"+g.color}"></i>${esc(g.label)} <b class="num">${W.fmtDur(g.minutes)}</b></span>`).join("")}</div>
     ${alerts.length>1 && !showAllAlerts ? `<button class="alert" id="moreAlerts">${icon("warn")}<span>${alerts.length} warnings on this day. Tap to see them.</span></button>` : alerts.join("")}`;
   if ($("moreAlerts")) $("moreAlerts").onclick=()=>{ showAllAlerts=true; renderDayView(); };
+  $("calTop").querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ calDate=b.dataset.pick; renderCal(); });
   $("calBody").innerHTML = `
     <div class="tl" id="tl" style="height:${24*H}px">${hrs}<div class="cols" id="tlCols">
       ${gaps.map(g=>`<div class="gap" style="top:${g[0]/60*H+2}px;height:${(g[1]-g[0])/60*H-4}px">Free · ${W.fmtDur(g[1]-g[0])}</div>`).join("")}
       ${sleeps.map(x=>blockHtml(x,H,an)).join("")}${lanes.map(x=>blockHtml(x,H,an)).join("")}
     </div>${nowLine}</div>`;
   const body=$("calBody");
-  [body,$("calTop")].forEach(root=>{
-    root.querySelectorAll("[data-ev]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openEvent(events.find(x=>x.id===b.dataset.ev), b.dataset.date); });
-    root.querySelectorAll("[data-post]").forEach(b=>b.onclick=()=>openPost(postIndex[b.dataset.post]));
-  });
+  wire(body); wire($("calTop"));
   $("tlCols").onclick=e=>{ if(e.target.closest(".blk")) return; const r=$("tlCols").getBoundingClientRect(); const m=Math.max(0,Math.min(23*60+30,Math.floor((e.clientY-r.top)/H*2)*30)); openEvent(null,d,m); };
   const firstBusy = lanes.slice().sort((a,b)=>a.s-b.s)[0];
   const focus = (nm>=d0 && nm<d0+DAY) ? (nm-d0)/60*H-140 : (firstBusy ? firstBusy.s : 8*60)/60*H-60;
   requestAnimationFrame(()=>{ body.scrollTop = Math.max(0, $("tl").offsetTop + focus); });
 }
 function renderWeekView(){
-  const mon=mondayOf(calDate), sun=W.addDays(mon,6), list=occs(W.addDays(mon,-1), W.addDays(sun,1)), vis=list.filter(o=>o.cal.visible!==false), an=W.analyse(list), t=todayStr(), H=24;
+  const mon=mondayOf(calDate), sun=W.addDays(mon,6), list=occs(W.addDays(mon,-1), W.addDays(sun,1)), an=W.analyse(list), t=todayStr();
   $("calTitle").textContent = fmtDay(mon,{day:"numeric",month:"short"})+" – "+fmtDay(sun,{day:"numeric",month:"short"});
-  const flagDays = new Set(an.clashes.map(c=>c.date).concat(an.shortSleep.map(s=>s.date)));
-  let head=`<div class="dh" style="padding:0"></div>`, cols="";
-  for (let i=0;i<7;i++){
-    const d=W.addDays(mon,i), d0=W.dnum(d)*DAY, posts=groupPosts(postsFor(d,list)), todo=posts.filter(p=>!p.status.scheduled).length;
-    head+=`<button class="dh ${d===t?"today":""}" data-day="${d}">${fmtDay(d,{weekday:"short"}).slice(0,2)}<b class="num">${+d.slice(8)}</b><span class="mk">${posts.length?`<span class="pc ${todo?"todo":""}" title="${posts.length} posts">${posts.length}</span>`:""}${flagDays.has(d)?`<i class="rd" title="Clash or short sleep"></i>`:""}</span></button>`;
-    const {sleeps, lanes} = dayItems(vis, d), nm=nowMin();
-    cols+=`<div class="col" style="height:${24*H}px">${sleeps.concat(lanes).map(x=>blockHtml(x,H,an,true)).join("")}${d===t?`<div class="nowline" style="top:${(nm-d0)/60*H}px"></div>`:""}</div>`;
-  }
-  let gut=`<div class="gut" style="height:${24*H}px">`; for(let h=3;h<24;h+=3) gut+=`<span style="top:${h*H}px">${h<12?h+"a":h===12?"12p":(h-12)+"p"}</span>`; gut+="</div>";
-  $("calBody").innerHTML = `<div class="wk">${head}${gut}${cols}</div><div style="height:90px"></div>`;
-  $("calBody").querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>openDay(b.dataset.day));
-  $("calBody").querySelectorAll("[data-ev]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openEvent(events.find(x=>x.id===b.dataset.ev), b.dataset.date); });
-  requestAnimationFrame(()=>{ $("calBody").scrollTop = 0; });
+  const alerts=alertsFrom(an, mon).filter(a=>a.date<=sun);
+  let html = alerts.length?`<div class="card" style="margin:0 0 4px">${alerts.slice(0,4).map(a=>alertHtml(a,true)).join("")}${alerts.length>4?`<div class="small muted">and ${alerts.length-4} more</div>`:""}</div>`:"";
+  html += `<div class="card" style="margin-top:8px">${[0,1,2,3,4,5,6].map(i=>agendaDayHtml(W.addDays(mon,i), list, an, {strip:true, maxPosts:3})).join("")}</div>`;
+  html += `<p class="small muted" style="margin:10px 2px">Faded rows are your routine (shift and classes). The bar under each day shows the 24 hours; striped is sleep.</p>`;
+  $("calBody").innerHTML = `<div style="padding:0 max(14px,env(safe-area-inset-right)) 100px max(14px,env(safe-area-inset-left))">${html}</div>`;
+  wire($("calBody"));
+  requestAnimationFrame(()=>{ const el=$("calBody").querySelector(`[data-day="${t}"]`); $("calBody").scrollTop = el && t>=mon && t<=sun ? Math.max(0, el.offsetTop-10) : 0; });
 }
 function renderMonthView(){
   const d=dateObj(calDate), y=d.getFullYear(), m=d.getMonth()+1, first=`${y}-${String(m).padStart(2,"0")}-01`;
   const start=mondayOf(first), end=W.addDays(start,41), list=occs(W.addDays(start,-1), W.addDays(end,1)), vis=list.filter(o=>o.cal.visible!==false), an=W.analyse(list), t=todayStr();
+  if (!monthSel || monthSel.slice(0,7)!==first.slice(0,7)) monthSel = t.slice(0,7)===first.slice(0,7) ? t : first;
   $("calTitle").textContent = dateObj(first).toLocaleDateString("en-GB",{month:"long",year:"numeric"});
   const flagDays = new Set(an.clashes.map(c=>c.date).concat(an.shortSleep.map(s=>s.date)));
   let html = WEEKDAYS.map(w=>`<div class="dn">${w[1].slice(0,2)}</div>`).join("");
   for (let i=0;i<42;i++){
     const day=W.addDays(start,i), out=+day.slice(5,7)!==m;
     if (i%7===0 && i>=28 && out) break;
-    const d0=W.dnum(day)*DAY, posts=groupPosts(postsFor(day,list)), todo=posts.filter(p=>!p.status.scheduled).length;
-    const calsOn=[...new Set(vis.filter(o=>o.kind!=="sleep" && !o.allDay && o.start>=d0 && o.start<d0+DAY).map(o=>o.cal.color).concat(posts.map(p=>p.cal.color)))].slice(0,4);
-    html+=`<button class="mc ${out?"out":""} ${day===t?"today":""}" data-day="${day}"><span class="d num">${+day.slice(8)}</span><span class="bars">${calsOn.map(c=>`<i style="background:${c}"></i>`).join("")}</span>${posts.length?`<span class="pc ${todo?"todo":""}" title="${posts.length} post${posts.length>1?"s":""}">${posts.length}<span class="w"> post${posts.length>1?"s":""}</span></span>`:""}${flagDays.has(day)?`<i class="rd" title="Clash or short sleep"></i>`:""}</button>`;
+    const d0=W.dnum(day)*DAY, posts=groupPosts(postsFor(day,list));
+    const evs=vis.filter(o=>o.kind!=="sleep" && o.kind!=="post" && !ROUTINE(o) && (o.allDay ? o.date===day : (o.start>=d0 && o.start<d0+DAY)));
+    const labels=evs.map(o=>({c:o.cal.color,t:o.ev.title})).concat(posts.map(p=>({c:p.cal.color,t:p.title})));
+    const shown=labels.slice(0,3);
+    html+=`<button class="mc ${out?"out":""} ${day===t?"today":""} ${day===monthSel?"sel":""}" data-sel="${day}"><span class="d num">${+day.slice(8)}</span>${shown.map(l=>`<span class="ev" style="--c:${l.c};border-color:${l.c}">${esc(l.t)}</span>`).join("")}${labels.length>3?`<span class="mo-more">+${labels.length-3}</span>`:""}${flagDays.has(day)?`<i class="rd" title="Clash or short sleep"></i>`:""}</button>`;
   }
-  $("calBody").innerHTML = `<div class="mo">${html}</div>`;
-  $("calBody").querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>openDay(b.dataset.day));
-  $("calBody").scrollTop=0;
+  const notes = plannerState ? notesFor(y, m, plannerState, "both") : [];
+  $("calBody").innerHTML = `<div class="mo">${html}</div>
+    <div class="mo-below">
+      <div class="sec" style="margin-top:14px"><h2>${esc(fmtDay(monthSel,{weekday:"long",day:"numeric",month:"long"}))}</h2><button class="more" data-day="${monthSel}">Open day</button></div>
+      <div class="card">${agendaDayHtml(monthSel, list, an, {noHead:true})}</div>
+      ${notes.length?`<div class="sec"><h2>To confirm this month</h2><button class="more" id="mNotes">Manage</button></div><div class="card">${notes.map(n=>`<div class="prow">${icon("q")}<div class="t"><b style="white-space:normal">${esc(n.text)}</b><span>${esc(COLLEGES[n.college]?.name||"")}</span></div></div>`).join("")}</div>`:""}
+    </div>`;
+  $("calBody").querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>{ monthSel=b.dataset.sel; const st=$("calBody").scrollTop; keepScroll=true; renderMonthView(); $("calBody").scrollTop=st; });
+  if ($("mNotes")) $("mNotes").onclick=openNotes;
+  wire($("calBody"));
+  if (!keepScroll) $("calBody").scrollTop=0; keepScroll=false;
 }
 
 /* ---------- sheets ---------- */
@@ -721,56 +957,200 @@ const closeSheet=()=>$("sheetRoot").innerHTML="";
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeSheet(); });
 const hm = m => String(Math.floor(m/60)%24).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 
+/* ---------- college planner, now inside the app ---------- */
+/* read the latest planner from the database, change it, save it back */
+async function plannerMutate(fn, msg){
+  let st;
+  try { const {data,error}=await api.loadPlannerMain(); if(error) throw error; st = normaliseState(data ? JSON.parse(data) : null); }
+  catch(e){ toast("Couldn't load the planner: "+(e.message||e)); return false; }
+  if (fn(st)===false) return false;
+  const r=await api.savePlannerMain(JSON.stringify(st)); if (r?.error){ toast(r.error.message); return false; }
+  plannerState=st; W.resetPlannerCache(); if (msg) toast(msg); reload(); return true;
+}
+function collegeOpts(sel){ return Object.keys(COLLEGES).map(k=>`<option value="${k}" ${k===sel?"selected":""}>${esc(COLLEGES[k].name)}</option>`).join(""); }
+function catOpts(sel){ return Object.keys(CATEGORIES).filter(k=>k!=="birthday").map(k=>`<option value="${k}" ${k===sel?"selected":""}>${esc(CATEGORIES[k].name)}</option>`).join(""); }
+function plannerItemFor(p){
+  if (!plannerState || p.source!=="planner") return null;
+  const [id,date]=[p.key.slice(0,p.key.lastIndexOf("@")), p.key.split("@").pop()];
+  return (itemsOn(date, plannerState, "both")||[]).find(it=>it.id===id) || null;
+}
+/* add or edit a college post (built-in day, your own event) */
+function openCollegePost(it, date){
+  const builtin = it && it.kind==="builtin", editing=!!it, d = it ? (it.start||it.date) : date, year=+d.slice(0,4);
+  const o = it || { title:"", cat:"college", college:"both", size:"minor", days:1, repeat:false };
+  sheet(`<h2>${editing?"Edit college post":"New college post"}</h2>
+    ${builtin?`<div class="small muted">${o.weekly?"This post repeats every week, so its date can't change here.":"A built-in day that comes back every year. A new date moves it for "+year+" only."}</div>`:""}
+    <input id="cpTitle" class="field" placeholder="e.g. Annual sports gala" value="${esc(o.baseTitle||o.title)}" maxlength="120">
+    <div class="grid2"><label class="fl"><span class="label">${builtin?"Date in "+year:"Starts on"}</span><input id="cpDate" class="field" type="date" value="${esc(d)}" ${o.weekly?"disabled":""}></label>
+      ${builtin?`<label class="fl"><span class="label">Type</span><select id="cpCat" class="field">${catOpts(o.cat)}</select></label>`:`<label class="fl"><span class="label">Ends on (optional)</span><input id="cpEnd" class="field" type="date" value="${o.days>1?esc(W.addDays(d,o.days-1)):""}"></label>`}</div>
+    <div class="grid2"><label class="fl"><span class="label">College</span><select id="cpCol" class="field">${collegeOpts(o.college)}</select></label>
+      ${builtin?"":`<label class="fl"><span class="label">Type</span><select id="cpCat" class="field">${catOpts(o.cat)}</select></label>`}</div>
+    <div class="fl"><span class="label">How big</span><div class="seg3" id="cpSize"><button data-s="major" class="${o.size==="major"?"on":""}">Major: video and posts</button><button data-s="minor" class="${o.size!=="major"?"on":""}">Minor: one post</button></div></div>
+    ${builtin?(o.tentative?`<label class="line"><span>Date confirmed for ${year}</span><span class="switch"><input type="checkbox" id="cpConf"><span></span></span></label>`:""):`<label class="line"><span>Repeat every year</span><span class="switch"><input type="checkbox" id="cpRep" ${o.repeat?"checked":""}><span></span></span></label>`}
+    <div class="actions"><button class="btn" id="cpSave">${editing?"Save":"Add post"}</button></div>
+    ${editing?`<div class="actions"><button class="btn danger sm" id="cpDel">${builtin?"Don't show this day any more":"Delete"}</button>${builtin&&plannerState&&(plannerState.edits[o.id]||plannerState.moved[o.id+"@"+year])?`<button class="btn ghost sm" id="cpReset">Put back the original</button>`:""}</div>`:""}`);
+  let size=o.size==="major"?"major":"minor";
+  $("cpSize").querySelectorAll("button").forEach(b=>b.onclick=()=>{ size=b.dataset.s; $("cpSize").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); });
+  $("cpSave").onclick=async()=>{
+    const title=$("cpTitle").value.trim(), nd=$("cpDate").value; if(!title) return toast("Give it a title"); if(!/^\d{4}-\d{2}-\d{2}$/.test(nd)) return toast("Pick a date");
+    const rec={title, cat:$("cpCat").value, college:$("cpCol").value, size};
+    let span=1; if (!builtin && $("cpEnd").value){ const e=$("cpEnd").value; if(e<nd) return toast("The end is before the start"); span=W.dnum(e)-W.dnum(nd)+1; if(span>60) return toast("At most 60 days"); }
+    const ok=await plannerMutate(st=>{
+      if (builtin){ st.edits[o.id]=rec; if(!o.weekly && (nd!==d || ($("cpConf")&&$("cpConf").checked))) st.moved[o.id+"@"+year]=nd; return; }
+      const p=parseYmd(nd); Object.assign(rec,{date:nd,m:p.m,d:p.d,repeat:$("cpRep").checked}); if(span>1) rec.days=span;
+      if (editing) st.custom=st.custom.map(c=>c.id===o.id?{...rec,id:c.id}:c); else st.custom.push({...rec,id:newId()});
+    }, editing?"Saved":"Post added");
+    if (ok) closeSheet();
+  };
+  if ($("cpDel")) $("cpDel").onclick=async()=>{ const b=$("cpDel"); if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Tap again to confirm"; return; }
+    if (await plannerMutate(st=>{ if(builtin) st.hidden[o.id]=true; else st.custom=st.custom.filter(c=>c.id!==o.id); }, builtin?"Hidden":"Deleted")) closeSheet(); };
+  if ($("cpReset")) $("cpReset").onclick=async()=>{ if (await plannerMutate(st=>{ delete st.edits[o.id]; delete st.moved[o.id+"@"+year]; },"Put back")) closeSheet(); };
+}
+/* faculty birthdays */
+function openBirthday(b){
+  const v=b||{name:"",d:1,m:new Date().getMonth()+1,dept:""};
+  sheet(`<h2>${b?"Edit birthday":"New birthday"}</h2>
+    <input id="bName" class="field" placeholder="Name" value="${esc(v.name)}" maxlength="80">
+    <div class="grid2"><label class="fl"><span class="label">Day</span><select id="bDay" class="field">${Array.from({length:31},(_,i)=>`<option ${i+1===v.d?"selected":""}>${i+1}</option>`).join("")}</select></label>
+      <label class="fl"><span class="label">Month</span><select id="bMonth" class="field">${MONTH_NAMES.map((n,i)=>`<option value="${i+1}" ${i+1===v.m?"selected":""}>${n}</option>`).join("")}</select></label></div>
+    <input id="bDept" class="field" placeholder="Department (optional)" value="${esc(v.dept||"")}" maxlength="80">
+    <div class="small muted">Shows every year on this date as a Superior College birthday post.</div>
+    <div class="actions"><button class="btn" id="bSave">${b?"Save":"Add birthday"}</button>${b?`<button class="btn danger" id="bDel">Delete</button>`:""}</div>`);
+  $("bSave").onclick=async()=>{ const name=$("bName").value.trim(); if(!name) return toast("Add a name");
+    const rec={name,d:+$("bDay").value,m:+$("bMonth").value,dept:$("bDept").value.trim()};
+    if (await plannerMutate(st=>{ if(b) st.birthdays=st.birthdays.map(x=>x.id===b.id?{...rec,id:b.id}:x); else st.birthdays.push({...rec,id:newId()}); }, b?"Saved":"Birthday added")) closeSheet(); };
+  if ($("bDel")) $("bDel").onclick=async()=>{ const x=$("bDel"); if(!x.dataset.armed){ x.dataset.armed=1; x.textContent="Tap again"; return; } if (await plannerMutate(st=>{ st.birthdays=st.birthdays.filter(z=>z.id!==b.id); },"Deleted")) closeSheet(); };
+}
+function openBirthdays(){
+  const list=(plannerState?.birthdays||[]).slice().sort((a,b)=>a.m-b.m||a.d-b.d||a.name.localeCompare(b.name));
+  sheet(`<h2>Birthdays <span class="small muted">${list.length}</span></h2>
+    <input id="bq" class="field" placeholder="Search names">
+    <div id="bl" style="max-height:52vh;overflow:auto"></div>
+    <div class="actions"><button class="btn" id="bAdd">${icon("plus")} Add a birthday</button><button class="btn ghost" data-close>Close</button></div>`);
+  const draw=()=>{ const q=$("bq").value.trim().toLowerCase();
+    $("bl").innerHTML = list.filter(b=>!q||b.name.toLowerCase().includes(q)).map(b=>`<button class="calrow" data-b="${b.id}"><b class="num" style="width:58px">${b.d} ${MONTH_NAMES[b.m-1].slice(0,3)}</b><span class="t"><b>${esc(b.name)}</b>${b.dept?`<span class="small muted">${esc(b.dept)}</span>`:""}</span>${icon("right")}</button>`).join("") || `<div class="empty">No names yet.</div>`;
+    $("bl").querySelectorAll("[data-b]").forEach(x=>x.onclick=()=>openBirthday(list.find(b=>b.id===x.dataset.b))); };
+  $("bq").oninput=draw; draw(); $("bAdd").onclick=()=>openBirthday(null);
+}
+/* things still to confirm (a sports week with no date yet, etc.) */
+function openNotes(){
+  const st=plannerState||defaultState(), t=todayStr(), ym=t.slice(0,7);
+  const mine=st.notes.slice().sort((a,b)=>(a.ym==="any")-(b.ym==="any")||a.ym.localeCompare(b.ym));
+  sheet(`<h2>To confirm</h2>
+    <div class="small muted">Things you know are coming but don't have a date for yet. Give one a date and it becomes a college post.</div>
+    ${mine.map(n=>`<div class="prow">${icon("q")}<div class="t"><b style="white-space:normal">${esc(n.text)}</b><span>${n.ym==="any"?"No month yet":esc(MONTH_NAMES[+n.ym.slice(5)-1]+" "+n.ym.slice(0,4))} · ${esc(COLLEGES[n.college]?.name||"")}</span></div><button class="btn soft sm" data-date="${n.id}">Set date</button><button class="ib" data-rm="${n.id}" aria-label="Remove">✕</button></div>`).join("") || `<div class="empty">Nothing waiting.</div>`}
+    <div class="fl"><span class="label">Add one</span><input id="nText" class="field" placeholder="e.g. Sports week" maxlength="140">
+      <div class="grid2"><select id="nWhen" class="field"><option value="${ym}">This month</option><option value="${W.addDays(ym+"-01",32).slice(0,7)}">Next month</option><option value="any">No month yet</option></select><select id="nCol" class="field">${collegeOpts("both")}</select></div></div>
+    <div class="actions"><button class="btn" id="nAdd">Add</button><button class="btn ghost" data-close>Close</button></div>`);
+  $("nAdd").onclick=async()=>{ const text=$("nText").value.trim(); if(!text) return toast("Type something");
+    if (await plannerMutate(s=>{ s.notes.push({id:newId(), ym:$("nWhen").value, college:$("nCol").value, text}); },"Added")) openNotes(); };
+  $("sheetRoot").querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{ if (await plannerMutate(s=>{ s.notes=s.notes.filter(n=>n.id!==b.dataset.rm); },"Removed")) openNotes(); });
+  $("sheetRoot").querySelectorAll("[data-date]").forEach(b=>b.onclick=()=>{ const n=st.notes.find(x=>x.id===b.dataset.date);
+    openCollegePost(null, n.ym==="any"?t:n.ym+"-15"); $("cpTitle").value=n.text; $("cpCol").value=n.college;
+    const save=$("cpSave").onclick; $("cpSave").onclick=async()=>{ await save(); if(!$("cpSave")) await plannerMutate(s=>{ s.notes=s.notes.filter(x=>x.id!==n.id); }); }; });
+}
+
 function openPost(p){
   if (!p) return;
-  const st=p.status;
-  sheet(`<div class="label">${p.source==="planner"?"College post":p.source==="world"?"World day post":"Post"} · ${esc(fmtDay(p.key.split("@").pop(),{weekday:"long",day:"numeric",month:"long"}))}</div>
+  const st=p.status, it=plannerItemFor(p);
+  sheet(`<div class="label">${p.source==="planner"?(it&&it.kind==="birthday"?"Birthday post":"College post"):p.source==="world"?"World day post":"Post"} · ${esc(fmtDay(p.key.split("@").pop(),{weekday:"long",day:"numeric",month:"long"}))}</div>
     <h2>${esc(p.title)}</h2>
-    <div class="actions">${p.cals.map(c=>`<span class="tag"><i class="sw" style="background:${c.color}"></i>${esc(c.name)}</span>`).join("")}</div>
+    <div class="actions">${p.cals.map(c=>`<span class="tag"><i class="sw" style="background:${c.color}"></i>${esc(c.name)}</span>`).join("")}${it&&it.size==="major"?`<span class="tag">Major day</span>`:""}</div>
     <div class="seg3">
       ${p.source==="planner"?`<button data-f="sent" class="${st.sent?"on":""}">With designer</button>`:""}
       <button data-f="made" class="${st.made?"on":""}">Made</button>
       <button data-f="scheduled" class="${st.scheduled?"on":""}">Scheduled</button>
     </div>
     <div class="actions">
-      ${p.source==="planner"?`<button class="btn soft" id="pOpen">Open in Planner</button>`:""}
+      ${it?`<button class="btn soft" id="pEdit">Edit</button>`:""}
       ${p.source==="world"?`<button class="btn ghost" id="pSkip">No post for ${esc(shortName(p.cal))} this day</button>`:""}
       ${p.source==="event"?`<button class="btn soft" id="pEdit">Edit</button>`:""}
       <button class="btn ghost" data-close>Close</button>
     </div>`);
   $("sheetRoot").querySelectorAll(".seg3 [data-f]").forEach(b=>b.onclick=async()=>{ closeSheet(); await togglePost(p,b.dataset.f); });
-  if ($("pOpen")) $("pOpen").onclick=()=>{ closeSheet(); openPlanner(); };
   if ($("pSkip")) $("pSkip").onclick=async()=>{ closeSheet(); const r=await api.setPostStatus(p.cal.id,p.key,{skip:true}); if(r.error) return toast(r.error.message); toast("Removed from "+shortName(p.cal)); reload(); };
-  if ($("pEdit")) $("pEdit").onclick=()=>{ closeSheet(); openEvent(p.occ.ev, p.occ.date); };
+  if ($("pEdit")) $("pEdit").onclick=()=>{
+    if (p.source==="event") return openEvent(p.occ.ev, p.occ.date);
+    if (it.kind==="birthday") return openBirthday((plannerState.birthdays||[]).find(b=>b.id===it.id));
+    openCollegePost(it, p.key.split("@").pop()); };
 }
 
-/* ---------- quick add ---------- */
-const QUICK_EXAMPLES = ["Meeting with Sam Thursday 11pm","Tariq ad shoot tomorrow 3-5pm","Chamber reel post Saturday","Uni class every Mon and Wed 2-4:30pm"];
-function openQuick(date){
-  sheet(`<h2>Add to calendar</h2>
-    <input id="qText" class="field" placeholder="Type it like you'd say it" maxlength="200" enterkeyhint="go" autocomplete="off">
+/* ---------- ADD: one button for everything, with voice ---------- */
+const QUICK_EXAMPLES = ["Meeting with Sam Thursday 11pm","Tariq shoot tomorrow 3-5pm","Call Ma'am Sofia Friday 4pm","Gym every Mon and Wed 6pm"];
+let addType = "event";
+function openAdd(date){
+  date = date || todayStr();
+  const types=[["event","cal","Event"],["post","pin","College post"],["bday","gift","Birthday"],["note","q","To confirm"]];
+  sheet(`<h2>Add</h2>
+    <div class="typegrid" id="aTypes">${types.map(t=>`<button data-t="${t[0]}" class="${addType===t[0]?"on":""}">${icon(t[1])}${t[2]}</button>`).join("")}</div>
+    <div id="aBody"></div>`);
+  $("aTypes").querySelectorAll("button").forEach(b=>b.onclick=()=>{ addType=b.dataset.t; if(addType==="post") return openCollegePost(null,date); if(addType==="bday") return openBirthday(null); if(addType==="note") return openNotes(); });
+  addType="event";
+  $("aTypes").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.t==="event"));
+  const voiceAI = aiOn && ["gemini","openai"].includes(ai.provider);
+  $("aBody").innerHTML = `<div style="display:grid;gap:12px">
+    <button class="mic" id="qMic" aria-label="Speak to add">${icon("mic")}</button>
+    <div class="small muted" id="qMicHelp" style="text-align:center">${voiceAI?"Tap and say it, e.g. “meeting with Sam Thursday 11pm and call Tariq Saturday 5”. Tap again to stop.":"Tap, then press the 🎤 on your keyboard and say it."}</div>
+    <input id="qText" class="field" placeholder="Or type it like you'd say it" maxlength="300" enterkeyhint="go" autocomplete="off">
     <div class="days" id="qEx">${QUICK_EXAMPLES.map(x=>`<button>${esc(x)}</button>`).join("")}</div>
-    <div class="small muted">${aiOn?"AI reads it and fills in the form for you to check.":"I'll read the date, time and calendar, and you check the form. Turn on AI in Settings for smarter reading."}</div>
-    <div class="actions"><button class="btn" id="qGo">Next</button><button class="btn ghost" id="qForm">Fill in a form instead</button></div>`);
+    <div class="actions"><button class="btn" id="qGo">Next</button><button class="btn ghost" id="qForm">Fill in a form</button></div></div>`;
   const go = async()=>{
-    const text=$("qText").value.trim(); if(!text) return toast("Type what you want to add");
+    const text=$("qText").value.trim(); if(!text) return toast("Say or type what you want to add");
     const btn=$("qGo"); btn.disabled=true; btn.textContent="Reading…";
     const nm=nowMin()%DAY, local = W.parseQuick(text, cals, todayStr(), nm);
     let entry = local;
     if (aiOn) {
-      try {
-        const {data,error} = await api.quickAI(text, todayStr(), hm(nm));
-        if (!error && data?.entry) entry = fromAI(data.entry, local);
-        else toast("AI couldn't read it, so I filled it in myself");
+      try { const {data,error} = await api.quickAI(text, todayStr(), hm(nm));
+        if (!error && data?.entry) entry = fromAI(data.entry, local); else toast("AI couldn't read it, so I filled it in myself");
       } catch { toast("AI couldn't read it, so I filled it in myself"); }
     }
     if (!entry.via) entry.via = "local";
     closeSheet(); openEvent(null, entry.date || date, null, entry);
   };
   $("qGo").onclick=go; $("qText").onkeydown=e=>{ if(e.key==="Enter") go(); };
-  $("qEx").querySelectorAll("button").forEach(b=>b.onclick=()=>{ $("qText").value=b.textContent; $("qText").focus(); });
+  $("qEx").querySelectorAll("button").forEach(b=>b.onclick=()=>{ $("qText").value=b.textContent; });
   $("qForm").onclick=()=>{ closeSheet(); openEvent(null, date); };
-  if (matchMedia("(pointer:fine)").matches) $("qText").focus();
+  $("qMic").onclick=()=> voiceAI ? toggleRecording() : (()=>{ $("qText").focus(); $("qMicHelp").textContent="Now press the 🎤 at the bottom of your keyboard, speak, then tap Next."; })();
+}
+/* recording: iPhone home-screen apps can't use the browser's speech reader, so the audio goes to your AI key to be understood */
+let rec=null;
+async function toggleRecording(){
+  const btn=$("qMic");
+  if (rec) { rec.stop(); return; }
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) { toast("This phone can't record here. Use the keyboard 🎤 instead."); $("qText").focus(); return; }
+  let stream; try { stream=await navigator.mediaDevices.getUserMedia({audio:true}); } catch { toast("Microphone wasn't allowed. Allow it in Settings for this app."); return; }
+  const type=["audio/mp4","audio/webm;codecs=opus","audio/webm"].find(t=>MediaRecorder.isTypeSupported?.(t))||"";
+  const chunks=[]; rec=new MediaRecorder(stream, type?{mimeType:type}:undefined);
+  rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
+  const timer=setTimeout(()=>rec&&rec.stop(), 45000);
+  rec.onstop=async()=>{
+    clearTimeout(timer); stream.getTracks().forEach(t=>t.stop()); const mime=(rec.mimeType||type||"audio/mp4").split(";")[0]; rec=null;
+    if (!$("qMic")) return; btn.classList.remove("rec"); $("qMicHelp").textContent="Understanding…";
+    const blob=new Blob(chunks,{type:mime});
+    if (blob.size<1500) { $("qMicHelp").textContent="That was too short. Tap and try again."; return; }
+    const b64=await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(String(fr.result).split(",")[1]); fr.readAsDataURL(blob); });
+    try {
+      const {data,error}=await api.voiceAI(b64, mime, todayStr(), hm(nowMin()%DAY));
+      if (error || data?.error) throw new Error(data?.error || error.message);
+      const entries=(data.entries||[]).map(a=>fromAI(a, W.parseQuick(a.title||"", cals, todayStr(), nowMin()%DAY)));
+      if (!entries.length) { $("qMicHelp").textContent=data.transcript?`I heard “${data.transcript}” but found nothing to add.`:"I didn't catch anything. Try again."; return; }
+      if (entries.length===1) { closeSheet(); openEvent(null, entries[0].date, null, {...entries[0], heard:data.transcript}); return; }
+      openVoiceList(entries, data.transcript);
+    } catch(e) { $("qMicHelp").textContent="Couldn't understand it: "+(e.message||e); }
+  };
+  rec.start(); btn.classList.add("rec"); $("qMicHelp").textContent="Listening… tap again when you're done.";
+}
+function openVoiceList(entries, heard){
+  sheet(`<h2>Add these?</h2>${heard?`<div class="small muted">I heard: “${esc(heard)}”</div>`:""}
+    <div class="vlist">${entries.map((e,i)=>{ const c=calById(e.calendar_id); return `<label class="vitem"><input type="checkbox" data-i="${i}" checked><span class="sw" style="background:${c?.color||"var(--faint)"};width:12px;height:12px;border-radius:50%"></span><span class="t"><b>${esc(e.title)}</b><span class="small muted">${esc(relDay(e.date))}${e.start_time?", "+W.fmtTime(W.tmin(e.start_time)):""}${c?" · "+esc(c.name):""}${e.repeat==="weekly"?" · weekly":e.repeat==="daily"?" · daily":""}</span></span><button class="btn ghost sm" data-edit="${i}" type="button">Edit</button></label>`; }).join("")}</div>
+    <div class="actions"><button class="btn" id="vAdd">Add ticked</button><button class="btn ghost" data-close>Cancel</button></div>`);
+  $("sheetRoot").querySelectorAll("[data-edit]").forEach(b=>b.onclick=e=>{ e.preventDefault(); const x=entries[+b.dataset.edit]; closeSheet(); openEvent(null,x.date,null,x); });
+  $("vAdd").onclick=async()=>{
+    const pick=[...$("sheetRoot").querySelectorAll("[data-i]:checked")].map(x=>entries[+x.dataset.i]); let n=0;
+    for (const e of pick){ const v={calendar_id:e.calendar_id||(cals.find(c=>c.billing==="personal")||cals[0]).id, title:e.title, kind:e.kind||"other", date:e.date, start_time:e.kind==="post"?null:(e.start_time||null), end_time:e.kind==="post"?null:(e.end_time||(e.start_time?hm((W.tmin(e.start_time)+60)%DAY):null)), repeat:e.repeat||"none", repeat_days:e.repeat==="weekly"?(e.repeat_days?.length?e.repeat_days:[W.weekday(W.dnum(e.date))]):[], repeat_until:null, notes:null };
+      const r=await api.saveEvent(v); if(r.error){ toast(r.error.message); break; } n++; }
+    closeSheet(); if(n) toast(`Added ${n}`); reload();
+  };
 }
 /* trust the AI's answer only where it is well formed; fall back to the simple reader for the rest */
 function fromAI(a, local){
@@ -878,7 +1258,7 @@ function openCalendar(c){
     <input id="cShort" class="field" placeholder="Short name for small spaces (optional)" value="${esc(v.short_name||"")}" maxlength="20">
     <div class="fl"><span class="label">Colour</span><div class="palette" id="cPal">${PALETTE.map(p=>`<button data-c="${p}" class="${p===v.color?"on":""}" style="background:${p}" aria-label="Colour ${p}"></button>`).join("")}</div></div>
     <div class="fl"><span class="label">This work is</span><div class="seg3" id="cBill">${[["paid","Paid"],["unpaid","Unpaid"],["personal","Personal"]].map(b=>`<button data-b="${b[0]}" class="${v.billing===b[0]?"on":""}">${b[1]}</button>`).join("")}</div></div>
-    ${v.kind==="planner"?`<p class="small muted" style="margin:0">Posts for this calendar come from the College Planner. You can still add meetings and work time to it.</p>`:`
+    ${v.kind==="planner"?`<p class="small muted" style="margin:0">College posts and birthdays for this calendar show automatically. You can still add meetings and work time to it.</p>`:`
     <label class="line"><span>Post on world days<br><span class="small muted">Adds a post to tick off on each chosen day</span></span><span class="switch"><input type="checkbox" id="cWorld" ${v.follows_world_days?"checked":""}><span></span></span></label>
     <div class="days ${v.follows_world_days?"":"hidden"}" id="cCats">${Object.entries(WORLD_CATS).map(([k,l])=>`<button data-k="${k}" class="${(v.world_cats||[]).includes(k)?"on":""}">${l}</button>`).join("")}</div>`}
     <div class="actions"><button class="btn" id="cSave">${isNew?"Add calendar":"Save"}</button>${isNew||v.kind==="planner"?"":`<button class="btn danger" id="cArch">Remove</button>`}</div>`);
@@ -1030,17 +1410,23 @@ async function renderSettings(){
   const billLabel={paid:"Paid",unpaid:"Unpaid",personal:"Personal"};
   $("settingsBody").innerHTML = `
   <div class="card"><h3><span style="display:flex;gap:8px;align-items:center">${icon("layers")} Calendars</span></h3>
-    <div>${cals.map(c=>`<button class="calrow" data-cal="${c.id}"><i class="sw" style="background:${c.color}"></i><span class="t"><b>${esc(c.name)}</b><span class="small muted">${billLabel[c.billing]||""}${c.kind==="planner"?" · posts from the Planner":""}${c.follows_world_days?" · posts on world days":""}${c.visible===false?" · hidden":""}</span></span>${icon("right")}</button>`).join("")}</div>
+    <div>${cals.map(c=>`<button class="calrow" data-cal="${c.id}"><i class="sw" style="background:${c.color}"></i><span class="t"><b>${esc(c.name)}</b><span class="small muted">${billLabel[c.billing]||""}${c.kind==="planner"?" · college posts":""}${c.follows_world_days?" · posts on world days":""}${c.visible===false?" · hidden":""}</span></span>${icon("right")}</button>`).join("")}</div>
     <button class="btn soft" id="sAddCal">${icon("plus")} Add a calendar</button></div>
 
+  <div class="card"><h3><span style="display:flex;gap:8px;align-items:center">${icon("pin")} College planner</span></h3>
+    <p class="small muted" style="margin:0">College posts, world days and birthdays show on your calendar. Tap any post there to tick it or edit it.</p>
+    <button class="calrow" id="sBdays">${icon("gift")}<span class="t"><b>Faculty birthdays</b><span class="small muted">${(plannerState?.birthdays||[]).length} names</span></span>${icon("right")}</button>
+    <button class="calrow" id="sNotes">${icon("q")}<span class="t"><b>To confirm</b><span class="small muted">${(plannerState?.notes||[]).length} waiting for a date</span></span>${icon("right")}</button>
+    <button class="calrow" id="sSheets">${icon("layers")}<span class="t"><b>Designer sheets and backup</b><span class="small muted">Month and six-month PDF or Word sheets, designer files, backup</span></span>${icon("right")}</button></div>
+
   <div class="card"><div class="line"><h3><span style="display:flex;gap:8px;align-items:center">${icon("bell")} Notifications</span></h3><span class="status ${subbed&&perm==="granted"?"ok":perm==="denied"?"bad":""}">${subbed&&perm==="granted"?"On":perm==="denied"?"Blocked":"Off"}</span></div>
-    <p class="small muted" style="margin:0">At 8 pm: tomorrow's posts with what's made and scheduled, plus meetings and clashes. At 9 am: the same check for today.</p>
+    <p class="small muted" style="margin:0">30 minutes before a shift and 15 minutes before classes and meetings. At 8 pm a check of tomorrow's posts and clashes, at 9 am the same for today. Sunday evening: your weekly review.</p>
     ${!pushOk ? (ios&&!standalone ? `<p class="err">On iPhone, add WhatsWork to your Home Screen first (Share, then Add to Home Screen), open it from there and come back here.</p>` : `<p class="err">This browser can't receive notifications.</p>`)
       : perm==="denied" ? `<p class="err">Notifications are blocked for this app. Allow them in your phone's settings, then come back.</p>`
       : `<div class="actions">${subbed?`<button class="btn soft sm" id="sTest">Send a test</button><button class="btn ghost sm" id="sPushOff">Turn off on this device</button>`:`<button class="btn" id="sPushOn">${icon("bell")} Turn on notifications</button>`}</div>`}</div>
 
   <div class="card"><div class="line"><h3><span style="display:flex;gap:8px;align-items:center">${icon("spark")} AI</span></h3><label class="switch"><input type="checkbox" id="sAi" ${ai.enabled?"checked":""}><span></span></label></div>
-    <p class="small muted" style="margin:0">Used for quick add and your weekly reviews. Without a key, quick add uses a simple form.</p>
+    <p class="small muted" style="margin:0">Used for adding by voice, quick add and weekly reviews. For voice, pick Gemini or ChatGPT. Without a key, use the 🎤 on your keyboard.</p>
     <div class="providers" id="sProv">${Object.entries(AI_PROVIDERS).map(([k,v])=>`<button data-k="${k}" class="${k===aiProvider?"on":""}">${v.name}<small>${v.note}</small></button>`).join("")}</div>
     <label class="fl"><span class="label">Model</span><input id="sModel" class="field" value="${esc(ai.model||AI_PROVIDERS[aiProvider].model)}"></label>
     <label class="fl"><span class="label">API key</span><input id="sKey" class="field" type="password" autocomplete="off" placeholder="${ai.has_key?"Saved ("+esc(ai.key_hint||"")+"). Paste a new one to replace":"Paste your API key"}"></label>
@@ -1056,6 +1442,7 @@ async function renderSettings(){
     <p class="small muted" style="margin:0"><b>iPhone (Safari):</b> Share, then Add to Home Screen, then open it from the Home Screen.<br><b>Android (Chrome):</b> menu, then Install app.</p></div>`;
   $("settingsBody").querySelectorAll("[data-cal]").forEach(b=>b.onclick=()=>openCalendar(calById(b.dataset.cal)));
   $("sAddCal").onclick=()=>openCalendar(null);
+  $("sBdays").onclick=openBirthdays; $("sNotes").onclick=openNotes; $("sSheets").onclick=openPlanner;
   $("sNameSave").onclick=async()=>{ const n=$("sName").value.trim(); if(!n) return; const r=await api.setName(n); if(r.error) return toast(r.error.message); myName=n; toast("Name saved"); };
   $("sOut").onclick=async()=>{ await api.signOut(); location.reload(); };
   const on=$("sPushOn"); if(on) on.onclick=enablePush;
@@ -1131,8 +1518,8 @@ function handleLink(url){
     if (d.error) { if (d.missing) return showSetup(); toast("Couldn't load: "+(d.error.message||d.error)); me=null; return; }
     await loadHealth();
     applyData(d); started=true; api.subscribe(reloadSoon);
-    api.getAi().then(r=>{ const a=r?.data?.[0]; aiOn=!!(a && a.enabled && a.has_key); }).catch(()=>{});
-    showTab(tab==="planner"?"today":tab);
+    api.getAi().then(r=>{ const a=r?.data?.[0]; if(a) ai={...ai,...a}; aiOn=!!(a && a.enabled && a.has_key); }).catch(()=>{});
+    showTab(tab);
     if (location.search) { handleLink(location.href); history.replaceState(null,"",location.pathname); }
   });
   if ("serviceWorker" in navigator) {

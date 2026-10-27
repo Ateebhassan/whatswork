@@ -463,7 +463,7 @@ var WWCore = (function () {
   var KINDS = {
     sleep: { label: 'Sleep', color: '#6c7bd0' },
     shift: { label: 'Shift', color: '#3157e8' },
-    university: { label: 'University', color: '#0e9f6e' },
+    university: { label: 'University', color: '#0891b2' },
     work: { label: 'Work', color: '#e0812a' },
     meeting: { label: 'Meeting', color: '#d6336c' },
     call: { label: 'Call', color: '#c2410c' },

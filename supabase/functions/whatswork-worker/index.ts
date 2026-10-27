@@ -1,6 +1,6 @@
 // WhatsWork background worker
 // - "cron" (every 5 min): the 9 am and 8 pm briefings, reminders before each entry, and the Sunday evening review
-// - "test_push", "quick_add", "review_now": called from the app by a signed-in user
+// - "test_push", "quick_add", "voice_add", "review_now": called from the app by a signed-in user
 // - "health": posted by the iPhone Shortcut with an x-health-token header
 // - "message" / "task": kept for the old chat; nothing sends these any more
 import postgres from "npm:postgres@3.4.5";
@@ -213,6 +213,56 @@ Note: ${String(text).slice(0, 300)}`;
   return firstJson(await callAI(st.provider, st.model, st.api_key, QUICK_SYSTEM, user, 400));
 }
 
+
+// ---------- VOICE: audio from the app's mic, understood by your AI key ----------
+const VOICE_RULES = `Answer ONLY with JSON: {"transcript": string (what was said, word for word), "entries": [{"title": string, "calendar": string, "kind": string, "date": "YYYY-MM-DD", "start": "HH:MM" or null, "end": "HH:MM" or null, "repeat": "none"|"daily"|"weekly", "repeat_days": [numbers 0-6, 0 = Sunday]}]}
+The person may say several things in one go, fast, in English or Urdu mixed with English: make one entry for each thing to put in the calendar, in the order said. If nothing can go in a calendar, give an empty entries list.
+Rules for each entry:
+${QUICK_SYSTEM.split("Rules:")[1]}`;
+async function calendarContext(uid: string, today: string, now: string) {
+  const cals = await sql`select name, short_name, billing, kind from public.calendars where user_id = ${uid} and not archived order by sort`;
+  const wd = new Date(today + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" });
+  return `Today is ${wd} ${today}. The time now is ${now}.
+Calendars: ${(cals as any[]).map((c) => `${c.name}${c.short_name ? ` (also called ${c.short_name})` : ""}${c.billing === "personal" ? " [personal]" : ""}${c.kind === "planner" ? " [college social media]" : ""}`).join("; ")}.`;
+}
+async function voiceAdd(uid: string, audio: string, mime: string, today: string, now: string) {
+  if (typeof audio !== "string" || audio.length < 1000) throw new Error("No audio received");
+  if (audio.length > 8_000_000) throw new Error("That recording is too long. Keep it under a minute.");
+  const st = await aiSettings(uid);
+  const ctx = await calendarContext(uid, today, now);
+  const base = String(mime || "audio/mp4").split(";")[0];
+  if (st.provider === "gemini") {
+    const gm = base === "audio/mp4" || base === "audio/x-m4a" ? "audio/m4a" : base;
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(st.model)}:generateContent`, {
+      method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": st.api_key },
+      body: JSON.stringify({ systemInstruction: { parts: [{ text: "You turn a short voice note into calendar entries for a planner app.\n" + VOICE_RULES }] },
+        contents: [{ role: "user", parts: [{ inline_data: { mime_type: gm, data: audio } }, { text: ctx + "\nListen to the voice note and answer with the JSON." }] }],
+        generationConfig: { responseMimeType: "application/json", temperature: 0.2 } }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j?.error?.message ?? `Gemini error ${r.status}`);
+    return firstJson((j.candidates?.[0]?.content?.parts ?? []).map((p: any) => p.text ?? "").join(""));
+  }
+  if (st.provider === "openai") {
+    const bytes = Uint8Array.from(atob(audio), (c) => c.charCodeAt(0));
+    const ext = base.includes("webm") ? "webm" : base.includes("ogg") ? "ogg" : base.includes("wav") ? "wav" : "m4a";
+    let text = "";
+    for (const model of ["gpt-4o-mini-transcribe", "whisper-1"]) {
+      const fd = new FormData();
+      fd.append("file", new Blob([bytes], { type: base }), `note.${ext}`);
+      fd.append("model", model);
+      const r = await fetch("https://api.openai.com/v1/audio/transcriptions", { method: "POST", headers: { Authorization: `Bearer ${st.api_key}` }, body: fd });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok) { text = j.text ?? ""; break; }
+      if (model === "whisper-1") throw new Error(j?.error?.message ?? `OpenAI error ${r.status}`);
+    }
+    if (!text.trim()) return { transcript: "", entries: [] };
+    const out = firstJson(await callAI("openai", st.model, st.api_key, "You turn a short voice note into calendar entries for a planner app.\n" + VOICE_RULES, `${ctx}\nVoice note: ${text.slice(0, 1500)}`, 900));
+    return { transcript: text, entries: out.entries ?? [] };
+  }
+  throw new Error("Voice needs a Gemini or ChatGPT key. Change it in Settings, AI, or use the keyboard microphone.");
+}
+
 // ---------- HEALTH (from the iPhone Shortcut) ----------
 async function sha256hex(text: string) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
@@ -364,6 +414,10 @@ Deno.serve(async (req) => {
     }
     if (body.action === "quick_add") {
       try { return json({ entry: await quickAdd(uid, body.text, body.today, body.now) }); }
+      catch (e: any) { return json({ error: String(e?.message ?? e) }); }
+    }
+    if (body.action === "voice_add") {
+      try { const out = await voiceAdd(uid, body.audio, body.mime, body.today, body.now); return json({ transcript: String(out.transcript ?? "").slice(0, 2000), entries: Array.isArray(out.entries) ? out.entries.slice(0, 10) : [] }); }
       catch (e: any) { return json({ error: String(e?.message ?? e) }); }
     }
     if (body.action === "review_now") return json(await writeReview(uid, "on_demand"));
