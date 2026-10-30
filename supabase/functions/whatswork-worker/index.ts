@@ -320,19 +320,39 @@ function localDateOf(iso: string, tz: string) {
   const f = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
   return f.format(new Date(iso));
 }
-/* Shortcuts can send dates in a few shapes; accept ISO 8601 and "YYYY-MM-DD HH:MM". */
+/* Shortcuts can send dates in many shapes: ISO 8601, "31 Oct 2026 at 6:00 AM", or a list of them (one per sleep sample).
+   A time with no offset is read as the owner's local time. */
+function tzOffsetMin(tz: string, at: Date) {
+  const f = new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  const p = Object.fromEntries(f.formatToParts(at).map((x) => [x.type, x.value]));
+  return (Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - Math.floor(at.getTime() / 60000) * 60000) / 60000;
+}
+function parseOne(v: string, tz: string): number | null {
+  let t = v.trim().replace(/\u202f|\u00a0/g, " ").replace(/ at /i, " ");
+  if (!t) return null;
+  t = t.replace(/^(\d{4}-\d{2}-\d{2}) (\d{1,2}:\d{2})/, "$1T$2");
+  const hasZone = /(Z|[+-]\d{2}:?\d{2}|GMT|UTC)$/i.test(t);
+  let ms = Date.parse(hasZone ? t : t + (/T/.test(t) ? "Z" : " UTC"));
+  if (isNaN(ms)) return null;
+  if (!hasZone) ms -= tzOffsetMin(tz, new Date(ms)) * 60000;
+  return ms;
+}
+function parseAll(v: unknown, tz: string): number[] {
+  const list = Array.isArray(v) ? v : typeof v === "string" ? v.split(/\n|;/) : [];
+  return list.map((x) => (typeof x === "string" ? parseOne(x, tz) : null)).filter((x): x is number => x != null);
+}
 function parseWhen(v: unknown): string | null {
   if (typeof v !== "string" || !v.trim()) return null;
-  const t = v.trim().replace(/^(\d{4}-\d{2}-\d{2}) (\d{1,2}:\d{2})/, "$1T$2");
-  const d = new Date(t);
-  return isNaN(d.getTime()) ? null : d.toISOString();
+  const ms = parseOne(v, "UTC");
+  return ms == null ? null : new Date(ms).toISOString();
 }
 async function healthFromShortcut(token: string, body: any) {
   const hash = await sha256hex(token.trim());
   const [row] = await sql`select user_id from private.health_tokens where token_hash = ${hash}`;
   if (!row) return { ok: false, error: "This Shortcut's key isn't recognised. Make a new key in WhatsWork (Review tab, iPhone Shortcut)." };
   const uid = row.user_id, tz = await tzOf(uid);
-  const start = parseWhen(body.sleep_start), end = parseWhen(body.sleep_end);
+  const starts = parseAll(body.sleep_start, tz), ends = parseAll(body.sleep_end, tz);
+  const start = starts.length ? new Date(Math.min(...starts)).toISOString() : null, end = ends.length ? new Date(Math.max(...ends)).toISOString() : null;
   const asleep = Number.isFinite(+body.asleep_minutes) && body.asleep_minutes !== "" && body.asleep_minutes != null ? Math.round(+body.asleep_minutes) : null;
   const screen = Number.isFinite(+body.screen_minutes) && body.screen_minutes !== "" && body.screen_minutes != null ? Math.round(+body.screen_minutes) : null;
   if (!end && asleep == null && screen == null) return { ok: false, error: "No sleep found. Check the Shortcut finds Sleep samples from the last day." };
