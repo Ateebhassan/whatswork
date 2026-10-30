@@ -21,7 +21,7 @@ const json = (b: unknown, s = 200) =>
 let cfg: Record<string, string> | null = null;
 async function config() {
   if (cfg) return cfg;
-  const rows = await sql`select key, value from private.app_config where key not like 'pdigest:%' and key not like 'remind:%' and key not like 'review:%'`;
+  const rows = await sql`select key, value from private.app_config where key not like 'pdigest:%' and key not like 'remind:%' and key not like 'review:%' and key not like 'sleepstart:%'`;
   cfg = Object.fromEntries(rows.map((r: any) => [r.key, r.value]));
   webpush.setVapidDetails(cfg.vapid_subject, cfg.vapid_public, cfg.vapid_private);
   return cfg;
@@ -351,6 +351,20 @@ async function healthFromShortcut(token: string, body: any) {
   const [row] = await sql`select user_id from private.health_tokens where token_hash = ${hash}`;
   if (!row) return { ok: false, error: "This Shortcut's key isn't recognised. Make a new key in WhatsWork (Review tab, iPhone Shortcut)." };
   const uid = row.user_id, tz = await tzOf(uid);
+  /* button mode: "Going to sleep" then "Woke up" (no Apple Watch needed) */
+  if (body.event === "sleep") {
+    await sql`insert into private.app_config (key, value) values (${"sleepstart:" + uid}, ${new Date().toISOString()}) on conflict (key) do update set value = excluded.value`;
+    await sql`update private.health_tokens set last_used = now() where user_id = ${uid}`;
+    return { ok: true, message: "Good night. Tap Woke up when you get up." };
+  }
+  if (body.event === "wake") {
+    const [st] = await sql`select value from private.app_config where key = ${"sleepstart:" + uid}`;
+    if (!st) return { ok: false, error: "I don't have a sleep start. Tap Going to sleep before you sleep next time." };
+    const mins = Math.round((Date.now() - Date.parse(st.value)) / 60000);
+    await sql`delete from private.app_config where key = ${"sleepstart:" + uid}`;
+    if (mins < 30 || mins > 18 * 60) return { ok: false, error: `That was ${Math.round(mins / 6) / 10} hours, which doesn't look like one sleep, so I didn't save it.` };
+    body = { sleep_start: st.value, sleep_end: new Date().toISOString() };
+  }
   const starts = parseAll(body.sleep_start, tz), ends = parseAll(body.sleep_end, tz);
   const start = starts.length ? new Date(Math.min(...starts)).toISOString() : null, end = ends.length ? new Date(Math.max(...ends)).toISOString() : null;
   const asleep = Number.isFinite(+body.asleep_minutes) && body.asleep_minutes !== "" && body.asleep_minutes != null ? Math.round(+body.asleep_minutes) : null;
@@ -370,7 +384,7 @@ async function healthFromShortcut(token: string, body: any) {
   await sql`update private.health_tokens set last_used = now() where user_id = ${uid}`;
   const W = WWCore as any;
   const mins = asleep ?? (start && end ? Math.round((Date.parse(end) - Date.parse(start)) / 60000) : null);
-  return { ok: true, date, slept: mins != null ? W.fmtDur(mins) : null };
+  return { ok: true, date, slept: mins != null ? W.fmtDur(mins) : null, message: mins != null ? `Saved: you slept ${W.fmtDur(mins)}` : "Saved" };
 }
 
 // ---------- REVIEWS ----------
