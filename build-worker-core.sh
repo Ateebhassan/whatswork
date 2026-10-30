@@ -5,4 +5,4 @@
 cd "$(dirname "$0")"
 { echo "// Generated from planner-core.js and ww-core.js by build-worker-core.sh. Edit those files, not this one."
   cat planner-core.js ww-core.js
-  echo "export { WWCore, normaliseState };"; } > core.mjs
+  echo "export { WWCore, normaliseState, itemsOn, COLLEGES, CATEGORIES };"; } > core.mjs

@@ -894,4 +894,4 @@ var WWCore = (function () {
     resetPlannerCache: function () { clearCache(); }
   };
 })();
-export { WWCore, normaliseState };
+export { WWCore, normaliseState, itemsOn, COLLEGES, CATEGORIES };

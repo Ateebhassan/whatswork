@@ -5,7 +5,7 @@
 // - "message" / "task": kept for the old chat; nothing sends these any more
 import postgres from "npm:postgres@3.4.5";
 import webpush from "npm:web-push@3.6.7";
-import { WWCore, normaliseState } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@299cb66/core.mjs";
+import { WWCore, normaliseState, itemsOn, COLLEGES } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@299cb66/core.mjs";
 
 const sql = postgres(Deno.env.get("SUPABASE_DB_URL")!, { prepare: false, max: 3 });
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -97,6 +97,7 @@ async function briefings() {
       const { date, hour } = localParts(tz);
       const slot = hour >= 9 && hour < 12 ? "am" : hour >= 20 && hour < 23 ? "pm" : null;
       if (!slot) continue;
+      if (!(await notifyPrefs(u.id))[slot === "am" ? "briefing_am" : "briefing_pm"].on) continue;
       const key = `pdigest:${slot}:${u.id}`;
       const [prev] = await sql`select value from private.app_config where key = ${key}`;
       if (prev?.value === date) continue;
@@ -116,6 +117,21 @@ function localMinute(tz: string) {
   const p = Object.fromEntries(f.formatToParts(new Date()).map((x) => [x.type, x.value]));
   return Number(p.hour) * 60 + Number(p.minute);
 }
+/* What you chose in Settings, Notifications. Anything missing uses these defaults. */
+const NOTIFY_DEFAULTS: Record<string, any> = {
+  shift: { on: true, lead: 30, sound: true }, university: { on: true, lead: 15, sound: true },
+  meeting: { on: true, lead: 15, sound: true }, other: { on: true, lead: 15, sound: true },
+  bedtime: { on: false, lead: 30, sound: true }, briefing_am: { on: true }, briefing_pm: { on: true }, review: { on: true },
+  alarms: { wake: false, shift: false, shift_lead: 60, meeting: false, meeting_lead: 30 },
+};
+async function notifyPrefs(uid: string) {
+  let p: any = {};
+  try { const [r] = await sql`select notify from public.profiles where id = ${uid}`; p = r?.notify || {}; } catch { /* old database */ }
+  const out: Record<string, any> = {};
+  for (const k of Object.keys(NOTIFY_DEFAULTS)) out[k] = { ...NOTIFY_DEFAULTS[k], ...(p[k] || {}) };
+  return out;
+}
+function prefKey(kind: string) { return kind === "shift" ? "shift" : kind === "university" ? "university" : kind === "meeting" || kind === "call" ? "meeting" : kind === "sleep" ? "bedtime" : "other"; }
 async function reminders() {
   if (!(await exists("public.events"))) return 0;
   const W = WWCore as any;
@@ -123,24 +139,53 @@ async function reminders() {
   let sent = 0;
   for (const u of users as any[]) {
     try {
-      const tz = await tzOf(u.id), { date } = localParts(tz);
+      const tz = await tzOf(u.id), { date } = localParts(tz), np = await notifyPrefs(u.id);
       const now = W.dnum(date) * W.DAY + localMinute(tz);
       const ctx = await contextFor(u.id, date, true);
-      const due = (ctx.occs as any[]).filter((o) => !o.allDay && o.kind !== "sleep" && !o.cal.archived &&
-        o.start > now && o.start - now <= (o.kind === "shift" ? 30 : 15));
+      const due = (ctx.occs as any[]).filter((o) => {
+        if (o.allDay || o.cal.archived) return false;
+        const pr = np[prefKey(o.kind)]; if (!pr?.on) return false;
+        const lead = Math.max(0, Math.min(180, Number(pr.lead) || 15));
+        return o.start > now && o.start - now <= lead;
+      });
       for (const o of due) {
         const key = `remind:${u.id}:${o.key}`;
         const [prev] = await sql`select 1 from private.app_config where key = ${key}`;
         if (prev) continue;
         await sql`insert into private.app_config (key, value) values (${key}, ${o.date}) on conflict (key) do nothing`;
-        const mins = o.start - now, at = W.fmtTime(o.start % W.DAY);
-        const icon = o.kind === "shift" ? "💼" : o.kind === "meeting" ? "👥" : o.kind === "call" ? "📞" : o.kind === "university" ? "🎓" : "⏰";
-        sent += await pushTo([u.id], { title: `${icon} ${o.ev.title} in ${mins} min`, body: `${at} · ${o.cal.short_name || o.cal.name}`, tag: `remind-${o.key}`, url: `./?d=${o.date}` });
+        const pr = np[prefKey(o.kind)], mins = o.start - now, at = W.fmtTime(o.start % W.DAY);
+        const icon = o.kind === "shift" ? "💼" : o.kind === "meeting" ? "👥" : o.kind === "call" ? "📞" : o.kind === "university" ? "🎓" : o.kind === "sleep" ? "🌙" : "⏰";
+        const title = o.kind === "sleep" ? `${icon} Bedtime in ${mins} min` : `${icon} ${o.ev.title} in ${mins} min`;
+        const body = o.kind === "sleep" ? `Sleep planned ${at} – ${W.fmtTime(o.end % W.DAY)}. Wind down now.` : `${at} · ${o.cal.short_name || o.cal.name}`;
+        sent += await pushTo([u.id], { title, body, tag: `remind-${o.key}`, url: `./?d=${o.date}`, silent: pr.sound === false });
       }
     } catch (e) { console.error("reminders", u.id, e); }
   }
   await sql`delete from private.app_config where key like 'remind:%' and value < ${new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10)}`;
   return sent;
+}
+
+/* For the iPhone alarm Shortcut: the alarms to set for the next 24 hours, from your calendar and your choices. */
+async function alarmsFor(uid: string) {
+  const W = WWCore as any;
+  const tz = await tzOf(uid), { date } = localParts(tz), np = await notifyPrefs(uid), a = np.alarms;
+  const now = W.dnum(date) * W.DAY + localMinute(tz);
+  const ctx = await contextFor(uid, W.addDays(date, 1), true);
+  const out: any[] = [];
+  const add = (m: number, label: string) => {
+    if (m <= now || m > now + W.DAY) return;
+    const d = W.dstr(Math.floor(m / W.DAY)), mm = ((m % W.DAY) + W.DAY) % W.DAY, hh = Math.floor(mm / 60), mi = mm % 60;
+    const h12 = hh % 12 || 12, ap = hh < 12 ? "AM" : "PM";
+    out.push({ date: d, time: `${String(hh).padStart(2, "0")}:${String(mi).padStart(2, "0")}`, at: `${d} ${h12}:${String(mi).padStart(2, "0")} ${ap}`, label: "WW: " + label });
+  };
+  for (const o of ctx.occs as any[]) {
+    if (o.allDay) continue;
+    if (a.wake && o.kind === "sleep") add(o.end, "Wake up");
+    if (a.shift && o.kind === "shift") add(o.start - (Number(a.shift_lead) || 60), o.ev.title);
+    if (a.meeting && (o.kind === "meeting" || o.kind === "call")) add(o.start - (Number(a.meeting_lead) || 30), o.ev.title);
+  }
+  out.sort((x, y) => (x.date + x.time).localeCompare(y.date + y.time));
+  return { ok: true, alarms: out.slice(0, 12), count: Math.min(12, out.length) };
 }
 
 async function cron() {
@@ -364,12 +409,108 @@ async function weeklyReviews() {
       if (prev?.value === date) continue;
       await sql`insert into private.app_config (key, value) values (${key}, ${date}) on conflict (key) do update set value = excluded.value`;
       const { review } = await writeReview(u.id, "weekly");
+      if (!(await notifyPrefs(u.id)).review.on) { n++; continue; }
       const first = (review.items || [])[0]?.text || review.summary || "";
       await pushTo([u.id], { title: "📝 Your weekly review is ready", body: first.slice(0, 180), tag: "review", url: "./?review=1" });
       n++;
     } catch (e) { console.error("weekly review", u.id, e); }
   }
   return n;
+}
+
+
+// ---------- DESIGNER PORTAL (designer.html, with the link's key) ----------
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+async function designerUser(key: string) {
+  if (typeof key !== "string" || !/^wd_[0-9a-f]{48}$/.test(key)) return null;
+  const [row] = await sql`select user_id, designer_name from private.designer_tokens where token_hash = ${await sha256hex(key)}`;
+  if (!row) return null;
+  await sql`update private.designer_tokens set last_used = now() where user_id = ${row.user_id}`;
+  return row;
+}
+async function storageFetch(path: string, body: unknown) {
+  const r = await fetch(`${SUPABASE_URL}/storage/v1${path}`, { method: "POST", headers: { Authorization: `Bearer ${SERVICE_KEY}`, apikey: SERVICE_KEY, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j?.message ?? j?.error ?? `Storage error ${r.status}`);
+  return j;
+}
+async function signedUrls(paths: string[]) {
+  if (!paths.length) return {};
+  const j = await storageFetch(`/object/sign/designs`, { expiresIn: 3600, paths });
+  const out: Record<string, string> = {};
+  for (const x of j as any[]) if (x.signedURL) out[x.path] = `${SUPABASE_URL}/storage/v1${x.signedURL}`;
+  return out;
+}
+async function designerList(uid: string, days: number) {
+  const W = WWCore as any;
+  const tz = await tzOf(uid), today = localParts(tz).date;
+  const docs = await sql`select name, json from public.planner_docs where user_id = ${uid}`;
+  let planner: any = null; const tracks: Record<string, any> = {};
+  for (const d of docs as any[]) { try { const j = JSON.parse(d.json); if (d.name === "main") planner = normaliseState(j); else tracks[d.name.slice(6)] = j; } catch { /* skip */ } }
+  if (!planner) return { today, posts: [] };
+  const from = W.addDays(today, -3), to = W.addDays(today, Math.max(7, Math.min(60, days || 30)));
+  const files = await sql`select id, item_key, name, mime, size, path, note, uploaded_by, created_at from public.post_files where user_id = ${uid} and post_date between ${from}::date and ${to}::date order by created_at`;
+  const urls = await signedUrls((files as any[]).map((f) => f.path));
+  const byKey: Record<string, any[]> = {};
+  for (const f of files as any[]) (byKey[f.item_key] ??= []).push({ id: f.id, name: f.name, mime: f.mime, size: Number(f.size), note: f.note, by: f.uploaded_by, url: urls[f.path] || null });
+  const posts: any[] = [];
+  for (let d = from; d <= to; d = W.addDays(d, 1)) {
+    for (const it of itemsOn(d, planner, "both", null) as any[]) {
+      const key = it.id + "@" + d, tr = (tracks[d.slice(0, 7)] || {})[key] || {};
+      posts.push({ key, date: d, title: it.title, college: it.college, collegeName: (COLLEGES as any)[it.college]?.name ?? "", cat: it.cat, size: it.size, weekly: !!it.weekly, birthday: it.kind === "birthday",
+        status: { sent: !!tr.q, made: !!tr.m, scheduled: !!tr.s }, files: byKey[key] || [] });
+    }
+  }
+  return { today, posts };
+}
+async function setTrack(uid: string, key: string, date: string, patch: Record<string, boolean>) {
+  const name = "track-" + date.slice(0, 7);
+  const [doc] = await sql`select json from public.planner_docs where user_id = ${uid} and name = ${name}`;
+  let map: any = {}; try { map = doc ? JSON.parse(doc.json) : {}; } catch { map = {}; }
+  const cur = map[key] || {};
+  for (const [f, v] of Object.entries(patch)) { if (v) cur[f] = 1; else delete cur[f]; }
+  if (Object.keys(cur).length) map[key] = cur; else delete map[key];
+  const json = JSON.stringify(map);
+  const [ex] = await sql`select 1 from public.planner_docs where user_id = ${uid} and name = ${name}`;
+  if (ex) await sql`update public.planner_docs set json = ${json}, v = coalesce(v, 0) + 1 where user_id = ${uid} and name = ${name}`;
+  else await sql`insert into public.planner_docs (user_id, name, json) values (${uid}, ${name}, ${json})`;
+}
+async function designer(body: any) {
+  const who = await designerUser(body.key);
+  if (!who) return { error: "This link doesn't work any more. Ask for a new one." };
+  const uid = who.user_id;
+  if (body.action === "designer_list") return { designer: who.designer_name || "", ...(await designerList(uid, body.days)) };
+  const key = String(body.item_key || ""), date = String(body.date || "");
+  if (!/^.{1,180}@\d{4}-\d{2}-\d{2}$/.test(key) || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !key.endsWith("@" + date)) return { error: "Bad post" };
+  if (body.action === "designer_upload") {
+    const name = String(body.name || "file").replace(/[^\w.\- ()]+/g, "_").slice(-120);
+    const size = Number(body.size) || 0;
+    if (size > 50 * 1024 * 1024) return { error: "Files can be up to 50 MB." };
+    const path = `${uid}/${date}/${crypto.randomUUID().slice(0, 8)}-${name}`;
+    const j = await storageFetch(`/object/upload/sign/designs/${path.split("/").map(encodeURIComponent).join("/")}`, {});
+    return { path, uploadUrl: `${SUPABASE_URL}/storage/v1${j.url}` };
+  }
+  if (body.action === "designer_saved") {
+    const path = String(body.path || "");
+    if (!path.startsWith(uid + "/" + date + "/")) return { error: "Bad file" };
+    await sql`insert into public.post_files (user_id, item_key, post_date, title, path, name, mime, size, uploaded_by, note)
+      values (${uid}, ${key}, ${date}, ${String(body.title || "").slice(0, 200)}, ${path}, ${String(body.name || "file").slice(0, 200)}, ${String(body.mime || "").slice(0, 100)}, ${Number(body.size) || 0}, 'designer', ${body.note ? String(body.note).slice(0, 1000) : null})
+      on conflict (path) do nothing`;
+    await setTrack(uid, key, date, { q: true, m: true });
+    const W = WWCore as any;
+    await pushTo([uid], { title: "🎨 New design uploaded", body: `${String(body.title || "A post").slice(0, 80)} · for ${date}`, tag: "design-" + key, url: `./?d=${date}` });
+    return { ok: true };
+  }
+  if (body.action === "designer_note") {
+    await setTrack(uid, key, date, { q: true });
+    return { ok: true };
+  }
+  if (body.action === "designer_delete") {
+    const [f] = await sql`delete from public.post_files where id = ${String(body.id)} and user_id = ${uid} and uploaded_by = 'designer' returning path`;
+    if (f) await fetch(`${SUPABASE_URL}/storage/v1/object/designs`, { method: "DELETE", headers: { Authorization: `Bearer ${SERVICE_KEY}`, apikey: SERVICE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ prefixes: [f.path] }) });
+    return { ok: true };
+  }
+  return { error: "unknown action" };
 }
 
 // ---------- AUTH ----------
@@ -391,9 +532,16 @@ Deno.serve(async (req) => {
     const secret = req.headers.get("x-worker-secret");
     const healthToken = req.headers.get("x-health-token");
     if (healthToken) {
+      if (body.action === "alarms") {
+        const [row] = await sql`select user_id from private.health_tokens where token_hash = ${await sha256hex(healthToken.trim())}`;
+        if (!row) return json({ ok: false, error: "This Shortcut's key isn't recognised. Make a new key in WhatsWork." }, 400);
+        return json(await alarmsFor(row.user_id));
+      }
       const r = await healthFromShortcut(healthToken, body);
       return json(r, r.ok ? 200 : 400);
     }
+
+    if (typeof body.action === "string" && body.action.startsWith("designer_")) return json(await designer(body));
 
     if (secret && secret === c.worker_secret) {
       if (body.action === "cron") return json(await cron());

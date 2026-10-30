@@ -10,6 +10,7 @@ self.addEventListener('push', e => {
     body: d.body || '',
     tag: d.tag,
     renotify: !!d.tag,
+    silent: !!d.silent,
     icon: 'icon-192.png',
     badge: 'badge-96.png',
     data: { url: d.url || './' },

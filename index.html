@@ -356,6 +356,97 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
 .vitem .t{flex:1;min-width:0}.vitem .t b{display:block}
 .vitem input{width:20px;height:20px;accent-color:var(--brand)}
 
+
+/* ===== v3: calendar fits one screen ===== */
+.calhead{gap:8px;padding-bottom:6px}
+.calnav h1{font-size:22px}
+.calrow2{display:flex;gap:8px;align-items:center}
+.calrow2 .seg.wide{flex:1}
+.calpick{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:10px;background:var(--sunk);font-size:13px;font-weight:800;flex:none}
+.calpick .dots{display:flex}.calpick .dots i{width:12px;height:12px;border-radius:50%;border:2px solid var(--sunk);margin-left:-4px}.calpick .dots i:first-child{margin-left:0}
+#calTop{border-bottom:0;padding-bottom:4px}
+.dstrip{padding:0 0 2px}.dstrip button{padding:3px 0}.dstrip button b{font-size:15px}
+.pillrow{display:flex;gap:5px;flex-wrap:wrap;max-height:56px;overflow:hidden}
+.pill2{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:7px;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 13%,var(--panel));max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill2.todo{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 60%,transparent)}
+.pill2.ok{opacity:.75}
+.clip{font-size:10.5px}
+.alert.slim{padding:5px 9px;font-size:12px}.alert.slim svg{width:16px;height:16px}
+.tl.fit{margin:4px max(10px,env(safe-area-inset-right)) 0 max(4px,env(safe-area-inset-left))}
+.tl.fit .hr span{font-size:10px;top:-6px}
+.tl.fit .blk{padding:2px 7px;border-radius:7px}
+.blk.thin{display:flex;align-items:center}
+.blk b.one{font-size:11.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blk b.one .tm{opacity:.85;font-weight:700}
+.tl.fit .gap{font-size:10.5px;border-width:1px}
+/* week as seven 24-hour lines */
+.ruler{display:grid;grid-template-columns:50px 1fr;padding:0 max(12px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left))}
+.ruler div{position:relative;height:14px}
+.ruler i{position:absolute;transform:translateX(-50%);font-size:10px;font-weight:800;color:var(--faint);font-style:normal}
+.ruler i:first-child{transform:none}.ruler i:last-child{transform:translateX(-100%)}
+.week{display:grid;padding:0 max(12px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left))}
+.wrow{display:grid;grid-template-columns:50px 1fr;gap:0;align-items:center;border-top:1px solid var(--line);text-align:left;width:100%}
+.wrow .wd{display:grid;justify-items:center;position:relative}
+.wrow .wd small{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.wrow .wd b{font-family:var(--display);font-size:20px;line-height:1.1}
+.wrow.today .wd b{color:var(--on-brand);background:var(--brand);border-radius:9px;padding:0 6px}
+.wrow .wd .rd{position:absolute;top:0;right:6px}
+.wrow .wr{display:grid;gap:4px;min-width:0}
+.track{position:relative;height:24px;border-radius:7px;background:var(--sunk);overflow:hidden;background-image:linear-gradient(to right,transparent calc(25% - 1px),var(--line) 25%,transparent calc(25% + 1px),transparent calc(50% - 1px),var(--line) 50%,transparent calc(50% + 1px),transparent calc(75% - 1px),var(--line) 75%,transparent calc(75% + 1px))}
+.track i{position:absolute;top:2px;bottom:2px;border-radius:5px;overflow:hidden}
+.track i.sl{background:repeating-linear-gradient(135deg,color-mix(in srgb,#6c7bd0 50%,transparent) 0 3px,transparent 3px 6px)}
+.track i.clash{outline:2px solid var(--bad)}
+.track i em{font-style:normal;font-size:10px;font-weight:800;color:#fff;padding:0 4px;line-height:20px;white-space:nowrap;display:block;overflow:hidden;text-overflow:ellipsis}
+.track i.sl em{color:var(--muted)}
+.track .now{width:2px;background:var(--bad);top:0;bottom:0;border-radius:0}
+.wtxt{display:flex;gap:4px 10px;flex-wrap:wrap;max-height:34px;overflow:hidden;font-size:11.5px;font-weight:700}
+.wtxt span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.wtxt span i{width:7px;height:7px;border-radius:50%}
+.wtxt .pc{font-size:10.5px}
+/* month on one screen */
+.mo-head{display:grid;grid-template-columns:repeat(7,1fr);font-size:11px;font-weight:800;color:var(--muted);text-align:center;padding:0 max(8px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left))}
+.mo.fit{gap:3px;padding:2px max(8px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left))}
+.mo.fit .mc{min-height:0;padding:3px 3px 6px;border-radius:9px;overflow:hidden;display:flex;flex-direction:column;gap:1px;position:relative}
+.mo.fit .mc .d{font-size:12px}
+.mo.fit .evs{display:flex;flex-direction:column;gap:1.5px;min-height:0;overflow:hidden}
+.mo.fit .ev{font-size:9.5px;line-height:10.5px;font-weight:700;padding:0 2px;border-radius:3px;border-left:2.5px solid var(--c);background:color-mix(in srgb,var(--c) 13%,var(--panel));display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;white-space:normal;color:var(--ink);flex:none}
+.mo.fit .ev u{text-decoration:none;font-weight:800;color:var(--muted);margin-right:2px}
+.mo.fit .ev.post{border-left-style:dotted}
+.mo.fit .ev.done{opacity:.55}
+.mo.fit .mo-more{font-size:9.5px;line-height:12px}
+.mstrip{position:absolute;left:3px;right:3px;bottom:2px;height:3px;border-radius:2px;background:var(--sunk);overflow:hidden}
+.mstrip i{position:absolute;top:0;bottom:0}
+.mstrip i.sl{background:color-mix(in srgb,#6c7bd0 45%,transparent)}
+/* calendar drawer from the left */
+.dscrim{position:fixed;inset:0;z-index:35;background:rgba(10,14,22,0);transition:background .2s}
+.dscrim.open{background:rgba(10,14,22,.45)}
+.drawer{position:absolute;top:0;bottom:0;left:0;width:min(300px,84vw);background:var(--panel);padding:calc(16px + env(safe-area-inset-top)) 14px 16px max(14px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:12px;transform:translateX(-100%);transition:transform .22s cubic-bezier(.2,.9,.3,1);box-shadow:8px 0 30px rgba(0,0,0,.2)}
+.dscrim.open .drawer{transform:none}
+.drawer h2{margin:0;font-family:var(--display);font-size:22px}
+.dlist{display:grid;gap:6px;overflow:auto}
+.drow{display:flex;align-items:center;gap:6px;border-radius:14px;background:var(--sunk);padding:4px 6px 4px 4px}
+.drow.off{opacity:.5}
+.dmain{flex:1;display:flex;align-items:center;gap:10px;padding:8px;text-align:left;min-width:0}
+.dmain i{width:22px;height:22px;border-radius:7px;flex:none}
+.drow.off .dmain i{background:transparent!important;border:2px solid var(--faint)}
+.dmain span{display:grid;min-width:0}.dmain b{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dmain small{font-size:11.5px;color:var(--muted);font-weight:600}
+.dmain .tick{margin-left:auto;font-weight:900;color:var(--ok)}
+.only{font-size:11.5px;font-weight:800;color:var(--brand);padding:6px 8px;border-radius:8px}
+/* notification settings */
+.nrow{display:grid;grid-template-columns:28px 1fr auto auto auto;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.nrow:first-of-type{border-top:0}
+.nrow .ic{font-size:19px;text-align:center}
+.nrow b{display:block;font-weight:800;font-size:14px}.nrow small{color:var(--muted);font-size:11.5px;font-weight:600}
+.nrow select{background:var(--sunk);border:0;border-radius:9px;padding:6px 6px;font-weight:700;font-size:12.5px}
+.snd{width:34px;height:34px;border-radius:10px;background:var(--sunk);font-size:16px}
+.snd.off{opacity:.45}
+.nrow.dis .ic,.nrow.dis b,.nrow.dis select,.nrow.dis .snd{opacity:.4}
+/* designs on a post */
+.dfiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px}
+.dfile{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--sunk);display:grid;place-items:center;font-size:11px;font-weight:800;color:var(--muted);text-align:center;padding:4px}
+.dfile img,.dfile video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.dfile .by{position:absolute;left:4px;bottom:4px;font-size:9.5px;font-weight:800;background:rgba(0,0,0,.55);color:#fff;padding:1px 5px;border-radius:5px;z-index:1}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -416,9 +507,8 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
         <button class="ib" id="calPrev" aria-label="Earlier"><svg class="i"><use href="#i-left"/></svg></button>
         <button class="ib" id="calNext" aria-label="Later"><svg class="i"><use href="#i-right"/></svg></button>
       </div>
-      <div class="seg wide" id="calSeg"><button data-v="day">Day</button><button data-v="week">Week</button><button data-v="month">Month</button></div>
+      <div class="calrow2"><button class="calpick" id="calPick" aria-label="Choose calendars"></button><div class="seg wide" id="calSeg"><button data-v="day">Day</button><button data-v="week">Week</button><button data-v="month">Month</button></div></div>
     </div>
-    <div class="chips" id="calChips"></div>
     <div id="calTop"></div>
     <div id="calBody"></div>
   </section>
@@ -452,6 +542,7 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
   </div>
   <iframe id="pvFrame" title="College Planner"></iframe>
 </div>
+<div id="drawerRoot"></div>
 <div id="sheetRoot"></div>
 <div id="toast" class="hidden" role="status"></div>
 
@@ -489,7 +580,9 @@ function relDay(s){ const t=todayStr(); if(s===t) return "Today"; if(s===W.addDa
 
 /* ---------- data ---------- */
 let sb = null, me = null, myName = "", cals = [], events = [], postRows = [], plannerTracks = {}, plannerState = null;
-let aiOn = false, health = [], screenWeeks = [], reviews = [], healthMissing = false;
+let aiOn = false, health = [], screenWeeks = [], reviews = [], healthMissing = false, postFiles = [], notify = {};
+const NOTIFY_DEFAULTS = { shift:{on:true,lead:30,sound:true}, university:{on:true,lead:15,sound:true}, meeting:{on:true,lead:15,sound:true}, other:{on:true,lead:15,sound:true},
+  bedtime:{on:false,lead:30,sound:true}, briefing_am:{on:true}, briefing_pm:{on:true}, review:{on:true}, alarms:{wake:false,shift:false,shift_lead:60,meeting:false,meeting_lead:30} };
 let tab = store.get("tab","today"), calView = store.get("calView","day"), calDate = todayStr(), started = false;
 
 const api = window.WW_TEST_API || {
@@ -501,7 +594,7 @@ const api = window.WW_TEST_API || {
   signOut(){ return sb.auth.signOut(); },
   async loadAll(){
     const get = () => Promise.all([
-      sb.from("profiles").select("id,name,email").eq("id",me.id).maybeSingle(),
+      sb.from("profiles").select("*").eq("id",me.id).maybeSingle(),
       sb.from("calendars").select("*").order("sort").order("created_at"),
       sb.from("events").select("*"),
       sb.from("post_status").select("*"),
@@ -511,7 +604,8 @@ const api = window.WW_TEST_API || {
     const err = c.error || e.error || ps.error;
     if (err) return { missing: /calendars|events|post_status|schema cache|does not exist/i.test(err.message||""), error: err };
     if (!c.data.length) { const r = await sb.rpc("ww_init"); if (!r.error) [p,c,e,ps,pd] = await get(); }
-    return { profile:p.data, calendars:c.data||[], events:e.data||[], postStatus:ps.data||[], plannerDocs:pd.data||[] };
+    let files=[]; try { const fr=await sb.from("post_files").select("*").order("created_at"); files=fr.data||[]; } catch {}
+    return { profile:p.data, calendars:c.data||[], events:e.data||[], postStatus:ps.data||[], plannerDocs:pd.data||[], files };
   },
   subscribe(onChange){
     const f = "user_id=eq."+me.id;
@@ -523,6 +617,7 @@ const api = window.WW_TEST_API || {
       .on("postgres_changes",{event:"*",schema:"public",table:"reviews",filter:f},onChange)
       .on("postgres_changes",{event:"*",schema:"public",table:"health_days",filter:f},onChange)
       .on("postgres_changes",{event:"*",schema:"public",table:"health_weeks",filter:f},onChange)
+      .on("postgres_changes",{event:"*",schema:"public",table:"post_files",filter:f},onChange)
       .subscribe();
   },
   saveCalendar(c){ const {id,...v}=c; return id ? sb.from("calendars").update(v).eq("id",id).select().single() : sb.from("calendars").insert(v).select().single(); },
@@ -565,6 +660,13 @@ const api = window.WW_TEST_API || {
   markRead(id){ return sb.from("reviews").update({read:true}).eq("id",id); },
   setHealthToken(hash){ return sb.rpc("ww_set_health_token",{p_hash:hash}); },
   healthTokenInfo(){ return sb.rpc("ww_health_token_info"); },
+  setNotify(p){ return sb.rpc("ww_set_notify",{p}); },
+  setDesignerToken(hash,name){ return sb.rpc("ww_set_designer_token",{p_hash:hash,p_name:name}); },
+  designerTokenInfo(){ return sb.rpc("ww_designer_token_info"); },
+  async signFiles(paths){ if(!paths.length) return {}; const {data}=await sb.storage.from("designs").createSignedUrls(paths,3600); const m={}; (data||[]).forEach(x=>{ if(x.signedUrl) m[x.path]=x.signedUrl; }); return m; },
+  async uploadOwn(path, file){ return sb.storage.from("designs").upload(path, file, {upsert:false, contentType:file.type||undefined}); },
+  addFileRow(row){ return sb.from("post_files").insert(row).select().single(); },
+  async deleteFile(f){ await sb.storage.from("designs").remove([f.path]); return sb.from("post_files").delete().eq("id",f.id); },
 };
 
 function applyData(d){
@@ -572,6 +674,7 @@ function applyData(d){
   cals = (d.calendars||[]).filter(c=>!c.archived);
   events = d.events||[];
   postRows = d.postStatus||[];
+  postFiles = d.files||[]; notify = {...NOTIFY_DEFAULTS, ...Object.fromEntries(Object.entries(d.profile?.notify||{}).map(([k,v])=>[k,{...(NOTIFY_DEFAULTS[k]||{}),...v}]))};
   plannerTracks = {}; let main = null;
   (d.plannerDocs||[]).forEach(r=>{ try{ const j=JSON.parse(r.json); if(r.name==="main") main=j; else plannerTracks[r.name.slice(6)]=j; }catch{} });
   plannerState = main ? normaliseState(main) : null;
@@ -643,7 +746,7 @@ let postIndex = {};
 function postRowHtml(p){
   const st=p.status;
   return `<div class="prow"><span class="sw" style="background:${p.cal.color};border-radius:50%"></span>
-    <button class="t" data-post="${esc(p.id)}" style="text-align:left"><b>${esc(p.title)}</b><span>${esc(p.calNames)}${st.sent&&!st.made?" · with designer":""}</span></button>
+    <button class="t" data-post="${esc(p.id)}" style="text-align:left"><b>${esc(p.title)}</b><span>${esc(p.calNames)}${st.sent&&!st.made?" · with designer":""}${files(p).length?` · 📎 ${files(p).length} design${files(p).length>1?"s":""}`:""}</span></button>
     <button class="st ${st.made?"on":""}" data-pk="${esc(p.id)}" data-f="made">Made</button>
     <button class="st ${st.scheduled?"on":""}" data-pk="${esc(p.id)}" data-f="scheduled">Scheduled</button></div>`;
 }
@@ -688,7 +791,7 @@ function gapsOf(vis, d){
 /* one agenda row: a timed entry, an all-day entry or a post */
 function agItemHtml(x, nm, an){
   if (x.post) { const p=x.post; postIndex[p.id]=p;
-    return `<button class="ag-it" data-post="${esc(p.id)}"><span class="tm">${p.source==="planner"&&p.cat==="birthday"?"Birthday":"Post"}</span><span class="bar" style="background:${p.cal.color}"></span><span class="t"><b>${esc(p.title)}</b><span>${esc(p.calNames)}</span></span>${postPill(p.status)}</button>`; }
+    return `<button class="ag-it" data-post="${esc(p.id)}"><span class="tm">${p.source==="planner"&&p.cat==="birthday"?"Birthday":"Post"}</span><span class="bar" style="background:${p.cal.color}"></span><span class="t"><b>${esc(p.title)}</b><span>${esc(p.calNames)}${files(p).length?` · 📎 ${files(p).length}`:""}</span></span>${postPill(p.status)}</button>`; }
   const o=x.o, now = !o.allDay && o.start<=nm && o.end>nm, d0=W.dnum(x.date)*DAY;
   const tm = o.allDay ? "All day" : o.start<d0 ? "until "+W.fmtTime(o.end).replace(" ","") : W.fmtTime(o.start).replace(" ","");
   const sub = esc(o.cal.name) + (o.allDay||o.start<d0 ? "" : " · until "+W.fmtTime(o.end));
@@ -818,30 +921,51 @@ function renderToday(){
   $("dMode").querySelectorAll("button").forEach(b=>b.onclick=()=>{ donutMode=b.dataset.m; store.set("donut",donutMode); renderToday(); });
 }
 
-/* ---------- CALENDAR ---------- */
+/* ---------- CALENDAR (everything fits on one screen: no scrolling) ---------- */
 document.querySelectorAll("#calSeg button").forEach(b=>b.onclick=()=>{ calView=b.dataset.v; store.set("calView",calView); renderCal(); });
 $("calPrev").onclick=()=>moveCal(-1); $("calNext").onclick=()=>moveCal(1);
-$("calToday").onclick=()=>{ calDate=todayStr(); monthSel=null; renderCal(); };
+$("calToday").onclick=()=>{ calDate=todayStr(); renderCal(); };
+$("calPick").onclick=openCalDrawer;
 let monthSel=null, keepScroll=false;
 function moveCal(dir){
   if (calView==="day") calDate=W.addDays(calDate,dir);
   else if (calView==="week") calDate=W.addDays(calDate,7*dir);
-  else { const d=dateObj(calDate); d.setDate(1); d.setMonth(d.getMonth()+dir); calDate=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-01"; monthSel=null; }
+  else { const d=dateObj(calDate); d.setDate(1); d.setMonth(d.getMonth()+dir); calDate=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-01"; }
   renderCal();
 }
-function renderChips(){
-  $("calChips").innerHTML = cals.map(c=>`<button class="chip ${c.visible===false?"off":""}" data-cal="${c.id}" aria-pressed="${c.visible!==false}"><i class="sw" style="background:${c.color}"></i>${esc(shortName(c))}</button>`).join("");
-  $("calChips").querySelectorAll("[data-cal]").forEach(b=>b.onclick=async()=>{
-    const c=calById(b.dataset.cal); c.visible = c.visible===false; renderCal();
-    const r=await api.saveCalendar({id:c.id, visible:c.visible}); if(r.error) toast(r.error.message);
-  });
+/* swipe left / right to move */
+(()=>{ let x0=null,y0=0; const el=$("calBody");
+  el.addEventListener("touchstart",e=>{ x0=e.touches[0].clientX; y0=e.touches[0].clientY; },{passive:true});
+  el.addEventListener("touchend",e=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null; if(Math.abs(dx)>70 && Math.abs(dx)>Math.abs(dy)*1.5) moveCal(dx<0?1:-1); },{passive:true}); })();
+
+/* side drawer: pick which calendars show */
+function openCalDrawer(){
+  const draw=()=>{
+    $("drawerRoot").innerHTML=`<div class="dscrim" id="dScrim"><aside class="drawer" role="dialog" aria-label="Calendars">
+      <div class="line"><h2>Calendars</h2><button class="btn soft sm" id="dDone">Done</button></div>
+      <div class="dlist">${cals.map(c=>`<div class="drow ${c.visible===false?"off":""}"><button class="dmain" data-cal="${c.id}" aria-pressed="${c.visible!==false}"><i style="background:${c.color}"></i><span><b>${esc(c.name)}</b><small>${{paid:"Paid",unpaid:"Unpaid",personal:"Personal"}[c.billing]||""}</small></span><span class="tick">${c.visible===false?"":"✓"}</span></button><button class="only" data-only="${c.id}">Only</button></div>`).join("")}</div>
+      <div class="actions"><button class="btn ghost sm" id="dAll">Show all</button></div></aside></div>`;
+    requestAnimationFrame(()=>$("dScrim").classList.add("open"));
+    const close=()=>{ $("dScrim").classList.remove("open"); setTimeout(()=>$("drawerRoot").innerHTML="",200); renderCal(); };
+    $("dScrim").onclick=e=>{ if(e.target.id==="dScrim") close(); }; $("dDone").onclick=close;
+    const save=c=>api.saveCalendar({id:c.id, visible:c.visible!==false}).then(r=>r?.error&&toast(r.error.message));
+    $("drawerRoot").querySelectorAll("[data-cal]").forEach(b=>b.onclick=()=>{ const c=calById(b.dataset.cal); c.visible=c.visible===false; save(c); draw2(); });
+    $("drawerRoot").querySelectorAll("[data-only]").forEach(b=>b.onclick=()=>{ cals.forEach(c=>{ const v=c.id===b.dataset.only; if((c.visible!==false)!==v){ c.visible=v; save(c); } }); close(); });
+    $("dAll").onclick=()=>{ cals.forEach(c=>{ if(c.visible===false){ c.visible=true; save(c); } }); draw2(); };
+  };
+  const draw2=()=>{ draw(); $("dScrim").classList.add("open"); };
+  draw();
 }
+function pickLabel(){ const on=cals.filter(c=>c.visible!==false); return `<span class="dots">${on.slice(0,4).map(c=>`<i style="background:${c.color}"></i>`).join("")}</span>${on.length===cals.length?"All":on.length+" of "+cals.length}`; }
+
 function renderCal(){
   document.querySelectorAll("#calSeg button").forEach(b=>b.classList.toggle("on",b.dataset.v===calView));
   $("calToday").classList.toggle("hidden", calView==="month" ? calDate.slice(0,7)===todayStr().slice(0,7) : calView==="week" ? mondayOf(calDate)===mondayOf(todayStr()) : calDate===todayStr());
-  renderChips();
+  $("calPick").innerHTML = pickLabel();
   $("calTop").innerHTML=""; postIndex={};
+  $("sCal").dataset.view=calView;
   if (calView==="day") renderDayView(); else if (calView==="week") renderWeekView(); else renderMonthView();
+  $("calBody").scrollTop=0;
 }
 /* side-by-side lanes for blocks that overlap */
 function layout(items){
@@ -862,90 +986,107 @@ function dayItems(vis, d){
   items.filter(x=>x.o.kind==="sleep").forEach(x=>{ x.lane=0; x.cols=1; });
   return { items, sleeps: items.filter(x=>x.o.kind==="sleep"), lanes };
 }
-function blockHtml(x, H, an){
-  const o=x.o, top=x.s/60*H, h=Math.max((x.e-x.s)/60*H, 22), sleep=o.kind==="sleep";
-  const left = sleep ? "0%" : (x.lane/x.cols*100).toFixed(2)+"%", width = sleep ? "100%" : `calc(${(100/x.cols).toFixed(2)}% - 3px)`;
-  const label = `<b>${esc(o.ev.title)}</b>${h>40?`<small>${W.fmtTime(o.start)} – ${W.fmtTime(o.end)} · ${esc(o.cal.name)}</small>`:""}`;
-  return `<button class="blk ${sleep?"sleep":""} ${an.flagged[o.key]?"clash":""}" style="--c:${o.cal.color};background:${o.cal.color};top:${top}px;height:${h}px;left:${left};width:${width};z-index:${sleep?1:2}" data-ev="${o.ev.id}" data-date="${o.date}" aria-label="${esc(o.ev.title)}, ${W.fmtTime(o.start)} to ${W.fmtTime(o.end)}">${label}</button>`;
-}
-function hourLabel(h){ return h===0?"12am":h<12?h+"am":h===12?"12pm":(h-12)+"pm"; }
+function hourLabel(h){ return h===0||h===24?"12am":h<12?h+"am":h===12?"12pm":(h-12)+"pm"; }
+const tShort = m => W.fmtTime(m).replace(":00","").replace(" am","a").replace(" pm","p");
 function dstripHtml(d, list){
   const mon=mondayOf(d), t=todayStr(), an=W.analyse(list);
   return `<div class="dstrip">${[0,1,2,3,4,5,6].map(i=>{ const x=W.addDays(mon,i), ps=groupPosts(postsFor(x,list)), fl=an.clashes.some(c=>c.date===x)||an.shortSleep.some(s=>s.date===x);
     return `<button class="${x===d?"on":""} ${x===t?"td":""}" data-pick="${x}">${fmtDay(x,{weekday:"short"}).slice(0,3)}<b class="num">${+x.slice(8)}</b><span class="mk">${ps.length?`<i style="background:var(--warn)"></i>`:""}${fl?`<i style="background:var(--bad)"></i>`:""}</span></button>`; }).join("")}</div>`;
 }
-let showAllAlerts=false, alertsFor="";
+
+/* DAY: the whole 24 hours in one screen */
 function renderDayView(){
-  if (alertsFor!==calDate) { showAllAlerts=false; alertsFor=calDate; }
   const d=calDate, list=occs(W.addDays(mondayOf(d),-1), W.addDays(mondayOf(d),7)), vis=list.filter(o=>o.cal.visible!==false), an=W.analyse(list);
   const rd=relDay(d);
-  $("calTitle").textContent = ["Today","Tomorrow","Yesterday"].includes(rd) ? rd : fmtDay(d,{weekday:"long",day:"numeric",month:"short"});
-  const d0=W.dnum(d)*DAY, H=56;
+  $("calTitle").textContent = ["Today","Tomorrow","Yesterday"].includes(rd) ? rd+", "+fmtDay(d,{day:"numeric",month:"short"}) : fmtDay(d,{weekday:"short",day:"numeric",month:"short"});
   const posts=groupPosts(postsFor(d,list)); posts.forEach(p=>postIndex[p.id]=p);
   const allDay = vis.filter(o=>o.allDay && o.kind!=="post" && o.date===d);
-  const {items, sleeps, lanes} = dayItems(vis, d);
-  const gaps=gapsOf(vis,d);
-  const sp=W.daySplit(d,vis), alerts=alertsFrom(an, d, d).map(a=>alertHtml(a,false));
-  let hrs=""; for(let h=0;h<=24;h++) hrs+=`<div class="hr" style="top:${h*H}px">${h<24?`<span>${hourLabel(h)}</span>`:""}</div>`;
-  const nm=nowMin(), nowLine = (nm>=d0 && nm<d0+DAY) ? `<div class="nowline" style="top:${(nm-d0)/60*H}px"></div>` : "";
-  const nm2=nowMin();
+  const alerts=alertsFrom(an, d, d);
+  const pills = allDay.map(o=>`<button class="pill2" style="--c:${o.cal.color}" data-ev="${o.ev.id}" data-date="${o.date}">${esc(o.ev.title)}</button>`)
+    .concat(posts.map(p=>`<button class="pill2 ${p.status.scheduled?"ok":"todo"}" style="--c:${p.cal.color}" data-post="${esc(p.id)}">${p.status.scheduled?"✓ ":""}${esc(p.title)}${files(p).length?` <span class="clip">📎${files(p).length}</span>`:""}</button>`));
   $("calTop").innerHTML = `${dstripHtml(d,list)}
-    ${posts.length||allDay.length?`<div style="max-height:150px;overflow:auto">${allDay.map(o=>agItemHtml({o,date:d},nm2,an)).join("")}${posts.map(p=>agItemHtml({post:p},nm2)).join("")}</div>`:""}
-    ${splitHtml(sp,false)}<div class="legend one small">${sp.groups.map(g=>`<span><i class="sw ${g.id==="free"?"free":""}" style="${g.id==="free"?"":"background:"+g.color}"></i>${esc(g.label)} <b class="num">${W.fmtDur(g.minutes)}</b></span>`).join("")}</div>
-    ${alerts.length>1 && !showAllAlerts ? `<button class="alert" id="moreAlerts">${icon("warn")}<span>${alerts.length} warnings on this day. Tap to see them.</span></button>` : alerts.join("")}`;
-  if ($("moreAlerts")) $("moreAlerts").onclick=()=>{ showAllAlerts=true; renderDayView(); };
+    ${pills.length?`<div class="pillrow">${pills.join("")}</div>`:""}
+    ${alerts.length?`<button class="alert slim" id="dAlerts">${icon("warn")}<span>${esc(alerts[0].text.charAt(0).toUpperCase()+alerts[0].text.slice(1))}${alerts.length>1?` (+${alerts.length-1} more)`:""}</span></button>`:""}`;
   $("calTop").querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ calDate=b.dataset.pick; renderCal(); });
-  $("calBody").innerHTML = `
-    <div class="tl" id="tl" style="height:${24*H}px">${hrs}<div class="cols" id="tlCols">
-      ${gaps.map(g=>`<div class="gap" style="top:${g[0]/60*H+2}px;height:${(g[1]-g[0])/60*H-4}px">Free · ${W.fmtDur(g[1]-g[0])}</div>`).join("")}
-      ${sleeps.map(x=>blockHtml(x,H,an)).join("")}${lanes.map(x=>blockHtml(x,H,an)).join("")}
+  if ($("dAlerts")) $("dAlerts").onclick=()=>sheet(`<h2>Warnings</h2>${alerts.map(a=>alertHtml(a,false)).join("")}<button class="btn ghost" data-close>Close</button>`);
+  wire($("calTop"));
+  const body=$("calBody"), avail=Math.max(380, body.clientHeight-34), H=avail/24;
+  const d0=W.dnum(d)*DAY, {sleeps, lanes} = dayItems(vis, d), gaps=gapsOf(vis,d);
+  const step = H<20 ? 3 : H<30 ? 2 : 1;
+  let hrs=""; for(let h=0;h<=24;h+=step) hrs+=`<div class="hr" style="top:${h*H}px"><span>${hourLabel(h)}</span></div>`;
+  const nm=nowMin(), nowLine = (nm>=d0 && nm<d0+DAY) ? `<div class="nowline" style="top:${(nm-d0)/60*H}px"></div>` : "";
+  const blk = x => { const o=x.o, top=x.s/60*H, h=Math.max((x.e-x.s)/60*H-1.5, 15), sleep=o.kind==="sleep";
+    const left = sleep ? "0%" : (x.lane/x.cols*100).toFixed(2)+"%", width = sleep ? "100%" : `calc(${(100/x.cols).toFixed(2)}% - 3px)`;
+    const time = `${tShort(o.start)}–${tShort(o.end)}`;
+    const label = h>=34 ? `<b>${esc(o.ev.title)}</b><small>${time} · ${esc(shortName(o.cal))}</small>` : `<b class="one"><span class="tm">${time}</span> ${esc(o.ev.title)}</b>`;
+    return `<button class="blk ${sleep?"sleep":""} ${an.flagged[o.key]?"clash":""} ${h<34?"thin":""}" style="--c:${o.cal.color};background:${o.cal.color};top:${top}px;height:${h}px;left:${left};width:${width};z-index:${sleep?1:2}" data-ev="${o.ev.id}" data-date="${o.date}" aria-label="${esc(o.ev.title)}, ${W.fmtTime(o.start)} to ${W.fmtTime(o.end)}">${label}</button>`; };
+  body.innerHTML = `<div class="tl fit" id="tl" style="height:${24*H}px">${hrs}<div class="cols" id="tlCols">
+      ${gaps.filter(g=>(g[1]-g[0])/60*H>=20).map(g=>`<div class="gap" style="top:${g[0]/60*H+1}px;height:${(g[1]-g[0])/60*H-2}px">Free ${W.fmtDur(g[1]-g[0])}</div>`).join("")}
+      ${sleeps.map(blk).join("")}${lanes.map(blk).join("")}
     </div>${nowLine}</div>`;
-  const body=$("calBody");
-  wire(body); wire($("calTop"));
+  wire(body);
   $("tlCols").onclick=e=>{ if(e.target.closest(".blk")) return; const r=$("tlCols").getBoundingClientRect(); const m=Math.max(0,Math.min(23*60+30,Math.floor((e.clientY-r.top)/H*2)*30)); openEvent(null,d,m); };
-  const firstBusy = lanes.slice().sort((a,b)=>a.s-b.s)[0];
-  const focus = (nm>=d0 && nm<d0+DAY) ? (nm-d0)/60*H-140 : (firstBusy ? firstBusy.s : 8*60)/60*H-60;
-  requestAnimationFrame(()=>{ body.scrollTop = Math.max(0, $("tl").offsetTop + focus); });
 }
+
+/* WEEK: seven rows, each a 24-hour line, all on one screen */
 function renderWeekView(){
-  const mon=mondayOf(calDate), sun=W.addDays(mon,6), list=occs(W.addDays(mon,-1), W.addDays(sun,1)), an=W.analyse(list), t=todayStr();
+  const mon=mondayOf(calDate), sun=W.addDays(mon,6), list=occs(W.addDays(mon,-1), W.addDays(sun,1)), vis=list.filter(o=>o.cal.visible!==false), an=W.analyse(list), t=todayStr(), nm=nowMin();
   $("calTitle").textContent = fmtDay(mon,{day:"numeric",month:"short"})+" – "+fmtDay(sun,{day:"numeric",month:"short"});
-  const alerts=alertsFrom(an, mon).filter(a=>a.date<=sun);
-  let html = alerts.length?`<div class="card" style="margin:0 0 4px">${alerts.slice(0,4).map(a=>alertHtml(a,true)).join("")}${alerts.length>4?`<div class="small muted">and ${alerts.length-4} more</div>`:""}</div>`:"";
-  html += `<div class="card" style="margin-top:8px">${[0,1,2,3,4,5,6].map(i=>agendaDayHtml(W.addDays(mon,i), list, an, {strip:true, maxPosts:3})).join("")}</div>`;
-  html += `<p class="small muted" style="margin:10px 2px">Faded rows are your routine (shift and classes). The bar under each day shows the 24 hours; striped is sleep.</p>`;
-  $("calBody").innerHTML = `<div style="padding:0 max(14px,env(safe-area-inset-right)) 100px max(14px,env(safe-area-inset-left))">${html}</div>`;
-  wire($("calBody"));
-  requestAnimationFrame(()=>{ const el=$("calBody").querySelector(`[data-day="${t}"]`); $("calBody").scrollTop = el && t>=mon && t<=sun ? Math.max(0, el.offsetTop-10) : 0; });
+  $("calTop").innerHTML = `<div class="ruler"><span></span><div>${[0,6,12,18,24].map(h=>`<i style="left:${h/24*100}%">${h===0||h===24?"12a":h===12?"12p":h<12?h+"a":(h-12)+"p"}</i>`).join("")}</div></div>`;
+  const body=$("calBody"), rowH=Math.max(64, (body.clientHeight-6)/7);
+  let html="";
+  for (let i=0;i<7;i++){
+    const d=W.addDays(mon,i), d0=W.dnum(d)*DAY, posts=groupPosts(postsFor(d,list)), todo=posts.filter(p=>!p.status.scheduled).length;
+    const fl=an.clashes.some(c=>c.date===d)||an.shortSleep.some(s=>s.date===d);
+    const items=W.timed(vis).filter(o=>o.end>d0&&o.start<d0+DAY);
+    const bars=items.map(o=>{ const s=Math.max(o.start,d0)-d0, e=Math.min(o.end,d0+DAY)-d0, w=(e-s)/DAY*100, sleep=o.kind==="sleep";
+      return `<i class="${sleep?"sl":""} ${an.flagged[o.key]?"clash":""}" style="left:${(s/DAY*100).toFixed(2)}%;width:${w.toFixed(2)}%;${sleep?"":"background:"+o.cal.color}">${w>=11&&!sleep?`<em>${esc(o.ev.title)}</em>`:sleep&&w>=14?`<em>Sleep</em>`:""}</i>`; }).join("");
+    const key=items.filter(o=>o.kind!=="sleep"&&!ROUTINE(o)&&o.start>=d0).sort((a,b)=>a.start-b.start);
+    const words=key.map(o=>`<span><i style="background:${o.cal.color}"></i>${tShort(o.start)} ${esc(o.ev.title)}</span>`).join("");
+    html+=`<button class="wrow ${d===t?"today":""}" data-day="${d}" style="height:${rowH}px">
+      <span class="wd"><small>${fmtDay(d,{weekday:"short"})}</small><b class="num">${+d.slice(8)}</b>${fl?`<i class="rd"></i>`:""}</span>
+      <span class="wr"><span class="track">${bars}${d===t?`<i class="now" style="left:${((nm-d0)/DAY*100).toFixed(2)}%"></i>`:""}</span>
+        <span class="wtxt">${posts.length?`<span class="pc ${todo?"todo":""}">${posts.length} post${posts.length>1?"s":""}${todo?` · ${todo} to do`:" ✓"}</span>`:""}${words||(!posts.length?`<span class="muted">Routine only</span>`:"")}</span></span></button>`;
+  }
+  body.innerHTML=`<div class="week">${html}</div>`;
+  wire(body);
 }
+
+/* MONTH: the whole month on one screen, with times; tap a day for everything on it */
 function renderMonthView(){
   const d=dateObj(calDate), y=d.getFullYear(), m=d.getMonth()+1, first=`${y}-${String(m).padStart(2,"0")}-01`;
-  const start=mondayOf(first), end=W.addDays(start,41), list=occs(W.addDays(start,-1), W.addDays(end,1)), vis=list.filter(o=>o.cal.visible!==false), an=W.analyse(list), t=todayStr();
-  if (!monthSel || monthSel.slice(0,7)!==first.slice(0,7)) monthSel = t.slice(0,7)===first.slice(0,7) ? t : first;
+  const start=mondayOf(first), list=occs(W.addDays(start,-1), W.addDays(start,43)), vis=list.filter(o=>o.cal.visible!==false), an=W.analyse(list), t=todayStr();
   $("calTitle").textContent = dateObj(first).toLocaleDateString("en-GB",{month:"long",year:"numeric"});
+  let weeks=0; for (let i=0;i<42;i+=7){ if (i>=28 && +W.addDays(start,i).slice(5,7)!==m) break; weeks++; }
+  $("calTop").innerHTML = `<div class="mo-head">${WEEKDAYS.map(w=>`<span>${w[1]}</span>`).join("")}</div>`;
+  const body=$("calBody"), cellH=Math.max(70, (body.clientHeight-8-(weeks-1)*3)/weeks), lines=Math.max(1, Math.floor((cellH-24)/23));
   const flagDays = new Set(an.clashes.map(c=>c.date).concat(an.shortSleep.map(s=>s.date)));
-  let html = WEEKDAYS.map(w=>`<div class="dn">${w[1].slice(0,2)}</div>`).join("");
-  for (let i=0;i<42;i++){
-    const day=W.addDays(start,i), out=+day.slice(5,7)!==m;
-    if (i%7===0 && i>=28 && out) break;
-    const d0=W.dnum(day)*DAY, posts=groupPosts(postsFor(day,list));
-    const evs=vis.filter(o=>o.kind!=="sleep" && o.kind!=="post" && !ROUTINE(o) && (o.allDay ? o.date===day : (o.start>=d0 && o.start<d0+DAY)));
-    const labels=evs.map(o=>({c:o.cal.color,t:o.ev.title})).concat(posts.map(p=>({c:p.cal.color,t:p.title})));
-    const shown=labels.slice(0,3);
-    html+=`<button class="mc ${out?"out":""} ${day===t?"today":""} ${day===monthSel?"sel":""}" data-sel="${day}"><span class="d num">${+day.slice(8)}</span>${shown.map(l=>`<span class="ev" style="--c:${l.c};border-color:${l.c}">${esc(l.t)}</span>`).join("")}${labels.length>3?`<span class="mo-more">+${labels.length-3}</span>`:""}${flagDays.has(day)?`<i class="rd" title="Clash or short sleep"></i>`:""}</button>`;
+  let html="";
+  for (let i=0;i<weeks*7;i++){
+    const day=W.addDays(start,i), out=+day.slice(5,7)!==m, d0=W.dnum(day)*DAY, posts=groupPosts(postsFor(day,list));
+    const evs=vis.filter(o=>o.kind!=="sleep" && o.kind!=="post" && !ROUTINE(o) && (o.allDay ? o.date===day : (o.start>=d0 && o.start<d0+DAY))).sort((a,b)=>a.start-b.start);
+    const rows=evs.map(o=>`<span class="ev" style="--c:${o.cal.color}">${o.allDay?"":`<u>${tShort(o.start)}</u>`}${esc(o.ev.title)}</span>`)
+      .concat(posts.map(p=>`<span class="ev post ${p.status.scheduled?"done":""}" style="--c:${p.cal.color}">${esc(p.title)}</span>`));
+    const shown = rows.length>lines ? rows.slice(0,lines-1) : rows;
+    const strip = W.timed(vis).filter(o=>o.end>d0&&o.start<d0+DAY).map(o=>{ const s=Math.max(o.start,d0)-d0, e=Math.min(o.end,d0+DAY)-d0; return `<i class="${o.kind==="sleep"?"sl":""}" style="left:${(s/DAY*100).toFixed(1)}%;width:${((e-s)/DAY*100).toFixed(1)}%;${o.kind==="sleep"?"":"background:"+o.cal.color}"></i>`; }).join("");
+    html+=`<button class="mc ${out?"out":""} ${day===t?"today":""}" data-mday="${day}" style="height:${cellH}px"><span class="d num">${+day.slice(8)}</span>${flagDays.has(day)?`<i class="rd"></i>`:""}
+      <span class="evs">${shown.join("")}${rows.length>shown.length?`<span class="mo-more">+${rows.length-shown.length} more</span>`:""}</span><span class="mstrip">${strip}</span></button>`;
   }
-  const notes = plannerState ? notesFor(y, m, plannerState, "both") : [];
-  $("calBody").innerHTML = `<div class="mo">${html}</div>
-    <div class="mo-below">
-      <div class="sec" style="margin-top:14px"><h2>${esc(fmtDay(monthSel,{weekday:"long",day:"numeric",month:"long"}))}</h2><button class="more" data-day="${monthSel}">Open day</button></div>
-      <div class="card">${agendaDayHtml(monthSel, list, an, {noHead:true})}</div>
-      ${notes.length?`<div class="sec"><h2>To confirm this month</h2><button class="more" id="mNotes">Manage</button></div><div class="card">${notes.map(n=>`<div class="prow">${icon("q")}<div class="t"><b style="white-space:normal">${esc(n.text)}</b><span>${esc(COLLEGES[n.college]?.name||"")}</span></div></div>`).join("")}</div>`:""}
-    </div>`;
-  $("calBody").querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>{ monthSel=b.dataset.sel; const st=$("calBody").scrollTop; keepScroll=true; renderMonthView(); $("calBody").scrollTop=st; });
-  if ($("mNotes")) $("mNotes").onclick=openNotes;
-  wire($("calBody"));
-  if (!keepScroll) $("calBody").scrollTop=0; keepScroll=false;
+  body.innerHTML = `<div class="mo fit">${html}</div>`;
+  body.querySelectorAll("[data-mday]").forEach(b=>b.onclick=()=>openDaySheet(b.dataset.mday));
 }
+function openDaySheet(day){
+  const list=occs(W.addDays(day,-1), W.addDays(day,1)), an=W.analyse(list); postIndex={};
+  sheet(`<div class="line"><h2>${esc(fmtDay(day,{weekday:"long",day:"numeric",month:"long"}))}</h2><button class="btn soft sm" id="dsOpen">Open day</button></div>
+    ${stripHtml(day,list)}
+    <div style="max-height:58vh;overflow:auto">${agendaDayHtml(day, list, an, {noHead:true})}</div>
+    <div class="actions"><button class="btn" id="dsAdd">${icon("plus")} Add on this day</button><button class="btn ghost" data-close>Close</button></div>`);
+  wire($("sheetRoot"));
+  $("dsOpen").onclick=()=>{ closeSheet(); openDay(day); };
+  $("dsAdd").onclick=()=>{ closeSheet(); openAdd(day); };
+}
+
+const files = p => postFiles.filter(f=>f.item_key===p.key);
 
 /* ---------- sheets ---------- */
 function sheet(html){
@@ -1061,6 +1202,8 @@ function openPost(p){
       <button data-f="made" class="${st.made?"on":""}">Made</button>
       <button data-f="scheduled" class="${st.scheduled?"on":""}">Scheduled</button>
     </div>
+    ${p.source==="planner"||p.source==="world"?`<div class="fl"><span class="label">Designs</span><div id="pFiles"></div>
+      <label class="btn ghost sm" style="cursor:pointer">${icon("plus")} Upload a design yourself<input type="file" id="pUp" multiple accept="image/*,video/*,application/pdf" hidden></label></div>`:""}
     <div class="actions">
       ${it?`<button class="btn soft" id="pEdit">Edit</button>`:""}
       ${p.source==="world"?`<button class="btn ghost" id="pSkip">No post for ${esc(shortName(p.cal))} this day</button>`:""}
@@ -1068,6 +1211,13 @@ function openPost(p){
       <button class="btn ghost" data-close>Close</button>
     </div>`);
   $("sheetRoot").querySelectorAll(".seg3 [data-f]").forEach(b=>b.onclick=async()=>{ closeSheet(); await togglePost(p,b.dataset.f); });
+  if ($("pFiles")) designsHtmlInto(p, $("pFiles"));
+  if ($("pUp")) $("pUp").onchange=async()=>{ const date=p.key.split("@").pop(); let n=0;
+    for (const f of $("pUp").files){ if(f.size>50*1024*1024){ toast(f.name+" is over 50 MB"); continue; }
+      const path=`${me.id}/${date}/${Math.random().toString(36).slice(2,10)}-${f.name.replace(/[^\w.\- ()]+/g,"_").slice(-120)}`;
+      toast("Uploading "+f.name+"…"); const up=await api.uploadOwn(path,f); if(up.error){ toast(up.error.message); continue; }
+      const r=await api.addFileRow({user_id:me.id,item_key:p.key,post_date:date,title:p.title,path,name:f.name,mime:f.type,size:f.size,uploaded_by:"me"}); if(r.error){ toast(r.error.message); continue; } n++; }
+    if(n){ toast(`Uploaded ${n}`); const d=await api.loadAll(); if(!d.error){ applyData(d); render(); } if($("pFiles")) designsHtmlInto(p,$("pFiles")); } };
   if ($("pSkip")) $("pSkip").onclick=async()=>{ closeSheet(); const r=await api.setPostStatus(p.cal.id,p.key,{skip:true}); if(r.error) return toast(r.error.message); toast("Removed from "+shortName(p.cal)); reload(); };
   if ($("pEdit")) $("pEdit").onclick=()=>{
     if (p.source==="event") return openEvent(p.occ.ev, p.occ.date);
@@ -1397,6 +1547,89 @@ async function openShortcut(){
   };
 }
 
+/* ---------- notification choices ---------- */
+const NOTIFY_ROWS = [
+  ["shift","💼","Shift"],["university","🎓","Classes"],["meeting","👥","Meetings, calls"],["other","⏰","Everything else"],
+  ["bedtime","🌙","Bedtime"],["briefing_am","☀️","9 am: today's check"],["briefing_pm","🌆","8 pm: tomorrow's check"],["review","📝","Sunday weekly review"],
+];
+const LEADS=[5,10,15,20,30,45,60,90,120];
+function notifyRowsHtml(){
+  return NOTIFY_ROWS.map(([k,ic,label])=>{ const v=notify[k]||{}, timed=v.lead!=null;
+    return `<div class="nrow ${v.on?"":"dis"}" data-n="${k}"><span class="ic">${ic}</span><span><b>${label}</b>${timed?`<small>${v.on?v.lead+" min before":"Off"}</small>`:""}</span>
+      ${timed?`<select data-lead aria-label="How early">${LEADS.map(m=>`<option value="${m}" ${+v.lead===m?"selected":""}>${m<60?m+" min":m/60+" h"}</option>`).join("")}</select>`:"<span></span>"}
+      ${timed?`<button class="snd ${v.sound===false?"off":""}" data-snd aria-label="Sound">${v.sound===false?"🔕":"🔔"}</button>`:"<span></span>"}
+      <label class="switch"><input type="checkbox" data-on ${v.on?"checked":""}><span></span></label></div>`; }).join("");
+}
+let notifyTimer=0;
+function saveNotify(){ clearTimeout(notifyTimer); notifyTimer=setTimeout(async()=>{ const r=await api.setNotify(notify); if(r?.error) toast(r.error.message); else toast("Saved"); },600); }
+function wireNotify(){
+  const root=$("nPrefs"); if(!root) return;
+  root.querySelectorAll("[data-n]").forEach(row=>{ const k=row.dataset.n;
+    row.querySelector("[data-on]").onchange=e=>{ notify[k]={...notify[k],on:e.target.checked}; root.innerHTML=notifyRowsHtml(); wireNotify(); saveNotify(); };
+    const sel=row.querySelector("[data-lead]"); if(sel) sel.onchange=()=>{ notify[k]={...notify[k],lead:+sel.value}; root.innerHTML=notifyRowsHtml(); wireNotify(); saveNotify(); };
+    const snd=row.querySelector("[data-snd]"); if(snd) snd.onclick=()=>{ notify[k]={...notify[k],sound:notify[k].sound===false}; root.innerHTML=notifyRowsHtml(); wireNotify(); saveNotify(); };
+  });
+}
+/* real alarms: iPhone web apps can't ring, so a Shortcut copies them into the Clock app */
+async function openAlarms(){
+  const a={...NOTIFY_DEFAULTS.alarms,...(notify.alarms||{})};
+  let info=null; try{ const {data}=await api.healthTokenInfo(); info=data&&data[0]; }catch{}
+  const url = SUPABASE_URL+"/functions/v1/"+WORKER;
+  sheet(`<h2>⏰ Alarms</h2>
+    <p class="small muted" style="margin:0">Apple doesn't let web apps ring like an alarm, so a Shortcut reads your calendar every evening and sets real alarms in the Clock app, with your alarm sound.</p>
+    <div class="nrow"><span class="ic">🌅</span><span><b>Wake up</b><small>when your planned sleep ends</small></span><span></span><span></span><label class="switch"><input type="checkbox" id="aWake" ${a.wake?"checked":""}><span></span></label></div>
+    <div class="nrow"><span class="ic">💼</span><span><b>Before a shift</b><small>to get ready</small></span><select id="aShiftL">${[15,30,45,60,90,120].map(m=>`<option value="${m}" ${+a.shift_lead===m?"selected":""}>${m<60?m+" min":m/60+" h"}</option>`).join("")}</select><span></span><label class="switch"><input type="checkbox" id="aShift" ${a.shift?"checked":""}><span></span></label></div>
+    <div class="nrow"><span class="ic">👥</span><span><b>Before meetings</b><small>and calls</small></span><select id="aMeetL">${[10,15,30,45,60].map(m=>`<option value="${m}" ${+a.meeting_lead===m?"selected":""}>${m<60?m+" min":"1 h"}</option>`).join("")}</select><span></span><label class="switch"><input type="checkbox" id="aMeet" ${a.meeting?"checked":""}><span></span></label></div>
+    <details><summary class="label" style="cursor:pointer;padding:6px 0">Set up the Shortcut (once)</summary>
+      <div class="small muted" style="margin:6px 0">It uses the same key as the sleep Shortcut. ${info?"You already have one.":"Make one first in Review, iPhone Shortcut."}</div>
+      <div class="fl"><span class="label">Web address</span><div class="line"><code class="field small" style="overflow-wrap:anywhere">${esc(url)}</code><button class="ib" data-copy="${esc(url)}" aria-label="Copy">${icon("copy")}</button></div></div>
+      <ol class="small" style="margin:8px 0 0;padding-left:18px;display:grid;gap:6px">
+        <li>Shortcuts, <b>+</b>, name it <b>WhatsWork alarms</b>.</li>
+        <li><b>Find Alarms</b> where Label contains <b>WW:</b>, then <b>Delete Alarms</b> (clears yesterday's).</li>
+        <li><b>Get Contents of URL</b>: the address above, Method <b>POST</b>, header <b>x-health-token</b> = your key, Request Body JSON: <b>action</b> = <b>alarms</b>.</li>
+        <li><b>Get Dictionary Value</b> for <b>alarms</b>, then <b>Repeat with Each</b>.</li>
+        <li>Inside the repeat: <b>Get Dictionary Value</b> <b>at</b> from Repeat Item, then <b>Add Alarm</b> at that time with label = Repeat Item's <b>label</b>.</li>
+        <li>Automation, <b>+</b>, Time of Day <b>9:00 pm</b>, Daily, Run Immediately, choose <b>WhatsWork alarms</b>.</li>
+      </ol></details>
+    <div class="actions"><button class="btn" id="aSave">Save</button><button class="btn ghost" data-close>Close</button></div>`);
+  $("sheetRoot").querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{ try{ await navigator.clipboard.writeText(b.dataset.copy); toast("Copied"); }catch{ toast("Press and hold to copy"); } });
+  $("aSave").onclick=async()=>{ notify.alarms={wake:$("aWake").checked, shift:$("aShift").checked, shift_lead:+$("aShiftL").value, meeting:$("aMeet").checked, meeting_lead:+$("aMeetL").value};
+    const r=await api.setNotify(notify); if(r?.error) return toast(r.error.message); closeSheet(); toast("Saved"); renderSettings(); };
+}
+
+/* ---------- designer portal ---------- */
+async function openDesignerPortal(){
+  let info=null; try{ const {data}=await api.designerTokenInfo(); info=data&&data[0]; }catch{}
+  sheet(`<h2>Designer portal</h2>
+    <p class="small muted" style="margin:0">Your designer opens a link (no account needed) and sees every college post for the next 6 weeks. They upload the finished design on each post. It appears here on the post, the post is marked Made, and you get a notification.</p>
+    <div id="dpBox">${info?`<div class="small">Link made for <b>${esc(info.designer_name||"your designer")}</b> on ${esc(fmtDay(info.created_at.slice(0,10),{day:"numeric",month:"short"}))}${info.last_used?`, last opened ${esc(relDay(info.last_used.slice(0,10)))}`:", not opened yet"}. Lost it? Make a new one; the old link stops working.</div>`:""}</div>
+    <input id="dpName" class="field" placeholder="Designer's name" value="${esc(info?.designer_name||"")}" maxlength="60">
+    <div class="actions"><button class="btn" id="dpMake">${info?"Make a new link":"Make the link"}</button>${info?`<button class="btn danger" id="dpOff">Turn off</button>`:""}</div>
+    <button class="btn ghost" data-close>Close</button>`);
+  $("dpMake").onclick=async()=>{
+    const bytes=new Uint8Array(24); crypto.getRandomValues(bytes);
+    const key="wd_"+[...bytes].map(x=>x.toString(16).padStart(2,"0")).join("");
+    const {error}=await api.setDesignerToken(await sha256hex(key), $("dpName").value.trim()||null); if(error) return toast(error.message);
+    const link=new URL("designer.html", location.href).href.split("?")[0]+"#k="+key;
+    $("dpBox").innerHTML=`<div class="fl"><span class="label">Send this link to your designer (shown once)</span><div class="line"><code class="field small" style="overflow-wrap:anywhere">${esc(link)}</code><button class="ib" id="dpCopy" aria-label="Copy">${icon("copy")}</button></div></div>
+      <div class="actions"><button class="btn soft" id="dpShare">Share on WhatsApp or anywhere</button></div>`;
+    $("dpCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(link); toast("Copied"); }catch{ toast("Press and hold to copy"); } };
+    $("dpShare").onclick=async()=>{ try{ await navigator.share({title:"Design board", text:"Here's the design board for the college posts. Upload each finished design on its post:", url:link}); }catch{} };
+  };
+  if ($("dpOff")) $("dpOff").onclick=async()=>{ const {error}=await api.setDesignerToken(null,null); if(error) return toast(error.message); closeSheet(); toast("Designer link turned off"); };
+}
+/* the designs attached to a post: thumbnails, download, add your own */
+async function designsHtmlInto(p, el){
+  const list=files(p);
+  if (!list.length) { el.innerHTML=`<div class="small muted">No design uploaded yet.</div>`; return; }
+  el.innerHTML=`<div class="small muted">Loading designs…</div>`;
+  let urls={}; try { urls=await api.signFiles(list.map(f=>f.path)); } catch {}
+  el.innerHTML=`<div class="dfiles">${list.map(f=>{ const u=urls[f.path]; const media=u&&/^image\//.test(f.mime||"")?`<img src="${esc(u)}" alt="" loading="lazy">`:u&&/^video\//.test(f.mime||"")?`<video src="${esc(u)}#t=0.5" muted playsinline preload="metadata"></video>`:esc((f.name.split(".").pop()||"file").toUpperCase());
+    return `<a class="dfile" href="${esc(u||"#")}" target="_blank" rel="noopener" download="${esc(f.name)}" title="${esc(f.name)}">${media}<span class="by">${f.uploaded_by==="me"?"You":"Designer"}</span></a>`; }).join("")}</div>
+    ${list.filter(f=>f.note).map(f=>`<div class="small" style="background:var(--sunk);border-radius:10px;padding:7px 10px">💬 ${esc(f.note)}</div>`).join("")}
+    <div class="small muted">Tap a design to open it, then Share to save it to Photos.</div>`;
+}
+
 /* ---------- SETTINGS ---------- */
 let ai={enabled:false,provider:"gemini",model:"",has_key:false}, aiProvider="gemini";
 async function renderSettings(){
@@ -1417,10 +1650,13 @@ async function renderSettings(){
     <p class="small muted" style="margin:0">College posts, world days and birthdays show on your calendar. Tap any post there to tick it or edit it.</p>
     <button class="calrow" id="sBdays">${icon("gift")}<span class="t"><b>Faculty birthdays</b><span class="small muted">${(plannerState?.birthdays||[]).length} names</span></span>${icon("right")}</button>
     <button class="calrow" id="sNotes">${icon("q")}<span class="t"><b>To confirm</b><span class="small muted">${(plannerState?.notes||[]).length} waiting for a date</span></span>${icon("right")}</button>
-    <button class="calrow" id="sSheets">${icon("layers")}<span class="t"><b>Designer sheets and backup</b><span class="small muted">Month and six-month PDF or Word sheets, designer files, backup</span></span>${icon("right")}</button></div>
+    <button class="calrow" id="sDesigner">${icon("spark")}<span class="t"><b>Designer portal</b><span class="small muted">A link for your designer to upload finished posts</span></span>${icon("right")}</button>
+    <button class="calrow" id="sSheets">${icon("layers")}<span class="t"><b>Printable sheets and backup</b><span class="small muted">Month and six-month PDF or Word sheets, backup</span></span>${icon("right")}</button></div>
 
   <div class="card"><div class="line"><h3><span style="display:flex;gap:8px;align-items:center">${icon("bell")} Notifications</span></h3><span class="status ${subbed&&perm==="granted"?"ok":perm==="denied"?"bad":""}">${subbed&&perm==="granted"?"On":perm==="denied"?"Blocked":"Off"}</span></div>
-    <p class="small muted" style="margin:0">30 minutes before a shift and 15 minutes before classes and meetings. At 8 pm a check of tomorrow's posts and clashes, at 9 am the same for today. Sunday evening: your weekly review.</p>
+    <p class="small muted" style="margin:0">Pick what you hear about and how early. 🔔 plays the phone's notification sound, 🔕 arrives quietly.</p>
+    <div id="nPrefs">${notifyRowsHtml()}</div>
+    <button class="calrow" id="sAlarms"><span style="font-size:19px;width:22px;text-align:center">⏰</span><span class="t"><b>Alarms on your iPhone</b><span class="small muted">${[notify.alarms?.wake&&"wake-up",notify.alarms?.shift&&"before shift",notify.alarms?.meeting&&"before meetings"].filter(Boolean).join(", ")||"Off"} · set by a Shortcut</span></span>${icon("right")}</button>
     ${!pushOk ? (ios&&!standalone ? `<p class="err">On iPhone, add WhatsWork to your Home Screen first (Share, then Add to Home Screen), open it from there and come back here.</p>` : `<p class="err">This browser can't receive notifications.</p>`)
       : perm==="denied" ? `<p class="err">Notifications are blocked for this app. Allow them in your phone's settings, then come back.</p>`
       : `<div class="actions">${subbed?`<button class="btn soft sm" id="sTest">Send a test</button><button class="btn ghost sm" id="sPushOff">Turn off on this device</button>`:`<button class="btn" id="sPushOn">${icon("bell")} Turn on notifications</button>`}</div>`}</div>
@@ -1442,7 +1678,7 @@ async function renderSettings(){
     <p class="small muted" style="margin:0"><b>iPhone (Safari):</b> Share, then Add to Home Screen, then open it from the Home Screen.<br><b>Android (Chrome):</b> menu, then Install app.</p></div>`;
   $("settingsBody").querySelectorAll("[data-cal]").forEach(b=>b.onclick=()=>openCalendar(calById(b.dataset.cal)));
   $("sAddCal").onclick=()=>openCalendar(null);
-  $("sBdays").onclick=openBirthdays; $("sNotes").onclick=openNotes; $("sSheets").onclick=openPlanner;
+  $("sBdays").onclick=openBirthdays; $("sDesigner").onclick=openDesignerPortal; $("sAlarms").onclick=openAlarms; wireNotify(); $("sNotes").onclick=openNotes; $("sSheets").onclick=openPlanner;
   $("sNameSave").onclick=async()=>{ const n=$("sName").value.trim(); if(!n) return; const r=await api.setName(n); if(r.error) return toast(r.error.message); myName=n; toast("Name saved"); };
   $("sOut").onclick=async()=>{ await api.signOut(); location.reload(); };
   const on=$("sPushOn"); if(on) on.onclick=enablePush;

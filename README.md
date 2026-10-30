@@ -11,8 +11,9 @@ A personal life planner: separate calendars, a 24-hour day view, clashes, post b
 | Planner rules, world days, birthdays | `planner-core.js` |
 | Calendars, clashes, 24-hour split, posts, briefings, hours, quick add, reviews | `ww-core.js` |
 | The same two files bundled for the background worker | `core.mjs` (made by `build-worker-core.sh`) |
+| Designer portal (link with a key, no account) | `designer.html` |
 | Background worker: 9 am / 8 pm briefings, Sunday review, quick add with AI, sleep from the iPhone Shortcut | `supabase/functions/whatswork-worker/index.ts` |
-| Database setup, in order | `schema.sql`, `schema-v2.sql`, `schema-v3-planner.sql`, `schema-v4-calendars.sql`, `schema-v5-health-reviews.sql` |
+| Database setup, in order | `schema.sql`, `schema-v2.sql`, `schema-v3-planner.sql`, `schema-v4-calendars.sql`, `schema-v5-health-reviews.sql`, `schema-v6-designer-notify.sql` |
 
 Data lives in the Supabase project "WhatsWork". Every table has row level security: each person only sees their own rows.
 
