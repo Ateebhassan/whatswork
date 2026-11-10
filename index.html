@@ -490,6 +490,12 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
 .wgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:2px max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}
 .wbox{display:flex;flex-direction:column;gap:5px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:9px 10px;min-height:150px;min-width:0}
 .wbox.wide{grid-column:1 / -1;min-height:0}
+.wbox.past,.mc.past{background:color-mix(in srgb,var(--panel) 55%,var(--bg));opacity:.55}
+.mc.past.out{opacity:.35}
+.mc.past .d{text-decoration:line-through;text-decoration-thickness:1.5px;color:var(--muted)}
+.wbox .wh small{font-size:10px;font-weight:800;padding:1px 6px;border-radius:6px;vertical-align:2px}
+.wbox .wh .tdy{background:var(--brand);color:var(--on-brand)}
+.wbox .wh .pst{background:var(--line);color:var(--muted)}
 .wbox.today{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand)}
 .wbox .wh{display:flex;justify-content:space-between;align-items:center}
 .wbox .wh b{font-family:var(--display);font-size:16px}
@@ -873,6 +879,7 @@ const ROUTINE = o => o.kind==="sleep" || ((o.kind==="shift"||o.kind==="universit
 function dur(min){ min=Math.max(0,Math.round(min)); if(min<60) return min+" min"; const h=Math.floor(min/60), m=min%60; return h+"h"+(m?" "+m+"m":""); }
 const tShort = m => W.fmtTime(((m%DAY)+DAY)%DAY).replace(":00","").replace(" am","a").replace(" pm","p");
 function alertsFrom(an, fromDate, onlyDate, toDate){
+  const t=todayStr(); if (fromDate<t) fromDate=t; if (onlyDate && onlyDate<t) return [];
   return an.clashes.filter(c=>onlyDate?c.date===onlyDate:(c.date>=fromDate && (!toDate||c.date<=toDate))).map(c=>({date:c.date, cls:"", text:`${relDay(c.date)}, ${W.fmtTime(c.start)}: ${c.a.ev.title} and ${c.b.ev.title} overlap`}))
     .concat(an.shortSleep.filter(s=>onlyDate?s.date===onlyDate:(s.date>=fromDate && (!toDate||s.date<=toDate))).map(s=>({date:s.date, cls:"sleep", text:`${relDay(s.date)}: only ${W.fmtDur(Math.max(0,s.left))} of sleep (${s.by.map(o=>o.ev.title).join(", ")})`})))
     .sort((a,b)=>a.date.localeCompare(b.date));
@@ -1021,7 +1028,7 @@ function renderToday(){
 }
 
 /* ---------- CALENDAR ---------- */
-document.querySelectorAll("#calSeg button").forEach(b=>b.onclick=()=>{ calView=b.dataset.v; store.set("calView",calView); renderCal(); });
+document.querySelectorAll("#calSeg button").forEach(b=>b.onclick=()=>{ calView=b.dataset.v; store.set("calView",calView); if (calDate.slice(0,7)===todayStr().slice(0,7)) calDate=todayStr(); renderCal(); });
 $("calPrev").onclick=()=>moveCal(-1); $("calNext").onclick=()=>moveCal(1);
 $("calToday").onclick=()=>{ calDate=todayStr(); renderCal(); };
 function moveCal(dir){
@@ -1035,7 +1042,7 @@ function moveCal(dir){
   el.addEventListener("touchend",e=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null; if(Math.abs(dx)>70 && Math.abs(dx)>Math.abs(dy)*1.5) moveCal(dx<0?1:-1); },{passive:true}); })();
 function renderCal(){
   document.querySelectorAll("#calSeg button").forEach(b=>b.classList.toggle("on",b.dataset.v===calView));
-  $("calToday").classList.toggle("hidden", calView==="month" ? calDate.slice(0,7)===todayStr().slice(0,7) : calView==="week" ? mondayOf(calDate)===mondayOf(todayStr()) : calDate===todayStr());
+  $("calToday").classList.toggle("hidden", calView==="month" ? calDate.slice(0,7)===todayStr().slice(0,7) : calView==="week" ? calDate===todayStr() : calDate===todayStr());
   $("calTop").innerHTML=""; postIndex={};
   $("sCal").dataset.view=calView;
   if (calView==="day") renderDayView(); else if (calView==="week") renderWeekView(); else renderMonthView();
@@ -1086,18 +1093,18 @@ function weekBoxHtml(d, list, an, compact){
   const items=W.timed(vis).filter(o=>o.kind!=="sleep" && o.start>=d0-1 && o.start<d0+DAY).sort((a,b)=>a.start-b.start);
   const cont=W.timed(vis).filter(o=>o.kind!=="sleep" && o.start<d0 && o.end>d0);
   const posts=groupPosts(postsFor(d,list)), todo=posts.filter(p=>!p.status.scheduled).length;
-  const fl=an.clashes.some(c=>c.date===d)||an.shortSleep.some(s=>s.date===d);
+  const fl=d>=t && (an.clashes.some(c=>c.date===d)||an.shortSleep.some(s=>s.date===d));
   const lines=cont.map(o=>`<span class="wl"><i style="background:${colorOf(o)}"></i><u>till ${tShort(o.end)}</u>${esc(o.ev.title)}</span>`)
     .concat(items.map(o=>`<span class="wl"><i style="background:${colorOf(o)}"></i><u>${tShort(o.start)}</u>${esc(o.ev.title)}</span>`));
-  return `<button class="wbox ${d===t?"today":""} ${compact?"wide":""}" data-day="${d}">
-    <span class="wh"><b>${fmtDay(d,{weekday:"short"})} <span class="num">${+d.slice(8)}</span></b>${fl?`<i class="rd"></i>`:""}</span>
+  return `<button class="wbox ${d===t?"today":""} ${d<t?"past":""} ${compact?"wide":""}" data-day="${d}">
+    <span class="wh"><b>${fmtDay(d,{weekday:"short"})} <span class="num">${+d.slice(8)}</span>${d===t?` <small class="tdy">Today</small>`:d<t?` <small class="pst">done</small>`:""}</b>${fl?`<i class="rd"></i>`:""}</span>
     ${stripHtml(d,list)}
     <span class="wls">${lines.join("") || `<span class="wl muted">Free day</span>`}</span>
     ${posts.length?`<span class="wp ${todo?"todo":"ok"}">📌 ${posts.length} post${posts.length>1?"s":""} · ${todo?todo+" to do":"all ✓"}</span>`:""}</button>`;
 }
 function renderWeekView(){
-  const mon=mondayOf(calDate), sun=W.addDays(mon,6), list=occs(W.addDays(mon,-1), W.addDays(sun,1)), an=W.analyse(list);
-  $("calTitle").textContent = fmtDay(mon,{day:"numeric",month:"short"})+" – "+fmtDay(sun,{day:"numeric",month:"short"});
+  const mon=calDate, sun=W.addDays(mon,6), list=occs(W.addDays(mon,-1), W.addDays(sun,1)), an=W.analyse(list);
+  $("calTitle").textContent = mon===todayStr() ? "Next 7 days" : fmtDay(mon,{day:"numeric",month:"short"})+" – "+fmtDay(sun,{day:"numeric",month:"short"});
   $("calTop").innerHTML = legendHtml();
   $("calBody").innerHTML = `<div class="wgrid">${[0,1,2,3,4,5].map(i=>weekBoxHtml(W.addDays(mon,i),list,an)).join("")}${weekBoxHtml(sun,list,an,true)}</div>${warnsHtml(alertsFrom(an,mon,null,sun)).replace('class="warns"','class="warns pad"')}`;
   wire($("calBody"));
@@ -1111,7 +1118,7 @@ function renderMonthView(){
   let weeks=0; for (let i=0;i<42;i+=7){ if (i>=28 && +W.addDays(start,i).slice(5,7)!==m) break; weeks++; }
   $("calTop").innerHTML = `<div class="mo-head">${WEEKDAYS.map(w=>`<span>${w[1]}</span>`).join("")}</div>`;
   const body=$("calBody"), cellH=Math.max(96, (body.clientHeight-8-(weeks-1)*3)/weeks), lines=Math.max(2, Math.floor((cellH-24)/12));
-  const flagDays = new Set(an.clashes.map(c=>c.date).concat(an.shortSleep.map(s=>s.date)));
+  const flagDays = new Set(an.clashes.map(c=>c.date).concat(an.shortSleep.map(s=>s.date)).filter(x=>x>=t));
   let html="";
   for (let i=0;i<weeks*7;i++){
     const day=W.addDays(start,i), out=+day.slice(5,7)!==m, d0=W.dnum(day)*DAY, posts=groupPosts(postsFor(day,list));
@@ -1119,7 +1126,7 @@ function renderMonthView(){
     const rows=evs.map(o=>`<span class="ev" style="--c:${colorOf(o)}">${o.allDay?"":`<u>${tShort(o.start)}</u>`}${esc(o.ev.title)}</span>`)
       .concat(posts.map(p=>`<span class="ev post ${p.status.scheduled?"done":""}" style="--c:${postColor(p)}">${p.status.scheduled?"✓ ":"○ "}${esc(p.title)}</span>`));
     const shown = rows.length>lines ? rows.slice(0,lines-1) : rows;
-    html+=`<button class="mc ${out?"out":""} ${day===t?"today":""}" data-mday="${day}" style="height:${cellH}px"><span class="d num">${+day.slice(8)}</span>${flagDays.has(day)?`<i class="rd"></i>`:""}
+    html+=`<button class="mc ${out?"out":""} ${day===t?"today":""} ${day<t?"past":""}" data-mday="${day}" style="height:${cellH}px"><span class="d num">${+day.slice(8)}</span>${flagDays.has(day)?`<i class="rd"></i>`:""}
       <span class="evs">${shown.join("")}${rows.length>shown.length?`<span class="mo-more">+${rows.length-shown.length} more</span>`:""}</span></button>`;
   }
   const alerts=alertsFrom(an, first, null, W.addDays(first,30)).filter(a=>a.date.slice(0,7)===first.slice(0,7));
