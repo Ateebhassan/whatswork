@@ -121,7 +121,7 @@ function localMinute(tz: string) {
 const NOTIFY_DEFAULTS: Record<string, any> = {
   shift: { on: true, lead: 30, sound: true }, university: { on: true, lead: 15, sound: true },
   meeting: { on: true, lead: 15, sound: true }, other: { on: true, lead: 15, sound: true },
-  bedtime: { on: false, lead: 30, sound: true }, briefing_am: { on: true }, briefing_pm: { on: true }, review: { on: true },
+  prayer: { on: false, lead: 5, sound: true }, bedtime: { on: false, lead: 30, sound: true }, briefing_am: { on: true }, briefing_pm: { on: true }, review: { on: true },
   alarms: { wake: false, shift: false, shift_lead: 60, meeting: false, meeting_lead: 30 },
 };
 async function notifyPrefs(uid: string) {
@@ -131,7 +131,7 @@ async function notifyPrefs(uid: string) {
   for (const k of Object.keys(NOTIFY_DEFAULTS)) out[k] = { ...NOTIFY_DEFAULTS[k], ...(p[k] || {}) };
   return out;
 }
-function prefKey(kind: string) { return kind === "shift" ? "shift" : kind === "university" ? "university" : kind === "meeting" || kind === "call" ? "meeting" : kind === "sleep" ? "bedtime" : "other"; }
+function prefKey(kind: string) { return kind === "shift" ? "shift" : kind === "university" ? "university" : kind === "meeting" || kind === "call" ? "meeting" : kind === "sleep" ? "bedtime" : kind === "prayer" ? "prayer" : "other"; }
 async function reminders() {
   if (!(await exists("public.events"))) return 0;
   const W = WWCore as any;
@@ -154,9 +154,9 @@ async function reminders() {
         if (prev) continue;
         await sql`insert into private.app_config (key, value) values (${key}, ${o.date}) on conflict (key) do nothing`;
         const pr = np[prefKey(o.kind)], mins = o.start - now, at = W.fmtTime(o.start % W.DAY);
-        const icon = o.kind === "shift" ? "💼" : o.kind === "meeting" ? "👥" : o.kind === "call" ? "📞" : o.kind === "university" ? "🎓" : o.kind === "sleep" ? "🌙" : "⏰";
+        const icon = o.kind === "shift" ? "💼" : o.kind === "meeting" ? "👥" : o.kind === "call" ? "📞" : o.kind === "university" ? "🎓" : o.kind === "sleep" ? "🌙" : o.kind === "prayer" ? "🕌" : "⏰";
         const title = o.kind === "sleep" ? `${icon} Bedtime in ${mins} min` : `${icon} ${o.ev.title} in ${mins} min`;
-        const body = o.kind === "sleep" ? `Sleep planned ${at} – ${W.fmtTime(o.end % W.DAY)}. Wind down now.` : `${at} · ${o.cal.short_name || o.cal.name}`;
+        const body = o.kind === "prayer" ? `Prayer break at ${at}. Take 15 minutes.` : o.kind === "sleep" ? `Sleep planned ${at} – ${W.fmtTime(o.end % W.DAY)}. Wind down now.` : `${at} · ${o.cal.short_name || o.cal.name}`;
         sent += await pushTo([u.id], { title, body, tag: `remind-${o.key}`, url: `./?d=${o.date}`, silent: pr.sound === false });
       }
     } catch (e) { console.error("reminders", u.id, e); }
@@ -186,6 +186,30 @@ async function alarmsFor(uid: string) {
   }
   out.sort((x, y) => (x.date + x.time).localeCompare(y.date + y.time));
   return { ok: true, alarms: out.slice(0, 12), count: Math.min(12, out.length) };
+}
+
+/* For the Scriptable Home Screen widget: now, next activities and today's posts. */
+const WCOL: Record<string, string> = { shift: "#2563eb", university: "#0891b2", meeting: "#ea580c", call: "#ea580c", personal: "#7c3aed", work: "#7c3aed", sleep: "#94a3b8", prayer: "#d4a017", other: "#7c3aed" };
+async function widgetFor(key: string) {
+  const W = WWCore as any;
+  const [row] = await sql`select user_id from private.widget_tokens where token_hash = ${await sha256hex(String(key || "").trim())}`;
+  if (!row) return { error: "Widget key not recognised. Make a new one in WhatsWork Settings." };
+  const uid = row.user_id;
+  await sql`update private.widget_tokens set last_used = now() where user_id = ${uid}`;
+  const tz = await tzOf(uid), { date } = localParts(tz);
+  const now = W.dnum(date) * W.DAY + localMinute(tz);
+  const ctx = await contextFor(uid, W.addDays(date, 1), true);
+  const occs = (ctx.occs as any[]).filter((o) => !o.allDay && o.kind !== "post" && o.cal.visible !== false && !o.cal.archived);
+  const t = (m: number) => W.fmtTime(((m % W.DAY) + W.DAY) % W.DAY).replace(":00", "");
+  const cur = occs.filter((o) => o.kind !== "sleep" && o.kind !== "prayer" && o.start <= now && o.end > now).sort((a, b) => b.start - a.start)[0];
+  const next = occs.filter((o) => o.start > now && o.start < now + 2 * W.DAY).sort((a, b) => a.start - b.start).slice(0, 9).map((o) => ({
+    when: (Math.floor(o.start / W.DAY) > W.dnum(date) ? "Tmw " : "") + t(o.start), title: (o.kind === "prayer" ? "🕌 " : "") + o.ev.title, color: WCOL[o.kind] || o.cal.color || "#7c3aed" }));
+  let total = 0, done = 0;
+  if (ctx.planner) {
+    const tr = (ctx.tracks as any)[date.slice(0, 7)] || {};
+    for (const it of itemsOn(date, ctx.planner, "both", null) as any[]) { total++; if ((tr[it.id + "@" + date] || {}).s) done++; }
+  }
+  return { ok: true, now: cur ? { title: cur.ev.title, end: t(cur.end) } : null, next, posts: { total, done } };
 }
 
 async function cron() {
@@ -575,6 +599,7 @@ Deno.serve(async (req) => {
       return json(r, r.ok ? 200 : 400);
     }
 
+    if (body.action === "widget") return json(await widgetFor(body.key));
     if (typeof body.action === "string" && body.action.startsWith("designer_")) return json(await designer(body));
 
     if (secret && secret === c.worker_secret) {

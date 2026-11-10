@@ -13,7 +13,8 @@ var WWCore = (function () {
     meeting: { label: 'Meeting', color: '#d6336c' },
     call: { label: 'Call', color: '#c2410c' },
     personal: { label: 'Personal', color: '#7c5cff' },
-    post: { label: 'Post (all day)', color: '#64748b' }
+    post: { label: 'Post (all day)', color: '#64748b' },
+    prayer: { label: 'Prayer', color: '#d4a017' }
   };
   /* what wins a minute when two things overlap, for the 24-hour split */
   var PRIORITY = { meeting: 7, call: 7, shift: 6, university: 5, work: 4, personal: 3, other: 2, sleep: 1 };
@@ -61,7 +62,8 @@ var WWCore = (function () {
     out.sort(function (x, y) { return x.start - y.start || y.end - x.end; });
     return out;
   }
-  function timed(occs) { return occs.filter(function (o) { return !o.allDay && o.kind !== 'post'; }); }
+  /* prayers are short breaks inside other things: they never block time, clash or count as hours */
+  function timed(occs) { return occs.filter(function (o) { return !o.allDay && o.kind !== 'post' && o.kind !== 'prayer'; }); }
 
   /* ---------- clashes and short sleep ---------- */
   function overlap(a, b) { return Math.max(0, Math.min(a.end, b.end) - Math.max(a.start, b.start)); }
@@ -85,7 +87,7 @@ var WWCore = (function () {
         return [lo, hi];
       }).filter(function (r) { return r[1] > r[0]; }));
       var left = (s.end - s.start) - lost;
-      if (lost > 0 && left < 360) { shortSleep.push({ sleep: s, left: left, by: cut, date: s.date }); flagged[s.key] = 1; }
+      if (lost > 0 && left < 300) { shortSleep.push({ sleep: s, left: left, by: cut, date: s.date }); flagged[s.key] = 1; }
     });
     return { clashes: clashes, shortSleep: shortSleep, flagged: flagged };
   }
