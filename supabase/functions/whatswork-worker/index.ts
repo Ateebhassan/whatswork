@@ -2,10 +2,10 @@
 // - "cron" (every 5 min): the 9 am and 8 pm briefings, reminders before each entry, and the Sunday evening review
 // - "test_push", "quick_add", "voice_add", "review_now": called from the app by a signed-in user
 // - "health": posted by the iPhone Shortcut with an x-health-token header
-// - "message" / "task": kept for the old chat; nothing sends these any more
+// - "widget": the Scriptable Home Screen widget, with its own key
 import postgres from "npm:postgres@3.4.5";
 import webpush from "npm:web-push@3.6.7";
-import { WWCore, normaliseState, itemsOn, COLLEGES } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@4da8ea3/core.mjs";
+import { WWCore, normaliseState, itemsOn, COLLEGES } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@2c93e24/core.mjs";
 
 const sql = postgres(Deno.env.get("SUPABASE_DB_URL")!, { prepare: false, max: 3 });
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -192,7 +192,8 @@ async function alarmsFor(uid: string) {
 const WCOL: Record<string, string> = { shift: "#2563eb", university: "#0891b2", meeting: "#ea580c", call: "#ea580c", personal: "#7c3aed", work: "#7c3aed", sleep: "#94a3b8", prayer: "#d4a017", other: "#7c3aed" };
 async function widgetFor(key: string) {
   const W = WWCore as any;
-  const [row] = await sql`select user_id from private.widget_tokens where token_hash = ${await sha256hex(String(key || "").trim())}`;
+  if (typeof key !== "string" || !/^wg_[0-9a-f]{48}$/.test(key.trim())) return { error: "Widget key not recognised. Make a new one in WhatsWork Settings." };
+  const [row] = await sql`select user_id from private.widget_tokens where token_hash = ${await sha256hex(key.trim())}`;
   if (!row) return { error: "Widget key not recognised. Make a new one in WhatsWork Settings." };
   const uid = row.user_id;
   await sql`update private.widget_tokens set last_used = now() where user_id = ${uid}`;
@@ -373,7 +374,7 @@ function parseWhen(v: unknown): string | null {
 async function healthFromShortcut(token: string, body: any) {
   const hash = await sha256hex(token.trim());
   const [row] = await sql`select user_id from private.health_tokens where token_hash = ${hash}`;
-  if (!row) return { ok: false, error: "This Shortcut's key isn't recognised. Make a new key in WhatsWork (Review tab, iPhone Shortcut)." };
+  if (!row) return { ok: false, error: "This Shortcut's key isn't recognised. Make a new key in WhatsWork (My week, Sleep buttons)." };
   const uid = row.user_id, tz = await tzOf(uid);
   /* button mode: "Going to sleep" then "Woke up" (no Apple Watch needed) */
   if (body.event === "sleep") {
@@ -393,7 +394,7 @@ async function healthFromShortcut(token: string, body: any) {
   const start = starts.length ? new Date(Math.min(...starts)).toISOString() : null, end = ends.length ? new Date(Math.max(...ends)).toISOString() : null;
   const asleep = Number.isFinite(+body.asleep_minutes) && body.asleep_minutes !== "" && body.asleep_minutes != null ? Math.round(+body.asleep_minutes) : null;
   const screen = Number.isFinite(+body.screen_minutes) && body.screen_minutes !== "" && body.screen_minutes != null ? Math.round(+body.screen_minutes) : null;
-  if (!end && asleep == null && screen == null) return { ok: false, error: "No sleep found. Check the Shortcut finds Sleep samples from the last day." };
+  if (!end && asleep == null && screen == null) return { ok: false, error: "No sleep found. Use the Going to sleep and Woke up buttons." };
   if (start && end) {
     const mins = (Date.parse(end) - Date.parse(start)) / 60000;
     if (mins <= 0 || mins > 20 * 60) return { ok: false, error: "The sleep times look wrong (start must be before end, under 20 hours)." };
@@ -555,7 +556,6 @@ async function designer(body: any) {
       values (${uid}, ${key}, ${date}, ${String(body.title || "").slice(0, 200)}, ${path}, ${String(body.name || "file").slice(0, 200)}, ${String(body.mime || "").slice(0, 100)}, ${Number(body.size) || 0}, 'designer', ${body.note ? String(body.note).slice(0, 1000) : null})
       on conflict (path) do nothing`;
     await setTrack(uid, key, date, { q: true, m: true });
-    const W = WWCore as any;
     await pushTo([uid], { title: "🎨 New design uploaded", body: `${String(body.title || "A post").slice(0, 80)} · for ${date}`, tag: "design-" + key, url: `./?d=${date}` });
     return { ok: true };
   }
