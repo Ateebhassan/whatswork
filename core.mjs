@@ -890,7 +890,7 @@ var WWCore = (function () {
   return {
     DAY: DAY, KINDS: KINDS, dnum: dnum, dstr: dstr, weekday: weekday, tmin: tmin, addDays: addDays, fmtTime: fmtTime, fmtDur: fmtDur,
     occurrences: occurrences, timed: timed, analyse: analyse, daySplit: daySplit, overlap: overlap,
-    postsOn: postsOn, statusText: statusText, mergePosts: mergePosts, briefing: briefing, fallbackCalendars: fallbackCalendars,
+    postsOn: postsOn, worldDaysOn: function (d) { return builtinItemsOn(d).filter(function (it) { return !it.weekly; }); }, statusText: statusText, mergePosts: mergePosts, briefing: briefing, fallbackCalendars: fallbackCalendars,
     weekHours: weekHours, billingTotals: billingTotals, parseQuick: parseQuick, hm: hm,
     buildReview: buildReview, sleepMinutes: sleepMinutes,
     resetPlannerCache: function () { clearCache(); }

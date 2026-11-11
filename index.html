@@ -490,6 +490,16 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
 .wgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:2px max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}
 .wbox{display:flex;flex-direction:column;gap:5px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:9px 10px;min-height:150px;min-width:0}
 .wbox.wide{grid-column:1 / -1;min-height:0}
+.dfeed{padding-bottom:30px}
+.dsec{display:grid;gap:6px;padding-bottom:18px}
+.dsec.past{opacity:.72}
+.dshead{position:sticky;top:-1px;z-index:3;background:var(--bg);padding:7px 2px 7px;font-family:var(--display);font-size:16px}
+.dshead .muted{font-size:12.5px;font-weight:700}
+.dshead b.tdy{color:var(--brand)}
+.wfeed{display:grid;gap:2px;padding:4px max(14px,env(safe-area-inset-right)) 30px max(14px,env(safe-area-inset-left))}
+.wblock{display:grid;gap:8px;padding-bottom:16px}
+.wposts{display:grid;gap:3px;border-top:1px dashed var(--line);padding-top:6px}
+.wl u.pok{color:var(--ok)} .wl u.ptodo{color:var(--warn)}
 .wbox.past,.mc.past{background:color-mix(in srgb,var(--panel) 55%,var(--bg));opacity:.55}
 .mc.past.out{opacity:.35}
 .mc.past .d{text-decoration:line-through;text-decoration-thickness:1.5px;color:var(--muted)}
@@ -725,6 +735,7 @@ const api = window.WW_TEST_API || {
   testPush(){ return sb.functions.invoke(WORKER,{body:{action:"test_push"}}); },
   async loadPlannerMain(){ const r=await sb.from("planner_docs").select("json").eq("user_id",me.id).eq("name","main").maybeSingle(); return {data:r.data?.json||null, error:r.error}; },
   savePlannerMain(json){ return sb.rpc("planner_save",{p_name:"main",p_json:json}); },
+  parseText(text, today, now){ return sb.functions.invoke(WORKER,{body:{action:"parse_text", text, today, now}}); },
   voiceAI(audio, mime, today, now){ return sb.functions.invoke(WORKER,{body:{action:"voice_add", audio, mime, today, now}}); },
   quickAI(text, today, now){ return sb.functions.invoke(WORKER,{body:{action:"quick_add", text, today, now}}); },
   async loadHealth(){
@@ -1042,7 +1053,7 @@ function moveCal(dir){
   el.addEventListener("touchend",e=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null; if(Math.abs(dx)>70 && Math.abs(dx)>Math.abs(dy)*1.5) moveCal(dx<0?1:-1); },{passive:true}); })();
 function renderCal(){
   document.querySelectorAll("#calSeg button").forEach(b=>b.classList.toggle("on",b.dataset.v===calView));
-  $("calToday").classList.toggle("hidden", calView==="month" ? calDate.slice(0,7)===todayStr().slice(0,7) : calView==="week" ? calDate===todayStr() : calDate===todayStr());
+  updTodayBtn();
   $("calTop").innerHTML=""; postIndex={};
   $("sCal").dataset.view=calView;
   if (calView==="day") renderDayView(); else if (calView==="week") renderWeekView(); else renderMonthView();
@@ -1054,13 +1065,10 @@ function dstripHtml(d, list){
     return `<button class="${x===d?"on":""} ${x===t?"td":""}" data-pick="${x}">${fmtDay(x,{weekday:"short"}).slice(0,3)}<b class="num">${+x.slice(8)}</b><span class="mk">${ps.length?`<i style="background:${ps.some(p=>!p.status.scheduled)?"var(--warn)":"var(--ok)"}"></i>`:""}</span></button>`; }).join("")}</div>`;
 }
 
-/* DAY: a clear list of the day, spaced by time */
-function renderDayView(){
-  const d=calDate, list=occs(W.addDays(mondayOf(d),-1), W.addDays(mondayOf(d),7)), vis=list.filter(o=>o.cal.visible!==false), an=W.analyse(list), nm=nowMin(), d0=W.dnum(d)*DAY;
-  const rd=relDay(d);
-  $("calTitle").textContent = ["Today","Tomorrow","Yesterday"].includes(rd) ? rd+", "+fmtDay(d,{day:"numeric",month:"short"}) : fmtDay(d,{weekday:"short",day:"numeric",month:"short"});
-  $("calTop").innerHTML = dstripHtml(d,list);
-  $("calTop").querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ calDate=b.dataset.pick; renderCal(); });
+/* DAY: every day joined in one scrolling feed */
+function setDayTitle(){ const rd=relDay(calDate); $("calTitle").textContent=["Today","Tomorrow","Yesterday"].includes(rd)? rd+", "+fmtDay(calDate,{day:"numeric",month:"short"}) : fmtDay(calDate,{weekday:"short",day:"numeric",month:"short"}); }
+function daySecHtml(d, list, an, nm){
+  const vis=list.filter(o=>o.cal.visible!==false), d0=W.dnum(d)*DAY, t=todayStr();
   const posts=groupPosts(postsFor(d,list)); posts.forEach(p=>postIndex[p.id]=p);
   const allDay=vis.filter(o=>o.allDay && o.kind!=="post" && o.date===d);
   const items=W.timed(vis).filter(o=>o.end>d0 && o.start<d0+DAY).map(o=>({o, s:Math.max(o.start,d0), e:Math.min(o.end,d0+DAY), kind:"item"}));
@@ -1069,7 +1077,7 @@ function renderDayView(){
   let html="", cursor=d0, nowDone=!(nm>=d0 && nm<d0+DAY);
   const nowLine = ()=>`<div class="dnow"><span>Now ${W.fmtTime(nm%DAY)}</span></div>`;
   all.forEach(x=>{
-    if (x.kind==="item" && x.s-cursor>=60) { if(!nowDone && nm<x.s){ html+=nowLine(); nowDone=true; } html+=`<button class="dgap" data-add="${x.s-d0}">Free ${dur(x.s-cursor)} · ${tShort(cursor)}–${tShort(x.s)}</button>`; }
+    if (x.kind==="item" && x.s-cursor>=60) { if(!nowDone && nm<x.s){ html+=nowLine(); nowDone=true; } html+=`<button class="dgap" data-add="${x.s-d0}" data-aday="${d}">Free ${dur(x.s-cursor)} · ${tShort(cursor)}–${tShort(x.s)}</button>`; }
     if (!nowDone && nm<x.s) { html+=nowLine(); nowDone=true; }
     if (x.kind==="pray") { html+=`<button class="dpray" data-ev="${x.o.ev.id}" data-date="${x.o.date}"><span class="tm">${tShort(x.o.start)}</span><i></i><b>🕌 ${esc(x.o.ev.title)}</b><small>prayer break</small></button>`; return; }
     const o=x.o, mins=x.e-x.s, h=Math.max(52, Math.min(150, mins*0.32)), sleep=o.kind==="sleep", on=nm>=o.start&&nm<o.end;
@@ -1078,37 +1086,107 @@ function renderDayView(){
       <span class="bd"><b>${esc(o.ev.title)}</b><small>${dur(o.end-o.start)} · ${esc(shortName(o.cal))}${o.start<d0?" · from yesterday":o.end>d0+DAY?" · into tomorrow":""}</small></span>${on?`<span class="pill ok">Now</span>`:""}</button>`;
     cursor=Math.max(cursor,x.e);
   });
-  if (d0+DAY-cursor>=60) html+=`<button class="dgap" data-add="${cursor-d0}">Free ${dur(d0+DAY-cursor)} · ${tShort(cursor)}–12a</button>`;
+  if (d0+DAY-cursor>=60) html+=`<button class="dgap" data-add="${cursor-d0}" data-aday="${d}">Free ${dur(d0+DAY-cursor)} · ${tShort(cursor)}–12a</button>`;
   if (!nowDone) html+=nowLine();
-  const top = (allDay.length||posts.length) ? `<div class="dposts">${allDay.map(o=>rowHtml({o,date:d},nm)).join("")}${posts.map(p=>rowHtml({post:p},nm)).join("")}</div>` : "";
-  $("calBody").innerHTML = `<div class="dview">${top}${html || `<div class="empty">Nothing planned. Tap + to add.</div>`}${warnsHtml(alertsFrom(an,d,d))}</div>`;
-  wire($("calBody"));
-  $("calBody").querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>openEvent(null,d,Math.round(+b.dataset.add/30)*30));
-  requestAnimationFrame(()=>{ const n=$("calBody").querySelector(".dnow"); if(n && d===todayStr()) $("calBody").scrollTop=Math.max(0,n.offsetTop-160); });
+  const rd=relDay(d), head = ["Today","Tomorrow","Yesterday"].includes(rd) ? `${rd} <span class="muted">· ${fmtDay(d,{weekday:"short",day:"numeric",month:"short"})}</span>` : fmtDay(d,{weekday:"long",day:"numeric",month:"short"});
+  const alerts = d>=t ? alertsFrom(an,d,d) : [];
+  return `<section class="dsec ${d<t?"past":""}" data-dsec="${d}">
+    <div class="dshead"><b class="${d===t?"tdy":""}">${head}</b></div>
+    ${(allDay.length||posts.length)?`<div class="dposts">${allDay.map(o=>rowHtml({o,date:d},nm)).join("")}${posts.map(p=>rowHtml({post:p},nm)).join("")}</div>`:""}
+    ${html || `<button class="dgap" data-add="540" data-aday="${d}">Nothing planned · tap to add</button>`}
+    ${alerts.map(a=>alertHtml(a,false)).join("")}
+  </section>`;
+}
+let dayLo=null, dayHi=null, wkLo=null, wkHi=null, feedBusy=false;
+function dayRangeHtml(a,b,nm){ const list=occs(W.addDays(a,-1),W.addDays(b,1)), an=W.analyse(list); let h=""; for(let d=a; d<=b; d=W.addDays(d,1)) h+=daySecHtml(d,list,an,nm); return h; }
+function wireStrip(){ $("calTop").querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ calDate=b.dataset.pick; renderCal(); }); }
+function wireFeed(){ const body=$("calBody"); wire(body); body.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>openEvent(null, b.dataset.aday||calDate, Math.round(+b.dataset.add/30)*30)); }
+function renderDayView(){
+  const d=calDate; dayLo=W.addDays(d,-4); dayHi=W.addDays(d,10);
+  setDayTitle();
+  $("calTop").innerHTML = dstripHtml(d, occs(W.addDays(mondayOf(d),-1),W.addDays(mondayOf(d),7)));
+  wireStrip();
+  $("calBody").innerHTML = `<div class="dview dfeed">${dayRangeHtml(dayLo,dayHi,nowMin())}</div>`;
+  wireFeed();
+  requestAnimationFrame(()=>{ const sec=$("calBody").querySelector(`[data-dsec="${d}"]`); if(!sec) return; const n=sec.querySelector(".dnow"); $("calBody").scrollTop = (n && d===todayStr()) ? Math.max(0,n.offsetTop-170) : Math.max(0,sec.offsetTop-4); });
+}
+function extendDayFeed(dir){
+  if (feedBusy) return; feedBusy=true;
+  const body=$("calBody"), feed=body.querySelector(".dfeed"); if(!feed){ feedBusy=false; return; }
+  const nm=nowMin();
+  if (dir>0){ const a=W.addDays(dayHi,1); dayHi=W.addDays(dayHi,7); feed.insertAdjacentHTML("beforeend", dayRangeHtml(a,dayHi,nm)); }
+  else { const b0=W.addDays(dayLo,-1); dayLo=W.addDays(dayLo,-7); const h0=body.scrollHeight; feed.insertAdjacentHTML("afterbegin", dayRangeHtml(dayLo,b0,nm)); body.scrollTop += body.scrollHeight-h0; }
+  wireFeed(); feedBusy=false;
+}
+function syncStrip(){
+  const st=$("calTop").querySelector(".dstrip");
+  if (!st) return;
+  const btns=[...st.querySelectorAll("[data-pick]")];
+  if (!btns.some(b=>b.dataset.pick===calDate)) { $("calTop").innerHTML=dstripHtml(calDate, occs(W.addDays(mondayOf(calDate),-1),W.addDays(mondayOf(calDate),7))); wireStrip(); }
+  else btns.forEach(b=>b.classList.toggle("on", b.dataset.pick===calDate));
 }
 
-/* WEEK: six day boxes (Mon to Sat) and Sunday underneath */
+/* WEEK: weeks joined in one scrolling feed; six boxes and Sunday wide */
 function weekBoxHtml(d, list, an, compact){
   const vis=list.filter(o=>o.cal.visible!==false), d0=W.dnum(d)*DAY, t=todayStr();
   const items=W.timed(vis).filter(o=>o.kind!=="sleep" && o.start>=d0-1 && o.start<d0+DAY).sort((a,b)=>a.start-b.start);
   const cont=W.timed(vis).filter(o=>o.kind!=="sleep" && o.start<d0 && o.end>d0);
-  const posts=groupPosts(postsFor(d,list)), todo=posts.filter(p=>!p.status.scheduled).length;
+  const aday=vis.filter(o=>o.allDay && o.kind!=="post" && o.date===d);
+  const posts=groupPosts(postsFor(d,list)); posts.forEach(p=>postIndex[p.id]=p);
   const fl=d>=t && (an.clashes.some(c=>c.date===d)||an.shortSleep.some(s=>s.date===d));
-  const lines=cont.map(o=>`<span class="wl"><i style="background:${colorOf(o)}"></i><u>till ${tShort(o.end)}</u>${esc(o.ev.title)}</span>`)
+  const lines=aday.map(o=>`<span class="wl"><i style="background:${colorOf(o)}"></i><u>★</u>${esc(o.ev.title)}</span>`)
+    .concat(cont.map(o=>`<span class="wl"><i style="background:${colorOf(o)}"></i><u>till ${tShort(o.end)}</u>${esc(o.ev.title)}</span>`))
     .concat(items.map(o=>`<span class="wl"><i style="background:${colorOf(o)}"></i><u>${tShort(o.start)}</u>${esc(o.ev.title)}</span>`));
+  const pl=posts.slice(0,3).map(p=>`<span class="wl"><i style="background:${postColor(p)}"></i><u class="${p.status.scheduled?"pok":"ptodo"}">${p.status.scheduled?"✓":"○"}</u>${esc(p.title)}</span>`).join("")
+    + (posts.length>3?`<span class="wl muted">+${posts.length-3} more post${posts.length>4?"s":""}</span>`:"");
   return `<button class="wbox ${d===t?"today":""} ${d<t?"past":""} ${compact?"wide":""}" data-day="${d}">
     <span class="wh"><b>${fmtDay(d,{weekday:"short"})} <span class="num">${+d.slice(8)}</span>${d===t?` <small class="tdy">Today</small>`:d<t?` <small class="pst">done</small>`:""}</b>${fl?`<i class="rd"></i>`:""}</span>
     ${stripHtml(d,list)}
     <span class="wls">${lines.join("") || `<span class="wl muted">Free day</span>`}</span>
-    ${posts.length?`<span class="wp ${todo?"todo":"ok"}">📌 ${posts.length} post${posts.length>1?"s":""} · ${todo?todo+" to do":"all ✓"}</span>`:""}</button>`;
+    ${posts.length?`<span class="wposts">${pl}</span>`:""}</button>`;
 }
+function weekLabel(start){ return start===todayStr() ? "Next 7 days" : fmtDay(start,{day:"numeric",month:"short"})+" – "+fmtDay(W.addDays(start,6),{day:"numeric",month:"short"}); }
+function weekBlockHtml(start, list, an){
+  return `<div class="wblock" data-wk="${start}"><div class="dshead"><b class="${start===todayStr()?"tdy":""}">${weekLabel(start)}</b></div>
+    <div class="wgrid">${[0,1,2,3,4,5].map(i=>weekBoxHtml(W.addDays(start,i),list,an)).join("")}${weekBoxHtml(W.addDays(start,6),list,an,true)}</div>
+    ${warnsHtml(alertsFrom(an,start,null,W.addDays(start,6)))}</div>`;
+}
+function weekRangeHtml(a,b){ const list=occs(W.addDays(a,-1),W.addDays(b,7)), an=W.analyse(list); let h=""; for(let x=a; x<=b; x=W.addDays(x,7)) h+=weekBlockHtml(x,list,an); return h; }
 function renderWeekView(){
-  const mon=calDate, sun=W.addDays(mon,6), list=occs(W.addDays(mon,-1), W.addDays(sun,1)), an=W.analyse(list);
-  $("calTitle").textContent = mon===todayStr() ? "Next 7 days" : fmtDay(mon,{day:"numeric",month:"short"})+" – "+fmtDay(sun,{day:"numeric",month:"short"});
+  const start=calDate; wkLo=W.addDays(start,-7); wkHi=W.addDays(start,14);
+  $("calTitle").textContent = weekLabel(start);
   $("calTop").innerHTML = legendHtml();
-  $("calBody").innerHTML = `<div class="wgrid">${[0,1,2,3,4,5].map(i=>weekBoxHtml(W.addDays(mon,i),list,an)).join("")}${weekBoxHtml(sun,list,an,true)}</div>${warnsHtml(alertsFrom(an,mon,null,sun)).replace('class="warns"','class="warns pad"')}`;
+  $("calBody").innerHTML = `<div class="wfeed">${weekRangeHtml(wkLo,wkHi)}</div>`;
   wire($("calBody"));
+  requestAnimationFrame(()=>{ const bl=$("calBody").querySelector(`[data-wk="${start}"]`); if(bl) $("calBody").scrollTop=Math.max(0,bl.offsetTop-4); });
 }
+function extendWeekFeed(dir){
+  if (feedBusy) return; feedBusy=true;
+  const body=$("calBody"), feed=body.querySelector(".wfeed"); if(!feed){ feedBusy=false; return; }
+  if (dir>0){ const a=W.addDays(wkHi,7); wkHi=W.addDays(wkHi,14); feed.insertAdjacentHTML("beforeend", weekRangeHtml(a,wkHi)); }
+  else { const b0=W.addDays(wkLo,-7); wkLo=W.addDays(wkLo,-14); const h0=body.scrollHeight; feed.insertAdjacentHTML("afterbegin", weekRangeHtml(wkLo,b0)); body.scrollTop += body.scrollHeight-h0; }
+  wire($("calBody")); feedBusy=false;
+}
+/* keep the title, the day strip and the Today button in step while scrolling, and grow the feed near the ends */
+let scrPending=false;
+$("calBody").addEventListener("scroll",()=>{ if(scrPending) return; scrPending=true; requestAnimationFrame(()=>{ scrPending=false; calScrolled(); }); },{passive:true});
+function calScrolled(){
+  const body=$("calBody");
+  if (calView==="day"){
+    if (body.scrollTop<400) extendDayFeed(-1);
+    else if (body.scrollHeight-body.scrollTop-body.clientHeight<900) extendDayFeed(1);
+    const top=body.scrollTop+60; let cur=null;
+    for (const sec of body.querySelectorAll(".dsec")){ if (sec.offsetTop+sec.offsetHeight>top){ cur=sec; break; } }
+    if (cur && cur.dataset.dsec!==calDate){ calDate=cur.dataset.dsec; setDayTitle(); syncStrip(); updTodayBtn(); }
+  } else if (calView==="week"){
+    if (body.scrollTop<400) extendWeekFeed(-1);
+    else if (body.scrollHeight-body.scrollTop-body.clientHeight<900) extendWeekFeed(1);
+    const top=body.scrollTop+60; let cur=null;
+    for (const bl of body.querySelectorAll(".wblock")){ if (bl.offsetTop+bl.offsetHeight>top){ cur=bl; break; } }
+    if (cur && cur.dataset.wk!==calDate){ calDate=cur.dataset.wk; $("calTitle").textContent=weekLabel(calDate); updTodayBtn(); }
+  }
+}
+function updTodayBtn(){ $("calToday").classList.toggle("hidden", calView==="month" ? calDate.slice(0,7)===todayStr().slice(0,7) : calDate===todayStr()); }
 
 /* MONTH: the month on one screen with the main events and post status */
 function renderMonthView(){
@@ -1302,6 +1380,12 @@ function openAdd(date){
     const text=$("qText").value.trim(); if(!text) return toast("Say or type what you want to add");
     const btn=$("qGo"); btn.disabled=true; btn.textContent="Reading…";
     const nm=nowMin()%DAY, local = W.parseQuick(text, cals, todayStr(), nm);
+    if (aiOn && /\b(remove|cancel|skip|delete|clear|day off|off tomorrow|off today)\b/i.test(text)) {
+      try { const {data,error}=await api.parseText(text, todayStr(), hm(nm));
+        if (!error && data && !data.error && ((data.remove||[]).length || (data.day_off||[]).length)) { closeSheet(); return handleActions(data); }
+      } catch { /* fall through to adding */ }
+      btn.disabled=true; btn.textContent="Reading…";
+    }
     let entry = local;
     if (aiOn) {
       try { const {data,error} = await api.quickAI(text, todayStr(), hm(nm));
@@ -1335,13 +1419,54 @@ async function toggleRecording(){
     try {
       const {data,error}=await api.voiceAI(b64, mime, todayStr(), hm(nowMin()%DAY));
       if (error || data?.error) throw new Error(data?.error || error.message);
-      const entries=(data.entries||[]).map(a=>fromAI(a, W.parseQuick(a.title||"", cals, todayStr(), nowMin()%DAY)));
-      if (!entries.length) { $("qMicHelp").textContent=data.transcript?`I heard “${data.transcript}” but found nothing to add.`:"I didn't catch anything. Try again."; return; }
-      if (entries.length===1) { closeSheet(); openEvent(null, entries[0].date, null, {...entries[0], heard:data.transcript}); return; }
-      openVoiceList(entries, data.transcript);
+      handleActions(data);
     } catch(e) { $("qMicHelp").textContent="Couldn't understand it: "+(e.message||e); }
   };
   rec.start(); btn.classList.add("rec"); $("qMicHelp").textContent="Listening… tap again when you're done.";
+}
+/* what the voice or a typed command asked for: things to add, things to take out */
+function matchOccs(what, d){
+  const list=occs(W.addDays(d,-1),W.addDays(d,1)), w=String(what||"").toLowerCase().trim();
+  return list.filter(o=>o.date===d && !o.allDay && o.kind!=="sleep" && o.kind!=="prayer" && o.cal.visible!==false && !o.cal.archived)
+    .filter(o=>{ if(!w) return true; const t=o.ev.title.toLowerCase();
+      return t.includes(w) || w.includes(t) || o.kind===w ||
+        (/class|uni|lecture/.test(w) && o.kind==="university") ||
+        (/meeting|call/.test(w) && (o.kind==="meeting"||o.kind==="call")) ||
+        (/shift/.test(w) && o.kind==="shift") ||
+        w.split(/\s+/).some(x=>x.length>3 && t.includes(x)); });
+}
+function handleActions(data){
+  const nm=nowMin()%DAY;
+  const adds=(data.add||data.entries||[]).map(a=>fromAI(a, W.parseQuick(a.title||"", cals, todayStr(), nm)));
+  let rem=[];
+  (data.remove||[]).forEach(r=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(r?.date||"")) rem=rem.concat(matchOccs(r.what, r.date)); });
+  (data.day_off||[]).forEach(d=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(d||"")) rem=rem.concat(matchOccs("", d)); });
+  const seen={}; rem=rem.filter(o=>{ const k=o.ev.id+"@"+o.date; if(seen[k]) return false; seen[k]=1; return true; });
+  if (!adds.length && !rem.length) {
+    const msg=data.transcript?`I heard “${data.transcript}” but found nothing to do.`:"I didn't catch anything. Try again.";
+    if ($("qMicHelp")) $("qMicHelp").textContent=msg; else toast(msg); return;
+  }
+  if (rem.length) return openVoicePlan(adds, rem, data.transcript);
+  if (adds.length===1) { closeSheet(); return openEvent(null, adds[0].date, null, {...adds[0], heard:data.transcript}); }
+  openVoiceList(adds, data.transcript);
+}
+function openVoicePlan(adds, rem, heard){
+  const imp=o=>["meeting","call","shift"].includes(o.kind);
+  sheet(`<h2>Is this right?</h2>${heard?`<div class="small muted">I heard: “${esc(heard)}”</div>`:""}
+    ${adds.length?`<div class="label">Add</div><div class="vlist">${adds.map((e,i)=>{ const c=calById(e.calendar_id); return `<label class="vitem"><input type="checkbox" data-a="${i}" checked><span class="sw" style="background:${c?.color||"var(--faint)"};width:12px;height:12px;border-radius:50%"></span><span class="t"><b>${esc(e.title)}</b><span class="small muted">${esc(relDay(e.date))}${e.start_time?", "+W.fmtTime(W.tmin(e.start_time)):""}${c?" · "+esc(c.name):""}</span></span></label>`; }).join("")}</div>`:""}
+    ${rem.length?`<div class="label">Remove</div><div class="vlist">${rem.map((o,i)=>`<label class="vitem"><input type="checkbox" data-r="${i}" ${imp(o)?"":"checked"}><span class="sw" style="background:${colorOf(o)};width:12px;height:12px;border-radius:50%"></span><span class="t"><b>${esc(o.ev.title)}</b><span class="small muted">${esc(relDay(o.date))}${o.allDay?"":", "+W.fmtTime(o.start%DAY)} · ${esc(shortName(o.cal))}${imp(o)?` · <b style="color:var(--warn)">important — tick to remove it too</b>`:""}</span></span></label>`).join("")}</div><div class="small muted">A repeating thing is only removed for that day, never for good.</div>`:""}
+    <div class="actions"><button class="btn" id="vpGo">Do it</button><button class="btn ghost" data-close>Cancel</button></div>`);
+  $("vpGo").onclick=async()=>{
+    const root=$("sheetRoot"); let na=0, nr=0, err=null;
+    for (const x of root.querySelectorAll("[data-a]:checked")){ const e=adds[+x.dataset.a];
+      const v={calendar_id:e.calendar_id||(cals.find(c=>c.billing==="personal")||cals[0]).id, title:e.title, kind:e.kind||"other", date:e.date, start_time:e.kind==="post"?null:(e.start_time||null), end_time:e.kind==="post"?null:(e.end_time||(e.start_time?hm((W.tmin(e.start_time)+60)%DAY):null)), repeat:e.repeat||"none", repeat_days:e.repeat==="weekly"?(e.repeat_days?.length?e.repeat_days:[W.weekday(W.dnum(e.date))]):[], repeat_until:null, notes:null };
+      const r=await api.saveEvent(v); if(r.error){ err=r.error.message; break; } na++; }
+    for (const x of root.querySelectorAll("[data-r]:checked")){ const o=rem[+x.dataset.r];
+      const r = (o.ev.repeat && o.ev.repeat!=="none") ? await api.saveEvent({id:o.ev.id, skip_dates:[...new Set([...(o.ev.skip_dates||[]), o.date])]}) : await api.deleteEvent(o.ev.id);
+      if(r.error){ err=r.error.message; break; } nr++; }
+    closeSheet(); if(err) toast(err); else toast((na?`Added ${na}. `:"")+(nr?`Removed ${nr}.`:"") || "Nothing ticked");
+    reload();
+  };
 }
 function openVoiceList(entries, heard){
   sheet(`<h2>Add these?</h2>${heard?`<div class="small muted">I heard: “${esc(heard)}”</div>`:""}
@@ -1521,6 +1646,20 @@ function weekTypeHours(mon){
 function barsHtml(rows, max){
   return `<div class="hbars">${rows.map(r=>`<div class="hb"><span class="n">${esc(r.label)}</span><span class="tr"><i style="width:${(r.minutes/max*100).toFixed(1)}%;background:${r.color}"></i></span><b class="num">${W.fmtDur(r.minutes)}</b></div>`).join("")}</div>`;
 }
+function todoHtml(t){
+  const list=occs(W.addDays(t,-1),W.addDays(t,8)), out=[];
+  for (let i=0;i<7;i++){ const d=W.addDays(t,i); groupPosts(postsFor(d,list)).filter(p=>!p.status.scheduled).forEach(p=>{ postIndex[p.id]=p; out.push({p,d}); }); }
+  if (!out.length) return `<p class="small muted" style="margin:0">Every post for the next 7 days is scheduled ✓</p>`;
+  return out.slice(0,8).map(x=>`<button class="ag-it" data-post="${esc(x.p.id)}"><span class="tm">${x.d===t?"Today":fmtDay(x.d,{weekday:"short"})}</span><span class="bar" style="background:${postColor(x.p)}"></span><span class="t"><b>${esc(x.p.title)}</b><span>${esc(x.p.calNames)}</span></span>${postStatusHtml(x.p.status)}</button>`).join("")
+    + (out.length>8?`<div class="small muted" style="padding:4px 2px 0">+${out.length-8} more — see the calendar</div>`:"");
+}
+function comingHtml(t){
+  const out=[];
+  for (let i=0;i<14;i++){ const d=W.addDays(t,i); (W.worldDaysOn?W.worldDaysOn(d):[]).forEach(it=>out.push({d,it})); }
+  out.sort((a,b)=> a.d.localeCompare(b.d) || (b.it.size==="major")-(a.it.size==="major"));
+  if (!out.length) return `<p class="small muted" style="margin:0">No special days in the next two weeks.</p>`;
+  return `<div class="wls" style="gap:6px">${out.slice(0,9).map(x=>`<span class="wl"><u>${x.d===t?"Today":fmtDay(x.d,{day:"numeric",month:"short"})}</u>${x.it.size==="major"?"⭐ ":""}${esc(x.it.title)}</span>`).join("")}</div>`;
+}
 function renderReview(){
   const t=todayStr(), mon=mondayOf(t), sun=W.addDays(mon,6);
   $("wkEyebrow").textContent = fmtDay(mon,{day:"numeric",month:"short"})+" – "+fmtDay(sun,{day:"numeric",month:"short"});
@@ -1533,6 +1672,8 @@ function renderReview(){
     <div class="card"><h3>Where your time goes</h3>${rows.length?barsHtml(rows,max):`<div class="empty">Nothing planned this week yet.</div>`}</div>
     <div class="card"><h3>Posts this week <span class="small muted">${pd} of ${pt} scheduled</span></h3>
       <div class="pdays">${days.map(x=>`<button class="pday ${x.d===t?"today":""}" data-day="${x.d}"><span class="pb"><i style="height:${x.total?Math.max(8,x.done/x.total*100):0}%"></i></span><b class="num">${x.total?x.done+"/"+x.total:"–"}</b><small>${fmtDay(x.d,{weekday:"short"}).slice(0,2)}</small></button>`).join("")}</div></div>
+    <div class="card"><h3>Still to do <span class="small muted">posts, next 7 days</span></h3>${todoHtml(t)}</div>
+    <div class="card"><h3>Coming up <span class="small muted">special days</span></h3>${comingHtml(t)}</div>
     ${hoursCardHtml()}
     <div class="card"><h3>Sleep <span class="small muted">last 7 nights</span></h3>${sleepChartHtml()}
       <div class="actions"><button class="btn soft sm" id="hAdd">Add last night</button><button class="btn ghost sm" id="hShortcut">${icon("phone")} Sleep buttons</button></div></div>
@@ -1626,7 +1767,17 @@ async function openWidget(){
       <li>Open Scriptable, tap <b>+</b>, paste, and name it <b>WhatsWork</b>.</li>
       <li>On your Home Screen, press and hold, tap <b>Edit</b>, <b>Add Widget</b>, choose <b>Scriptable</b> (medium size is best), then tap the widget and pick <b>WhatsWork</b>.</li>
     </ol>
+    <h2 style="margin-top:6px">🎤 Voice button</h2>
+    <p class="small muted" style="margin:0">A Home Screen button that listens and puts things straight into your calendar — it can also take classes out ("remove my classes tomorrow"). It uses the same key as your Sleep buttons (My week → Sleep buttons).</p>
+    <div class="fl"><span class="label">Web address</span><div class="line"><code class="field small" style="overflow-wrap:anywhere">${esc(SUPABASE_URL+"/functions/v1/"+WORKER)}</code><button class="ib" data-copy="${esc(SUPABASE_URL+"/functions/v1/"+WORKER)}" aria-label="Copy address">${icon("copy")}</button></div></div>
+    <ol class="small" style="margin:0;padding-left:18px;display:grid;gap:6px">
+      <li>Shortcuts, <b>+</b>, add <b>Dictate Text</b>.</li>
+      <li>Add <b>Get Contents of URL</b> and paste the web address. Tap <b>›</b>: Method <b>POST</b>. Headers: Key <b>x-health-token</b>, Text = your sleep key.</li>
+      <li>Request Body <b>JSON</b>: a Text field with Key <b>action</b> and Text <b>voice_text</b>, and a second Text field with Key <b>text</b> — for its value tap the variable <b>Dictated Text</b>.</li>
+      <li>Add <b>Show Notification</b> with <b>Contents of URL</b>. Name it <b>Tell WhatsWork</b> and add it to your Home Screen.</li>
+    </ol>
     <button class="btn ghost" data-close>Done</button>`);
+  $("sheetRoot").querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{ try{ await navigator.clipboard.writeText(b.dataset.copy); toast("Copied"); }catch{ toast("Press and hold the text to copy it"); } });
   $("wMake").onclick=async()=>{
     const bytes=new Uint8Array(24); crypto.getRandomValues(bytes);
     const key="wg_"+[...bytes].map(x=>x.toString(16).padStart(2,"0")).join("");
@@ -1793,7 +1944,7 @@ async function renderSettings(){
   <div class="card"><h3>Colours</h3>${legendHtml()}<p class="small muted" style="margin:0">Everything is one calendar. The colour tells you what kind of thing it is.</p></div>
 
   <div class="card"><h3>📱 Home Screen widget</h3><p class="small muted" style="margin:0">See your next activities and today's posts on your iPhone Home Screen.</p>
-    <button class="calrow" id="sWidget"><span class="t"><b>Set up the widget</b><span class="small muted">uses the Scriptable app</span></span>${icon("right")}</button></div>
+    <button class="calrow" id="sWidget"><span class="t"><b>Set up the widget and voice button</b><span class="small muted">for your Home Screen</span></span>${icon("right")}</button></div>
 
   <details class="card more-set"><summary><h3 style="margin:0">More settings</h3></summary>
   <div class="card"><h3><span style="display:flex;gap:8px;align-items:center">${icon("layers")} Calendars</span></h3>

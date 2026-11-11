@@ -285,9 +285,12 @@ Note: ${String(text).slice(0, 300)}`;
 
 
 // ---------- VOICE: audio from the app's mic, understood by your AI key ----------
-const VOICE_RULES = `Answer ONLY with JSON: {"transcript": string (what was said, word for word), "entries": [{"title": string, "calendar": string, "kind": string, "date": "YYYY-MM-DD", "start": "HH:MM" or null, "end": "HH:MM" or null, "repeat": "none"|"daily"|"weekly", "repeat_days": [numbers 0-6, 0 = Sunday]}]}
-The person may say several things in one go, fast, in English or Urdu mixed with English: make one entry for each thing to put in the calendar, in the order said. If nothing can go in a calendar, give an empty entries list.
-Rules for each entry:
+const VOICE_RULES = `Answer ONLY with JSON: {"transcript": string (what was said, word for word), "add": [{"title": string, "calendar": string, "kind": string, "date": "YYYY-MM-DD", "start": "HH:MM" or null, "end": "HH:MM" or null, "repeat": "none"|"daily"|"weekly", "repeat_days": [numbers 0-6, 0 = Sunday]}], "remove": [{"what": string, "date": "YYYY-MM-DD"}], "day_off": ["YYYY-MM-DD"]}
+The person may say several things in one go, fast, in English or Urdu mixed with English. Use empty lists for whatever wasn't asked.
+- "add": one entry for each new thing to put in the calendar.
+- "remove": for each thing to cancel, remove or skip on a day. "what" is a short name for it in the person's own words ("university", "classes", "meeting with Sam"). "Remove my classes Monday and Tuesday" = two items.
+- "day_off": when a whole day should be cleared ("give me tomorrow off"), give that date here and don't list the things separately.
+Rules for each "add" entry:
 ${QUICK_SYSTEM.split("Rules:")[1]}`;
 async function calendarContext(uid: string, today: string, now: string) {
   const cals = await sql`select name, short_name, billing, kind from public.calendars where user_id = ${uid} and not archived order by sort`;
@@ -326,11 +329,64 @@ async function voiceAdd(uid: string, audio: string, mime: string, today: string,
       if (r.ok) { text = j.text ?? ""; break; }
       if (model === "whisper-1") throw new Error(j?.error?.message ?? `OpenAI error ${r.status}`);
     }
-    if (!text.trim()) return { transcript: "", entries: [] };
-    const out = firstJson(await callAI("openai", st.model, st.api_key, "You turn a short voice note into calendar entries for a planner app.\n" + VOICE_RULES, `${ctx}\nVoice note: ${text.slice(0, 1500)}`, 900));
-    return { transcript: text, entries: out.entries ?? [] };
+    if (!text.trim()) return { transcript: "", add: [], remove: [], day_off: [] };
+    const out = firstJson(await callAI("openai", st.model, st.api_key, "You turn a short voice note into calendar actions for a planner app.\n" + VOICE_RULES, `${ctx}\nVoice note: ${text.slice(0, 1500)}`, 900));
+    return { transcript: text, add: out.add ?? out.entries ?? [], remove: out.remove ?? [], day_off: out.day_off ?? [] };
   }
   throw new Error("Voice needs a Gemini or ChatGPT key. Change it in Settings, AI, or use the keyboard microphone.");
+}
+
+/* The same understanding for typed or dictated text (any AI provider). */
+async function textActions(uid: string, text: string, today?: string, now?: string) {
+  const st = await aiSettings(uid);
+  const tz = await tzOf(uid), lp = localParts(tz);
+  const t = today && /^\d{4}-\d{2}-\d{2}$/.test(today) ? today : lp.date;
+  const n = now && /^\d{2}:\d{2}$/.test(now) ? now : `${String(lp.hour).padStart(2, "0")}:00`;
+  const ctx = await calendarContext(uid, t, n);
+  const out = firstJson(await callAI(st.provider, st.model, st.api_key, "You turn one short request into calendar actions for a planner app.\n" + VOICE_RULES, `${ctx}\nRequest: ${String(text).slice(0, 400)}`, 900));
+  return { transcript: String(text).slice(0, 400), add: out.add ?? out.entries ?? [], remove: out.remove ?? [], day_off: out.day_off ?? [] };
+}
+/* The Home Screen voice button: understand the dictated text and change the calendar straight away. */
+function hmPlus(hm: string, mins: number) { const [h, m] = hm.split(":").map(Number); const x = (h * 60 + m + mins) % 1440; return `${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`; }
+async function applyActions(uid: string, out: any) {
+  const cals = (await sql`select id, name, short_name, billing, kind from public.calendars where user_id = ${uid} and not archived`) as any[];
+  const msgs: string[] = [], asks: string[] = [];
+  for (const e of (Array.isArray(out.add) ? out.add : []).slice(0, 10)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(e?.date || "") || !e.title) continue;
+    const kind = ["sleep", "shift", "university", "work", "meeting", "call", "personal", "post", "other"].includes(e.kind) ? e.kind : "other";
+    const nm = String(e.calendar || "").toLowerCase();
+    const cal = cals.find((c) => c.name.toLowerCase() === nm || (c.short_name || "").toLowerCase() === nm)
+      || cals.find((c) => nm && (c.name.toLowerCase().includes(nm) || nm.includes(c.name.toLowerCase()) || (c.short_name && nm.includes(c.short_name.toLowerCase()))))
+      || cals.find((c) => c.billing === "personal") || cals[0];
+    if (!cal) continue;
+    const st = /^\d{2}:\d{2}$/.test(e.start || "") ? e.start : null;
+    const en = /^\d{2}:\d{2}$/.test(e.end || "") ? e.end : (st ? hmPlus(st, kind === "call" ? 30 : 60) : null);
+    const rep = ["daily", "weekly"].includes(e.repeat) ? e.repeat : "none";
+    const days = rep === "weekly" ? (Array.isArray(e.repeat_days) && e.repeat_days.length ? e.repeat_days.filter((x: any) => Number.isInteger(x) && x >= 0 && x <= 6) : [new Date(e.date + "T12:00:00Z").getUTCDay()]) : [];
+    await sql`insert into public.events (user_id, calendar_id, title, kind, date, start_time, end_time, repeat, repeat_days, source)
+      values (${uid}, ${cal.id}, ${String(e.title).slice(0, 140)}, ${kind}, ${e.date}, ${kind === "post" ? null : st}, ${kind === "post" ? null : en}, ${rep}, ${days}, 'voice')`;
+    msgs.push(`Added ${e.title} on ${e.date}${st ? " at " + st : ""}`);
+  }
+  const wants = [...(Array.isArray(out.remove) ? out.remove : []).map((r: any) => ({ what: String(r?.what || ""), date: r?.date })),
+    ...(Array.isArray(out.day_off) ? out.day_off : []).map((d: any) => ({ what: "", date: d }))].slice(0, 10);
+  for (const r of wants) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(r.date || "")) continue;
+    const ctx = await contextFor(uid, r.date, true);
+    const w = r.what.toLowerCase().trim();
+    const hits = (ctx.occs as any[]).filter((o) => o.date === r.date && !o.allDay && o.kind !== "sleep" && o.kind !== "prayer" && !o.cal.archived)
+      .filter((o) => { if (!w) return true; const t = o.ev.title.toLowerCase();
+        return t.includes(w) || w.includes(t) || (/class|uni|lecture/.test(w) && o.kind === "university") || (/meeting|call/.test(w) && (o.kind === "meeting" || o.kind === "call")) || (/shift/.test(w) && o.kind === "shift") || w.split(/\s+/).some((x: string) => x.length > 3 && t.includes(x)); });
+    if (!hits.length && w) msgs.push(`Found nothing called "${r.what}" on ${r.date}`);
+    for (const o of hits) {
+      if (o.kind === "meeting" || o.kind === "call" || o.kind === "shift") { asks.push(`${o.ev.title} (${r.date})`); continue; }
+      if (o.ev.repeat && o.ev.repeat !== "none") await sql`update public.events set skip_dates = array_append(skip_dates, ${r.date}::date), updated_at = now() where id = ${o.ev.id} and user_id = ${uid} and not (skip_dates @> array[${r.date}::date])`;
+      else await sql`delete from public.events where id = ${o.ev.id} and user_id = ${uid}`;
+      msgs.push(`Removed ${o.ev.title} on ${r.date}`);
+    }
+  }
+  let message = msgs.length ? msgs.join(". ") : "I heard you, but found nothing to change.";
+  if (asks.length) message += `. Left alone (important): ${asks.join(", ")}. Open WhatsWork to remove these.`;
+  return { ok: true, message, heard: out.transcript || "" };
 }
 
 // ---------- HEALTH (from the iPhone Shortcut) ----------
@@ -414,6 +470,8 @@ async function healthFromShortcut(token: string, body: any) {
 
 // ---------- REVIEWS ----------
 const REVIEW_SYSTEM = `You write a short weekly review for one person's planner app. Use ONLY the facts given; never invent events, people or numbers.
+Prayers are short 15-minute breaks inside the day. They never clash with anything and are never a problem: never mention prayers, prayer times or prayer overlaps at all.
+If upcoming_special_days lists a major day that suits his colleges or clients, you may add ONE tip about preparing a post for it.
 Write in plain, friendly English with short sentences. Be concrete: name the day, time, calendar and what to do.
 Answer ONLY with JSON: {"title": string (at most 8 words), "summary": string (one sentence), "items": [{"type": "warning" | "tip" | "win", "text": string (one or two sentences)}]}
 Give 3 to 6 items, most urgent first: clashes and short sleep first, then posts that aren't scheduled, then unpaid hours (name them and how many hours), then sleep and screen time, then one thing that went well if there is one.`;
@@ -424,7 +482,7 @@ async function reviewInput(uid: string, today: string) {
   const events = (await exists("public.events")) ? await sql`select id, calendar_id, title, kind, to_char(date,'YYYY-MM-DD') as date,
       to_char(start_time,'HH24:MI') as start_time, to_char(end_time,'HH24:MI') as end_time, repeat, repeat_days,
       to_char(repeat_until,'YYYY-MM-DD') as repeat_until, (select array_agg(to_char(x,'YYYY-MM-DD')) from unnest(skip_dates) x) as skip_dates
-      from public.events where user_id = ${uid}` : [];
+      from public.events where user_id = ${uid} and kind <> 'prayer'` : [];
   const health = await sql`select to_char(date,'YYYY-MM-DD') as date, sleep_start, sleep_end, asleep_minutes from public.health_days where user_id = ${uid} and date >= ${W.addDays(today, -14)}::date`;
   const screen = await sql`select to_char(week_start,'YYYY-MM-DD') as week_start, screen_avg_minutes from public.health_weeks where user_id = ${uid} and screen_avg_minutes is not null order by week_start desc limit 6`;
   return { today, calendars: ctx.calendars, events, planner: ctx.planner, tracks: ctx.tracks, postStatus: ctx.postStatus,
@@ -443,8 +501,10 @@ async function writeReview(uid: string, kind: "weekly" | "on_demand") {
   let row = { title: base.title, summary: base.summary, items: base.items, source: "rules", model: null as string | null, note: "" };
   try {
     const st = await aiSettings(uid);
+    const Wc = WWCore as any; const specials: any[] = [];
+    for (let i = 0; i < 14; i++) { const d = Wc.addDays(today, i); for (const it of (Wc.worldDaysOn ? Wc.worldDaysOn(d) : [])) specials.push({ date: d, title: it.title, major: it.size === "major" }); }
     const out = firstJson(await callAI(st.provider, st.model, st.api_key, REVIEW_SYSTEM,
-      `Facts:\n${JSON.stringify(base.facts)}\n\nPoints found by simple rules (use them, improve the wording, add anything they missed):\n${base.items.map((i: any) => "- " + i.text).join("\n")}`, 1200));
+      `Facts:\n${JSON.stringify({ ...base.facts, upcoming_special_days: specials.slice(0, 20) })}\n\nPoints found by simple rules (use them, improve the wording, add anything they missed):\n${base.items.map((i: any) => "- " + i.text).join("\n")}`, 1200));
     const items = cleanItems(out.items);
     if (items.length) row = { title: String(out.title || base.title).slice(0, 120), summary: String(out.summary || base.summary).slice(0, 600), items, source: "ai", model: `${st.provider}: ${st.model}`, note: "" };
   } catch (e: any) { row.note = String(e?.message ?? e); }
@@ -590,6 +650,13 @@ Deno.serve(async (req) => {
     const secret = req.headers.get("x-worker-secret");
     const healthToken = req.headers.get("x-health-token");
     if (healthToken) {
+      if (body.action === "voice_text") {
+        const [row] = await sql`select user_id from private.health_tokens where token_hash = ${await sha256hex(healthToken.trim())}`;
+        if (!row) return json({ ok: false, message: "This key isn't recognised. Make a new key in WhatsWork (My week, Sleep buttons)." }, 400);
+        if (typeof body.text !== "string" || body.text.trim().length < 2) return json({ ok: false, message: "I didn't get any words. Try again." }, 400);
+        try { return json(await applyActions(row.user_id, await textActions(row.user_id, body.text))); }
+        catch (e: any) { return json({ ok: false, message: String(e?.message ?? e) }, 400); }
+      }
       if (body.action === "alarms") {
         const [row] = await sql`select user_id from private.health_tokens where token_hash = ${await sha256hex(healthToken.trim())}`;
         if (!row) return json({ ok: false, error: "This Shortcut's key isn't recognised. Make a new key in WhatsWork." }, 400);
@@ -623,8 +690,13 @@ Deno.serve(async (req) => {
       try { return json({ entry: await quickAdd(uid, body.text, body.today, body.now) }); }
       catch (e: any) { return json({ error: String(e?.message ?? e) }); }
     }
+    if (body.action === "parse_text") {
+      try { const out = await textActions(uid, body.text, body.today, body.now); return json(out); }
+      catch (e: any) { return json({ error: String(e?.message ?? e) }); }
+    }
     if (body.action === "voice_add") {
-      try { const out = await voiceAdd(uid, body.audio, body.mime, body.today, body.now); return json({ transcript: String(out.transcript ?? "").slice(0, 2000), entries: Array.isArray(out.entries) ? out.entries.slice(0, 10) : [] }); }
+      try { const out = await voiceAdd(uid, body.audio, body.mime, body.today, body.now); const arr = (x: any) => Array.isArray(x) ? x.slice(0, 10) : [];
+        return json({ transcript: String(out.transcript ?? "").slice(0, 2000), add: arr(out.add ?? out.entries), remove: arr(out.remove), day_off: arr(out.day_off) }); }
       catch (e: any) { return json({ error: String(e?.message ?? e) }); }
     }
     if (body.action === "review_now") return json(await writeReview(uid, "on_demand"));
