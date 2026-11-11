@@ -5,7 +5,7 @@
 // - "widget": the Scriptable Home Screen widget, with its own key
 import postgres from "npm:postgres@3.4.5";
 import webpush from "npm:web-push@3.6.7";
-import { WWCore, normaliseState, itemsOn, COLLEGES } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@2c93e24/core.mjs";
+import { WWCore, normaliseState, itemsOn, COLLEGES } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@49732ac/core.mjs";
 
 const sql = postgres(Deno.env.get("SUPABASE_DB_URL")!, { prepare: false, max: 3 });
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
