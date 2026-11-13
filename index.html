@@ -541,6 +541,44 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
 .more-add{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center}
 .more-add button{font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:999px;background:var(--sunk)}
 
+/* v5: one calm look everywhere */
+.mo2{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:2px max(8px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left))}
+.mc2{height:46px;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative}
+.mc2 .d{font-weight:800;font-size:15px;line-height:1}
+.mc2 .dots{display:flex;gap:2.5px;height:7px;align-items:center}
+.mc2 .dots i,.mo-key .kd{width:5px;height:5px;border-radius:50%;display:inline-block}
+.mo-key .kd{background:var(--muted);vertical-align:1px}
+.mc2 .dots u,.mo-key u{text-decoration:none;font-size:9.5px;font-weight:900;line-height:7px}
+u.pok{color:var(--ok)} u.ptodo{color:#d97706}
+.mc2.out{opacity:.28}
+.mc2.past .d{color:var(--faint);font-weight:700}
+.mc2.today .d{color:var(--brand)}
+.mc2.today::after{content:"";position:absolute;inset:0;border-radius:13px;box-shadow:inset 0 0 0 1.5px var(--brand)}
+.mc2.sel{background:var(--ink)} .mc2.sel .d{color:var(--bg)} .mc2.sel::after{display:none}
+.mc2 .rd{position:absolute;top:5px;right:8px;width:6px;height:6px}
+.mo-key{padding:8px 0 2px;font-weight:700}
+.mosel{margin:6px max(12px,env(safe-area-inset-right)) 90px max(12px,env(safe-area-inset-left));background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px 14px 8px}
+.mosel .mh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.mosel .mh b{font-family:var(--display);font-size:18px}
+.mosel .mh .btn.sm{padding:6px 10px}.mosel .mh .btn.sm svg{width:16px;height:16px}
+.mosel .alert{margin-top:8px}
+.dshead{font-family:var(--body);font-size:13px;font-weight:800;color:var(--muted);padding:9px 2px 6px}
+.dshead .muted{font-size:13px;font-weight:700}
+.dshead b.tdy{color:var(--brand)}
+.dcard{border:0;border-left:4px solid var(--c);border-radius:6px 14px 14px 6px;background:color-mix(in srgb,var(--c) 11%,var(--panel));padding:9px 12px}
+.dcard.sleep{background:var(--sunk);border-left-color:var(--faint);opacity:.8}
+.dcard.sleep .bd b{font-size:13.5px;font-weight:700}
+.dcard .tm{justify-content:flex-start;gap:1px}
+.dcard.on{box-shadow:0 0 0 2px var(--brand)}
+.dgap{border:0;border-radius:0;padding:1px 0 1px 64px;text-align:left;font-size:12px;font-weight:700;color:var(--faint)}
+.dgap span{font-weight:900;color:var(--brand)}
+.dpray{padding:1px 0 1px 12px;opacity:.9}
+.dposts{border-radius:14px;margin-bottom:2px}
+.dsec{gap:5px;padding-bottom:10px}
+.wl u.pm{font-size:12px;font-weight:900;width:11px;text-align:center}
+.wl.done{color:var(--muted)}
+.wposts{border-top:1px solid var(--line)}
+.wbox{border-radius:18px;padding:10px 11px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -1077,16 +1115,16 @@ function daySecHtml(d, list, an, nm){
   let html="", cursor=d0, nowDone=!(nm>=d0 && nm<d0+DAY);
   const nowLine = ()=>`<div class="dnow"><span>Now ${W.fmtTime(nm%DAY)}</span></div>`;
   all.forEach(x=>{
-    if (x.kind==="item" && x.s-cursor>=60) { if(!nowDone && nm<x.s){ html+=nowLine(); nowDone=true; } html+=`<button class="dgap" data-add="${x.s-d0}" data-aday="${d}">Free ${dur(x.s-cursor)} · ${tShort(cursor)}–${tShort(x.s)}</button>`; }
+    if (x.kind==="item" && x.s-cursor>=60) { if(!nowDone && nm<x.s){ html+=nowLine(); nowDone=true; } html+=`<button class="dgap" data-add="${x.s-d0}" data-aday="${d}"><span>+</span> ${dur(x.s-cursor)} free</button>`; }
     if (!nowDone && nm<x.s) { html+=nowLine(); nowDone=true; }
     if (x.kind==="pray") { html+=`<button class="dpray" data-ev="${x.o.ev.id}" data-date="${x.o.date}"><span class="tm">${tShort(x.o.start)}</span><i></i><b>🕌 ${esc(x.o.ev.title)}</b><small>prayer break</small></button>`; return; }
-    const o=x.o, mins=x.e-x.s, h=Math.max(52, Math.min(150, mins*0.32)), sleep=o.kind==="sleep", on=nm>=o.start&&nm<o.end;
+    const o=x.o, mins=x.e-x.s, sleep=o.kind==="sleep", h=sleep?48:Math.max(54, Math.min(104, mins*0.2)), on=nm>=o.start&&nm<o.end;
     html+=`<button class="dcard ${sleep?"sleep":""} ${an.flagged[o.key]?"clash":""} ${on?"on":""}" style="--c:${colorOf(o)};min-height:${h}px" data-ev="${o.ev.id}" data-date="${o.date}">
-      <span class="tm"><b>${o.start<d0?"…":tShort(o.start)}</b><small>${o.end>d0+DAY?"…":tShort(o.end)}</small></span>
+      <span class="tm"><b>${tShort(o.start)}</b><small>${tShort(o.end)}</small></span>
       <span class="bd"><b>${esc(o.ev.title)}</b><small>${dur(o.end-o.start)} · ${esc(shortName(o.cal))}${o.start<d0?" · from yesterday":o.end>d0+DAY?" · into tomorrow":""}</small></span>${on?`<span class="pill ok">Now</span>`:""}</button>`;
     cursor=Math.max(cursor,x.e);
   });
-  if (d0+DAY-cursor>=60) html+=`<button class="dgap" data-add="${cursor-d0}" data-aday="${d}">Free ${dur(d0+DAY-cursor)} · ${tShort(cursor)}–12a</button>`;
+  if (d0+DAY-cursor>=60) html+=`<button class="dgap" data-add="${cursor-d0}" data-aday="${d}"><span>+</span> ${dur(d0+DAY-cursor)} free</button>`;
   if (!nowDone) html+=nowLine();
   const rd=relDay(d), head = ["Today","Tomorrow","Yesterday"].includes(rd) ? `${rd} <span class="muted">· ${fmtDay(d,{weekday:"short",day:"numeric",month:"short"})}</span>` : fmtDay(d,{weekday:"long",day:"numeric",month:"short"});
   const alerts = d>=t ? alertsFrom(an,d,d) : [];
@@ -1108,7 +1146,7 @@ function renderDayView(){
   wireStrip();
   $("calBody").innerHTML = `<div class="dview dfeed">${dayRangeHtml(dayLo,dayHi,nowMin())}</div>`;
   wireFeed();
-  requestAnimationFrame(()=>{ const sec=$("calBody").querySelector(`[data-dsec="${d}"]`); if(!sec) return; const n=sec.querySelector(".dnow"); $("calBody").scrollTop = (n && d===todayStr()) ? Math.max(0,n.offsetTop-170) : Math.max(0,sec.offsetTop-4); });
+  requestAnimationFrame(()=>{ const sec=$("calBody").querySelector(`[data-dsec="${d}"]`); if(!sec) return; const n=sec.querySelector(".dcard.on")||sec.querySelector(".dnow"); $("calBody").scrollTop = (n && d===todayStr() && n.offsetTop-sec.offsetTop>260) ? Math.max(0,n.offsetTop-44) : Math.max(0,sec.offsetTop-2); });
 }
 function extendDayFeed(dir){
   if (feedBusy) return; feedBusy=true;
@@ -1137,7 +1175,7 @@ function weekBoxHtml(d, list, an, compact){
   const lines=aday.map(o=>`<span class="wl"><i style="background:${colorOf(o)}"></i><u>★</u>${esc(o.ev.title)}</span>`)
     .concat(cont.map(o=>`<span class="wl"><i style="background:${colorOf(o)}"></i><u>till ${tShort(o.end)}</u>${esc(o.ev.title)}</span>`))
     .concat(items.map(o=>`<span class="wl"><i style="background:${colorOf(o)}"></i><u>${tShort(o.start)}</u>${esc(o.ev.title)}</span>`));
-  const pl=posts.slice(0,3).map(p=>`<span class="wl"><i style="background:${postColor(p)}"></i><u class="${p.status.scheduled?"pok":"ptodo"}">${p.status.scheduled?"✓":"○"}</u>${esc(p.title)}</span>`).join("")
+  const pl=posts.slice(0,3).map(p=>`<span class="wl ${p.status.scheduled?"done":""}"><u class="pm" style="color:${postColor(p)}">${p.status.scheduled?"✓":"○"}</u>${esc(p.title)}</span>`).join("")
     + (posts.length>3?`<span class="wl muted">+${posts.length-3} more post${posts.length>4?"s":""}</span>`:"");
   return `<button class="wbox ${d===t?"today":""} ${d<t?"past":""} ${compact?"wide":""}" data-day="${d}">
     <span class="wh"><b>${fmtDay(d,{weekday:"short"})} <span class="num">${+d.slice(8)}</span>${d===t?` <small class="tdy">Today</small>`:d<t?` <small class="pst">done</small>`:""}</b>${fl?`<i class="rd"></i>`:""}</span>
@@ -1155,7 +1193,7 @@ function weekRangeHtml(a,b){ const list=occs(W.addDays(a,-1),W.addDays(b,7)), an
 function renderWeekView(){
   const start=calDate; wkLo=W.addDays(start,-7); wkHi=W.addDays(start,14);
   $("calTitle").textContent = weekLabel(start);
-  $("calTop").innerHTML = legendHtml();
+  $("calTop").innerHTML = "";
   $("calBody").innerHTML = `<div class="wfeed">${weekRangeHtml(wkLo,wkHi)}</div>`;
   wire($("calBody"));
   requestAnimationFrame(()=>{ const bl=$("calBody").querySelector(`[data-wk="${start}"]`); if(bl) $("calBody").scrollTop=Math.max(0,bl.offsetTop-4); });
@@ -1188,29 +1226,36 @@ function calScrolled(){
 }
 function updTodayBtn(){ $("calToday").classList.toggle("hidden", calView==="month" ? calDate.slice(0,7)===todayStr().slice(0,7) : calDate===todayStr()); }
 
-/* MONTH: the month on one screen with the main events and post status */
+/* MONTH: a clean grid of dots, and the day you tap listed underneath */
+let monthSel=null;
+function monthSelHtml(day, list, an){
+  const t=todayStr(), rd=relDay(day), alerts = day>=t ? alertsFrom(an,day,day) : [];
+  return `<div class="mh"><b>${["Today","Tomorrow","Yesterday"].includes(rd)?rd+", ":""}${esc(fmtDay(day,{weekday:"short",day:"numeric",month:"short"}))}</b><span><button class="btn soft sm" id="msOpen">Open day</button> <button class="btn sm" id="msAdd" aria-label="Add on this day">${icon("plus")}</button></span></div>
+    ${agendaDayHtml(day, list, an, {noHead:true, skipRoutine:false})}${alerts.map(a=>alertHtml(a,false)).join("")}`;
+}
 function renderMonthView(){
   const d=dateObj(calDate), y=d.getFullYear(), m=d.getMonth()+1, first=`${y}-${String(m).padStart(2,"0")}-01`;
   const start=mondayOf(first), list=occs(W.addDays(start,-1), W.addDays(start,43)), vis=list.filter(o=>o.cal.visible!==false), an=W.analyse(list), t=todayStr();
   $("calTitle").textContent = dateObj(first).toLocaleDateString("en-GB",{month:"long",year:"numeric"});
+  if (!monthSel || monthSel.slice(0,7)!==first.slice(0,7)) monthSel = t.slice(0,7)===first.slice(0,7) ? t : first;
   let weeks=0; for (let i=0;i<42;i+=7){ if (i>=28 && +W.addDays(start,i).slice(5,7)!==m) break; weeks++; }
   $("calTop").innerHTML = `<div class="mo-head">${WEEKDAYS.map(w=>`<span>${w[1]}</span>`).join("")}</div>`;
-  const body=$("calBody"), cellH=Math.max(96, (body.clientHeight-8-(weeks-1)*3)/weeks), lines=Math.max(2, Math.floor((cellH-24)/12));
   const flagDays = new Set(an.clashes.map(c=>c.date).concat(an.shortSleep.map(s=>s.date)).filter(x=>x>=t));
   let html="";
   for (let i=0;i<weeks*7;i++){
     const day=W.addDays(start,i), out=+day.slice(5,7)!==m, d0=W.dnum(day)*DAY, posts=groupPosts(postsFor(day,list));
-    const evs=vis.filter(o=>o.kind!=="sleep" && o.kind!=="post" && o.kind!=="prayer" && !ROUTINE(o) && (o.allDay ? o.date===day : (o.start>=d0 && o.start<d0+DAY))).sort((a,b)=>a.start-b.start);
-    const rows=evs.map(o=>`<span class="ev" style="--c:${colorOf(o)}">${o.allDay?"":`<u>${tShort(o.start)}</u>`}${esc(o.ev.title)}</span>`)
-      .concat(posts.map(p=>`<span class="ev post ${p.status.scheduled?"done":""}" style="--c:${postColor(p)}">${p.status.scheduled?"✓ ":"○ "}${esc(p.title)}</span>`));
-    const shown = rows.length>lines ? rows.slice(0,lines-1) : rows;
-    html+=`<button class="mc ${out?"out":""} ${day===t?"today":""} ${day<t?"past":""}" data-mday="${day}" style="height:${cellH}px"><span class="d num">${+day.slice(8)}</span>${flagDays.has(day)?`<i class="rd"></i>`:""}
-      <span class="evs">${shown.join("")}${rows.length>shown.length?`<span class="mo-more">+${rows.length-shown.length} more</span>`:""}</span></button>`;
+    const evs=vis.filter(o=>o.kind!=="sleep" && o.kind!=="post" && o.kind!=="prayer" && !ROUTINE(o) && (o.allDay ? o.date===day : (o.start>=d0 && o.start<d0+DAY)));
+    const cols=[...new Set(evs.map(o=>colorOf(o)))].slice(0,3);
+    const todo=posts.filter(p=>!p.status.scheduled).length;
+    html+=`<button class="mc2 ${out?"out":""} ${day===t?"today":""} ${day<t?"past":""} ${day===monthSel?"sel":""}" data-mday="${day}"><span class="d num">${+day.slice(8)}</span>
+      <span class="dots">${cols.map(c=>`<i style="background:${c}"></i>`).join("")}${posts.length?`<u class="${todo?"ptodo":"pok"}">${todo?"○":"✓"}</u>`:""}</span>${flagDays.has(day)?`<i class="rd"></i>`:""}</button>`;
   }
-  const alerts=alertsFrom(an, first, null, W.addDays(first,30)).filter(a=>a.date.slice(0,7)===first.slice(0,7));
-  body.innerHTML = `<div class="mo fit">${html}</div><div class="mo-key">○ not scheduled · ✓ scheduled</div>${warnsHtml(alerts).replace('class="warns"','class="warns pad"')}`;
-  body.querySelectorAll("[data-mday]").forEach(b=>b.onclick=()=>openDaySheet(b.dataset.mday));
-  wire(body);
+  const body=$("calBody");
+  body.innerHTML = `<div class="mo2">${html}</div><div class="mo-key"><i class="kd"></i> something on &nbsp; <u class="ptodo">○</u> post to do &nbsp; <u class="pok">✓</u> posts scheduled</div><div class="mosel" id="moSel"></div>`;
+  const showSel=()=>{ postIndex={}; $("moSel").innerHTML=monthSelHtml(monthSel,list,an); wire($("moSel"));
+    $("msOpen").onclick=()=>openDay(monthSel); $("msAdd").onclick=()=>openAdd(monthSel); };
+  body.querySelectorAll("[data-mday]").forEach(b=>b.onclick=()=>{ monthSel=b.dataset.mday; body.querySelectorAll(".mc2.sel").forEach(x=>x.classList.remove("sel")); b.classList.add("sel"); showSel(); });
+  showSel();
 }
 function openDaySheet(day){
   const list=occs(W.addDays(day,-1), W.addDays(day,1)), an=W.analyse(list); postIndex={};
@@ -1768,16 +1813,15 @@ async function openWidget(){
       <li>On your Home Screen, press and hold, tap <b>Edit</b>, <b>Add Widget</b>, choose <b>Scriptable</b> (medium size is best), then tap the widget and pick <b>WhatsWork</b>.</li>
     </ol>
     <h2 style="margin-top:6px">🎤 Voice button</h2>
-    <p class="small muted" style="margin:0">A Home Screen button that listens and puts things straight into your calendar — it can also take classes out ("remove my classes tomorrow"). It uses the same key as your Sleep buttons (My week → Sleep buttons).</p>
-    <div class="fl"><span class="label">Web address</span><div class="line"><code class="field small" style="overflow-wrap:anywhere">${esc(SUPABASE_URL+"/functions/v1/"+WORKER)}</code><button class="ib" data-copy="${esc(SUPABASE_URL+"/functions/v1/"+WORKER)}" aria-label="Copy address">${icon("copy")}</button></div></div>
+    <p class="small muted" style="margin:0">A mic on your Home Screen. Tap it, say it ("meeting with Sam Monday 3 pm", "remove my classes tomorrow") and it goes into your calendar.</p>
+    <button class="btn" id="mCopy">${icon("copy")} Copy the voice button code</button>
     <ol class="small" style="margin:0;padding-left:18px;display:grid;gap:6px">
-      <li>Shortcuts, <b>+</b>, add <b>Dictate Text</b>.</li>
-      <li>Add <b>Get Contents of URL</b> and paste the web address. Tap <b>›</b>: Method <b>POST</b>. Headers: Key <b>x-health-token</b>, Text = your sleep key.</li>
-      <li>Request Body <b>JSON</b>: a Text field with Key <b>action</b> and Text <b>voice_text</b>, and a second Text field with Key <b>text</b> — for its value tap the variable <b>Dictated Text</b>.</li>
-      <li>Add <b>Show Notification</b> with <b>Contents of URL</b>. Name it <b>Tell WhatsWork</b> and add it to your Home Screen.</li>
+      <li>Open Scriptable, tap <b>+</b>, paste, and name it <b>Tell WhatsWork</b>.</li>
+      <li>In the second line, replace <b>PASTE-YOUR-SLEEP-KEY</b> with your sleep key (it's inside your "Going to sleep" Shortcut, under Headers).</li>
+      <li>Add a small <b>Scriptable</b> widget to your Home Screen and pick <b>Tell WhatsWork</b>.</li>
     </ol>
     <button class="btn ghost" data-close>Done</button>`);
-  $("sheetRoot").querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{ try{ await navigator.clipboard.writeText(b.dataset.copy); toast("Copied"); }catch{ toast("Press and hold the text to copy it"); } });
+  $("mCopy").onclick=async()=>{ const code=MIC_CODE.replace("__URL__",SUPABASE_URL+"/functions/v1/"+WORKER); try{ await navigator.clipboard.writeText(code); toast("Copied. Now paste it in Scriptable"); }catch{ sheet(`<h2>Copy this</h2><textarea class="field" style="height:50vh;font-size:11px">${esc(code)}</textarea><button class="btn ghost" data-close>Done</button>`); } };
   $("wMake").onclick=async()=>{
     const bytes=new Uint8Array(24); crypto.getRandomValues(bytes);
     const key="wg_"+[...bytes].map(x=>x.toString(16).padStart(2,"0")).join("");
@@ -1787,6 +1831,40 @@ async function openWidget(){
     $("wCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(code); toast("Copied. Now paste it in Scriptable"); }catch{ sheet(`<h2>Copy this</h2><textarea class="field" style="height:50vh;font-size:11px">${esc(code)}</textarea><button class="btn ghost" data-close>Done</button>`); } };
   };
 }
+const MIC_CODE = `// WhatsWork voice button for Scriptable
+const KEY = "PASTE-YOUR-SLEEP-KEY";
+const URL_ = "__URL__";
+if (config.runsInWidget) {
+  const w = new ListWidget();
+  w.backgroundColor = new Color("#1b2550");
+  w.url = "scriptable:///run/" + encodeURIComponent(Script.name());
+  w.addSpacer();
+  const row = w.addStack(); row.addSpacer();
+  const img = row.addImage(SFSymbol.named("mic.fill").image);
+  img.imageSize = new Size(46, 46); img.tintColor = Color.white();
+  row.addSpacer();
+  w.addSpacer(8);
+  const t = w.addText("Tell WhatsWork");
+  t.font = Font.boldSystemFont(13); t.textColor = Color.white(); t.centerAlignText();
+  w.addSpacer();
+  Script.setWidget(w);
+} else {
+  let said = "";
+  try { said = await Dictation.start(); } catch (e) { said = ""; }
+  if (said && said.trim().length > 1) {
+    let msg;
+    try {
+      const r = new Request(URL_); r.method = "POST";
+      r.headers = { "Content-Type": "application/json", "x-health-token": KEY };
+      r.body = JSON.stringify({ action: "voice_text", text: said });
+      const j = await r.loadJSON();
+      msg = j.message || j.error || "Done";
+    } catch (e) { msg = "No connection. Try again."; }
+    const a = new Alert(); a.title = "WhatsWork"; a.message = msg; a.addAction("OK");
+    await a.present();
+  }
+}
+Script.complete();`;
 const WIDGET_CODE = `// WhatsWork widget for Scriptable
 const KEY = "__KEY__";
 const URL_ = "__URL__";
