@@ -1850,7 +1850,7 @@ if (config.runsInWidget) {
   Script.setWidget(w);
 } else {
   let said = "";
-  try { said = await Dictation.start(); } catch (e) { said = ""; }
+  try { said = await Dictation.start("en-US"); } catch (e) { said = ""; }
   if (said && said.trim().length > 1) {
     let msg;
     try {
