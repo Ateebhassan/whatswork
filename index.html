@@ -579,6 +579,34 @@ u.pok{color:var(--ok)} u.ptodo{color:#d97706}
 .wl.done{color:var(--muted)}
 .wposts{border-top:1px solid var(--line)}
 .wbox{border-radius:18px;padding:10px 11px}
+/* life */
+.card.trip{width:100%;text-align:left;gap:5px;border-left:4px solid var(--brand)}
+.trow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tbar{display:block;height:8px;border-radius:5px;background:var(--sunk);overflow:hidden}.tbar i{display:block;height:100%;background:var(--brand);border-radius:5px}
+.tbar.big{height:12px;margin-top:6px}
+.card.payc{display:flex;align-items:center;justify-content:space-between;gap:10px;border-left:4px solid var(--warn)}
+.card.payc span{display:grid}
+.hl{display:grid;grid-template-columns:68px 1fr;gap:8px;align-items:start;padding:7px 0;border-top:1px solid var(--line);text-decoration:none;color:inherit;font-weight:600;font-size:13.5px;line-height:1.3}
+.hl:first-child{border-top:0}
+.tagc{font-size:10.5px;font-weight:800;color:var(--brand);background:var(--brand-soft);border-radius:6px;padding:2px 6px;text-align:center;align-self:start}
+.bh{display:flex;align-items:flex-end;gap:2px;height:70px}
+.bh i{flex:1;background:var(--line);border-radius:3px 3px 0 0;min-width:0}.bh i.top{background:var(--brand)}
+.bhx{display:flex;justify-content:space-between;font-size:10.5px;font-weight:700;color:var(--muted)}
+.goal .gl{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center}
+.goal .gt{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);font-weight:900;color:var(--on-brand)}
+.goal.mv .gt{background:var(--ok);border-color:var(--ok)}
+.goal .gb{text-align:left;display:grid;gap:1px;min-width:0}.goal .gb b{font-size:15px}
+.idea{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.idea:first-child{border-top:0}.idea span{display:grid;min-width:0}.idea b{font-size:14px}
+.tday{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;width:100%;text-align:left;padding:8px 6px;border-top:1px solid var(--line)}
+.tday.on{background:var(--brand-soft);border-radius:12px;border-top-color:transparent}
+.tday.past{opacity:.55}
+.tday .dd{display:grid;justify-items:center}.tday .dd small{font-size:16px;font-weight:800;font-family:var(--display)}
+.tday .t{display:grid;gap:1px;min-width:0}.tday .sh{color:var(--brand);font-weight:700}
+.pack{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.pack button{font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:999px;background:var(--sunk)}
+.pack button.done{background:var(--ok-soft);color:var(--ok)}
+#tSpeak{align-self:center;white-space:nowrap}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -627,7 +655,7 @@ u.pok{color:var(--ok)} u.ptodo{color:#d97706}
 <!-- APP -->
 <div id="app" class="hidden">
   <section class="screen" id="sToday">
-    <div class="head"><div><div class="eyebrow" id="tEyebrow"></div><h1 id="tTitle">Today</h1></div></div>
+    <div class="head"><div><div class="eyebrow" id="tEyebrow"></div><h1 id="tTitle">Today</h1></div><button class="btn soft sm" id="tSpeak" aria-label="Read my day aloud">🔊 Read my day</button></div>
     <div class="scroll" id="todayBody"></div>
   </section>
 
@@ -647,6 +675,7 @@ u.pok{color:var(--ok)} u.ptodo{color:#d97706}
 
   <section class="screen hidden" id="sReview">
     <div class="head"><div><div class="eyebrow" id="wkEyebrow"></div><h1>My week</h1></div><button class="btn soft sm" id="rNow">✨ AI tips</button></div>
+    <div class="seg wide4" id="lifeSeg" style="margin:0 max(14px,env(safe-area-inset-right)) 4px max(14px,env(safe-area-inset-left))"><button data-l="week">Week</button><button data-l="goals">Goals</button><button data-l="ideas">Ideas</button><button data-l="trips">Trips</button></div>
     <div class="scroll" id="reviewBody"></div>
   </section>
 
@@ -773,6 +802,10 @@ const api = window.WW_TEST_API || {
   testPush(){ return sb.functions.invoke(WORKER,{body:{action:"test_push"}}); },
   async loadPlannerMain(){ const r=await sb.from("planner_docs").select("json").eq("user_id",me.id).eq("name","main").maybeSingle(); return {data:r.data?.json||null, error:r.error}; },
   savePlannerMain(json){ return sb.rpc("planner_save",{p_name:"main",p_json:json}); },
+  loadLife(){ return sb.from("life_docs").select("name,json").eq("user_id",me.id); },
+  saveLife(name,obj){ return sb.from("life_docs").upsert({user_id:me.id,name,json:JSON.stringify(obj),updated_at:new Date().toISOString()},{onConflict:"user_id,name"}); },
+  setMicToken(hash){ return sb.rpc("ww_set_mic_token",{p_hash:hash}); },
+  headlines(){ return sb.functions.invoke(WORKER,{body:{action:"headlines"}}); },
   parseText(text, today, now){ return sb.functions.invoke(WORKER,{body:{action:"parse_text", text, today, now}}); },
   voiceAI(audio, mime, today, now){ return sb.functions.invoke(WORKER,{body:{action:"voice_add", audio, mime, today, now}}); },
   quickAI(text, today, now){ return sb.functions.invoke(WORKER,{body:{action:"quick_add", text, today, now}}); },
@@ -818,8 +851,15 @@ async function loadHealth(){
   try { const h = await api.loadHealth(); healthMissing = !!h.missing; if (!h.missing) { health=h.health||[]; screenWeeks=h.weeks||[]; reviews=h.reviews||[]; } }
   catch { healthMissing = true; }
 }
+let life={goals:[],ideas:[],trips:[],money:{items:[],paid:{}}};
+async function loadLife(){
+  try { const {data}=await api.loadLife(); const L={goals:[],ideas:[],trips:[],money:{items:[],paid:{}}};
+    (data||[]).forEach(r=>{ try{ const j=JSON.parse(r.json); if(r.name==="money") L.money={items:j.items||[],paid:j.paid||{}}; else if(L[r.name]) L[r.name]=Array.isArray(j)?j:(j.items||[]); }catch{} });
+    life=L; } catch { /* the life table isn't there yet */ }
+}
+async function saveLife(name){ const {error}=await api.saveLife(name, name==="money"?life.money:life[name]); if(error) toast("Couldn't save: "+error.message); return !error; }
 async function reload(){
-  const [d] = await Promise.all([api.loadAll(), loadHealth()]);
+  const [d] = await Promise.all([api.loadAll(), loadHealth(), loadLife()]);
   if (d.error) { if (d.missing) return showSetup(); return toast("Couldn't load: "+(d.error.message||d.error)); }
   applyData(d); render();
 }
@@ -1052,6 +1092,7 @@ function renderToday(){
         <div class="prog"><i style="width:${Math.min(100,Math.max(2,(nm-nowO.start)/(nowO.end-nowO.start)*100)).toFixed(1)}%"></i></div>`
         : `<div><div class="lbl">Now</div><div class="big">Free time</div><div class="meta">${nextAll[0]?`${dur(nextAll[0].start-nm)} until ${esc(nextAll[0].ev.title)}`:"Nothing else planned"}</div></div>`}
     </div>
+    ${lifeTodayHtml(t,list)}
     <div class="sec"><h2>Next up</h2></div>
     <div class="card nxlist">${nextHtml || `<div class="empty">Nothing coming up.</div>`}</div>
     <div class="sec"><h2>Upcoming</h2></div>
@@ -1063,6 +1104,8 @@ function renderToday(){
       <button class="tile ${todo.length?"warn":"good"}" id="tPosts"><span class="k">Posts today</span><span class="v num">${pToday.length?`${pToday.length-todo.length}/${pToday.length}`:"0"}</span><span class="s">${pToday.length?(todo.length?todo.length+" to schedule":"All scheduled"):"None due"}${weekTodo?` · ${weekTodo} this week`:""}</span></button>
       <button class="tile" id="tWeek"><span class="k">This week</span><span class="v">See my week</span><span class="s">hours, sleep and posts</span></button>
     </div>
+    <div class="sec"><h2>World in 5 lines</h2></div>
+    <div class="card" id="hlCard">${headlinesHtml()}</div>
     <div class="sec"><h2>Your 24 hours</h2><div class="seg" id="dMode"><button data-m="day" class="${donutMode==="day"?"on":""}">Today</button><button data-m="week" class="${donutMode==="week"?"on":""}">This week</button></div></div>
     <div class="card">${donutCardHtml(t)}</div>
     <div class="sec" id="postsSec"><h2>Posts today</h2></div>
@@ -1072,6 +1115,7 @@ function renderToday(){
   const body=$("todayBody"); wire(body);
   $("upSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{ upRange=b.dataset.r; store.set("upRange",upRange); renderToday(); });
   $("tWeek").onclick=()=>showTab("review");
+  wireLifeToday(); loadHeadlines();
   $("tPosts").onclick=()=>$("postsSec").scrollIntoView({behavior:"smooth",block:"start"});
   $("dMode").querySelectorAll("button").forEach(b=>b.onclick=()=>{ donutMode=b.dataset.m; store.set("donut",donutMode); renderToday(); });
 }
@@ -1424,6 +1468,8 @@ function openAdd(date){
   const go = async()=>{
     const text=$("qText").value.trim(); if(!text) return toast("Say or type what you want to add");
     const btn=$("qGo"); btn.disabled=true; btn.textContent="Reading…";
+    const im=text.match(/^ideas?\s*[:\-–,]?\s+(.{3,})/i);
+    if (im) { await addIdea(im[1]); closeSheet(); return toast("Saved to your ideas 💡"); }
     const nm=nowMin()%DAY, local = W.parseQuick(text, cals, todayStr(), nm);
     if (aiOn && /\b(remove|cancel|skip|delete|clear|day off|off tomorrow|off today)\b/i.test(text)) {
       try { const {data,error}=await api.parseText(text, todayStr(), hm(nm));
@@ -1482,6 +1528,9 @@ function matchOccs(what, d){
 }
 function handleActions(data){
   const nm=nowMin()%DAY;
+  const newIdeas=(data.ideas||[]).filter(x=>typeof x==="string" && x.trim().length>2);
+  if (newIdeas.length) { newIdeas.forEach(x=>life.ideas.unshift({id:"i"+Date.now()+Math.random().toString(36).slice(2,6), text:x.trim(), at:new Date().toISOString()})); saveLife("ideas"); toast(newIdeas.length>1?`Saved ${newIdeas.length} ideas 💡`:"Saved to your ideas 💡");
+    if (!(data.add||data.entries||[]).length && !(data.remove||[]).length && !(data.day_off||[]).length) { closeSheet(); return; } }
   const adds=(data.add||data.entries||[]).map(a=>fromAI(a, W.parseQuick(a.title||"", cals, todayStr(), nm)));
   let rem=[];
   (data.remove||[]).forEach(r=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(r?.date||"")) rem=rem.concat(matchOccs(r.what, r.date)); });
@@ -1706,6 +1755,9 @@ function comingHtml(t){
   return `<div class="wls" style="gap:6px">${out.slice(0,9).map(x=>`<span class="wl"><u>${x.d===t?"Today":fmtDay(x.d,{day:"numeric",month:"short"})}</u>${x.it.size==="major"?"⭐ ":""}${esc(x.it.title)}</span>`).join("")}</div>`;
 }
 function renderReview(){
+  $("lifeSeg").querySelectorAll("button").forEach(b=>{ b.classList.toggle("on", b.dataset.l===lifeTab); b.onclick=()=>{ lifeTab=b.dataset.l; store.set("lifeTab",lifeTab); renderReview(); $("reviewBody").scrollTop=0; }; });
+  $("rNow").classList.toggle("hidden", lifeTab!=="week");
+  if (lifeTab!=="week") return renderLife();
   const t=todayStr(), mon=mondayOf(t), sun=W.addDays(mon,6);
   $("wkEyebrow").textContent = fmtDay(mon,{day:"numeric",month:"short"})+" – "+fmtDay(sun,{day:"numeric",month:"short"});
   const rows=weekTypeHours(mon), max=Math.max(1,...rows.map(r=>r.minutes));
@@ -1722,6 +1774,7 @@ function renderReview(){
     ${hoursCardHtml()}
     <div class="card"><h3>Sleep <span class="small muted">last 7 nights</span></h3>${sleepChartHtml()}
       <div class="actions"><button class="btn soft sm" id="hAdd">Add last night</button><button class="btn ghost sm" id="hShortcut">${icon("phone")} Sleep buttons</button></div></div>
+    <div class="card"><h3>Your best hours <span class="small muted">free and rested</span></h3>${bestHoursHtml()}</div>
     <div class="card"><h3>✨ AI tips</h3>${latest&&latest.items?.length?reviewHtml(latest,false):`<p class="small muted" style="margin:0">${aiOn?"Tap <b>AI tips</b> at the top and your AI looks at this week and gives you a few short tips.":"Turn on AI in Settings, then tap <b>AI tips</b> at the top for a few short tips about your week."}</p>`}</div>
     <div class="card"><h3>Screen time</h3>${screenChartHtml()}<div class="actions"><button class="btn soft sm" id="hScreen">Add last week's average</button></div></div>`;
   $("hAdd").onclick=()=>openSleepEntry(todayStr());
@@ -1813,15 +1866,22 @@ async function openWidget(){
       <li>On your Home Screen, press and hold, tap <b>Edit</b>, <b>Add Widget</b>, choose <b>Scriptable</b> (medium size is best), then tap the widget and pick <b>WhatsWork</b>.</li>
     </ol>
     <h2 style="margin-top:6px">🎤 Voice button</h2>
-    <p class="small muted" style="margin:0">A mic on your Home Screen. Tap it, say it ("meeting with Sam Monday 3 pm", "remove my classes tomorrow") and it goes into your calendar.</p>
-    <button class="btn" id="mCopy">${icon("copy")} Copy the voice button code</button>
+    <p class="small muted" style="margin:0">A mic on your Home Screen. Tap it, tap the 🎤 on your keyboard, say it ("meeting with Sam Monday 3 pm", "remove my classes tomorrow", "idea: …") and press Send.</p>
+    <div id="mBox"><button class="btn" id="mMake">Make my voice button</button></div>
     <ol class="small" style="margin:0;padding-left:18px;display:grid;gap:6px">
-      <li>Open Scriptable, tap <b>+</b>, paste, and name it <b>Tell WhatsWork</b>.</li>
-      <li>In the second line, replace <b>PASTE-YOUR-SLEEP-KEY</b> with your sleep key (it's inside your "Going to sleep" Shortcut, under Headers).</li>
-      <li>Add a small <b>Scriptable</b> widget to your Home Screen and pick <b>Tell WhatsWork</b>.</li>
+      <li>Tap <b>Make my voice button</b>, then <b>Copy the code</b>.</li>
+      <li>In Scriptable, open <b>Tell WhatsWork</b>, select all, and paste over the old code (or tap <b>+</b> for a new one with that name).</li>
+      <li>Keep (or add) the small Scriptable widget that points to <b>Tell WhatsWork</b>.</li>
     </ol>
     <button class="btn ghost" data-close>Done</button>`);
-  $("mCopy").onclick=async()=>{ const code=MIC_CODE.replace("__URL__",SUPABASE_URL+"/functions/v1/"+WORKER); try{ await navigator.clipboard.writeText(code); toast("Copied. Now paste it in Scriptable"); }catch{ sheet(`<h2>Copy this</h2><textarea class="field" style="height:50vh;font-size:11px">${esc(code)}</textarea><button class="btn ghost" data-close>Done</button>`); } };
+  $("mMake").onclick=async()=>{
+    const bytes=new Uint8Array(24); crypto.getRandomValues(bytes);
+    const key="wm_"+[...bytes].map(x=>x.toString(16).padStart(2,"0")).join("");
+    const {error}=await api.setMicToken(await sha256hex(key)); if(error) return toast(error.message);
+    const code=MIC_CODE.replace("__KEY__",key).replace("__URL__",SUPABASE_URL+"/functions/v1/"+WORKER);
+    $("mBox").innerHTML=`<button class="btn" id="mCopy">${icon("copy")} Copy the code</button>`;
+    $("mCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(code); toast("Copied. Now paste it in Scriptable"); }catch{ sheet(`<h2>Copy this</h2><textarea class="field" style="height:50vh;font-size:11px">${esc(code)}</textarea><button class="btn ghost" data-close>Done</button>`); } };
+  };
   $("wMake").onclick=async()=>{
     const bytes=new Uint8Array(24); crypto.getRandomValues(bytes);
     const key="wg_"+[...bytes].map(x=>x.toString(16).padStart(2,"0")).join("");
@@ -1832,7 +1892,7 @@ async function openWidget(){
   };
 }
 const MIC_CODE = `// WhatsWork voice button for Scriptable
-const KEY = "PASTE-YOUR-SLEEP-KEY";
+const KEY = "__KEY__";
 const URL_ = "__URL__";
 if (config.runsInWidget) {
   const w = new ListWidget();
@@ -1849,19 +1909,25 @@ if (config.runsInWidget) {
   w.addSpacer();
   Script.setWidget(w);
 } else {
-  let said = "";
-  try { said = await Dictation.start("en-US"); } catch (e) { said = ""; }
+  const ask = new Alert();
+  ask.title = "Tell WhatsWork";
+  ask.message = "Tap the mic on your keyboard and say it, or type.";
+  ask.addTextField("meeting with Sam Monday 3 pm", "");
+  ask.addAction("Send");
+  ask.addCancelAction("Cancel");
+  const pick = await ask.presentAlert();
+  const said = pick === 0 ? ask.textFieldValue(0) : "";
   if (said && said.trim().length > 1) {
     let msg;
     try {
-      const r = new Request(URL_); r.method = "POST";
-      r.headers = { "Content-Type": "application/json", "x-health-token": KEY };
-      r.body = JSON.stringify({ action: "voice_text", text: said });
+      const r = new Request(URL_); r.method = "POST"; r.timeoutInterval = 40;
+      r.headers = { "Content-Type": "application/json" };
+      r.body = JSON.stringify({ action: "voice_text", key: KEY, text: said });
       const j = await r.loadJSON();
       msg = j.message || j.error || "Done";
     } catch (e) { msg = "No connection. Try again."; }
     const a = new Alert(); a.title = "WhatsWork"; a.message = msg; a.addAction("OK");
-    await a.present();
+    await a.presentAlert();
   }
 }
 Script.complete();`;
@@ -2106,11 +2172,205 @@ function closePlanner(){ $("plannerView").classList.add("hidden"); if (started) 
 $("pvBack").onclick=()=>{ if(history.state?.planner) history.back(); else closePlanner(); };
 window.addEventListener("popstate",()=>{ if(!$("plannerView").classList.contains("hidden")) closePlanner(); });
 
+/* ---------- LIFE: goals, ideas, trips, money dates, headlines, best hours, read aloud ---------- */
+let lifeTab=store.get("lifeTab","week"), headlines=store.get("hl",{at:0,items:[]});
+const rid = p => p+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const monthName = ym => dateObj(ym+"-01").toLocaleDateString("en-GB",{month:"long"});
+const money = n => "Rs "+Math.round(n).toLocaleString("en-PK");
+/* money dates */
+function dueMoney(t){
+  const ym=t.slice(0,7), day=+t.slice(8);
+  return (life.money.items||[]).map(it=>({it, key:it.id+"@"+ym, paid:!!life.money.paid[it.id+"@"+ym], due:day>=it.day, soon:day<it.day && it.day-day<=2}));
+}
+async function markPaid(key, quiet){
+  if (!(life.money.items||[]).length) await loadLife();
+  const id=key.split("@")[0], it=(life.money.items||[]).find(x=>x.id===id); if(!it) return toast("I couldn't find that reminder");
+  life.money.paid[key]=todayStr(); if(await saveLife("money")) toast(`${it.title}: marked paid ✓`); closeSheet(); render();
+}
+async function openPaid(key){
+  if (!(life.money.items||[]).length) await loadLife();
+  const [id,ym]=key.split("@"), it=(life.money.items||[]).find(x=>x.id===id); if(!it) return;
+  if (life.money.paid[key]) return toast(`${it.title} for ${monthName(ym)} is already marked paid ✓`);
+  sheet(`<h2>💰 ${esc(it.title)}</h2><p class="muted" style="margin:0">For ${esc(monthName(ym))}, due on the ${it.day}th. Have you paid it?</p>
+    <div class="actions"><button class="btn" id="mpYes">Yes, mark as paid</button><button class="btn ghost" data-close>Not yet</button></div>`);
+  $("mpYes").onclick=()=>markPaid(key);
+}
+/* trips */
+const tripOn = t => (life.trips||[]).find(x=>x.start<=t && x.end>=t) || (life.trips||[]).find(x=>x.start>t && x.start<=W.addDays(t,3));
+const tripSpent = tr => (tr.spend||[]).reduce((a,x)=>a+(+x.amount||0),0);
+function shiftOn(d, list){ const d0=W.dnum(d)*DAY; return W.timed(list).find(o=>o.kind==="shift" && o.start>=d0 && o.start<d0+DAY); }
+function lifeTodayHtml(t, list){
+  let h="";
+  const tr=tripOn(t);
+  if (tr){
+    const n=Math.round((dateObj(tr.end)-dateObj(tr.start))/864e5)+1, i=Math.round((dateObj(t)-dateObj(tr.start))/864e5)+1, stop=(tr.stops||[]).find(x=>x.date===t), sh=shiftOn(t,list), sp=tripSpent(tr);
+    h+=`<button class="card trip" id="tTrip" data-trip="${esc(tr.id)}"><span class="trow"><b>🧳 ${esc(tr.title)}</b><span class="pill">${i>=1?`Day ${i} of ${n}`:"Starts "+esc(relDay(tr.start))}</span></span>
+      ${stop?`<span class="small">${esc(stop.place)}</span>`:""}
+      <span class="small muted">${sh?`🌙 Shift tonight ${tShort(sh.start)}${stop?.stay?" from "+esc(stop.stay):""}`:"No shift tonight"}${tr.budget?` · ${money(Math.max(0,tr.budget-sp))} left`:""}</span>
+      ${tr.budget?`<span class="tbar"><i style="width:${Math.min(100,sp/tr.budget*100).toFixed(1)}%;${sp>tr.budget?"background:var(--bad)":""}"></i></span>`:""}</button>`;
+  }
+  dueMoney(t).filter(x=>!x.paid && (x.due||x.soon)).forEach(x=>{
+    h+=`<div class="card payc"><span><b>💰 ${esc(x.it.title)}</b><span class="small muted">${esc(monthName(t.slice(0,7)))} · ${x.due?(+t.slice(8)===x.it.day?"due today":"was due on the "+x.it.day+"th"):"due on the "+x.it.day+"th"}</span></span><button class="btn sm" data-paid="${esc(x.key)}">Mark paid</button></div>`; });
+  return h;
+}
+function wireLifeToday(){
+  const b=$("tTrip"); if(b) b.onclick=()=>openTrip(b.dataset.trip);
+  $("todayBody").querySelectorAll("[data-paid]").forEach(x=>x.onclick=()=>markPaid(x.dataset.paid));
+}
+/* headlines */
+function headlinesHtml(){
+  if (!headlines.items?.length) return `<div class="empty">Loading the headlines…</div>`;
+  return headlines.items.map(x=>`<a class="hl" href="${esc(x.url)}" target="_blank" rel="noopener"><span class="tagc">${esc(x.tag)}</span><span>${esc(x.title)}</span></a>`).join("");
+}
+async function loadHeadlines(){
+  if (Date.now()-headlines.at < 45*60000 && headlines.items?.length) return;
+  try { const {data,error}=await api.headlines(); if (error || !data?.items?.length) { if(!headlines.items?.length && $("hlCard")) $("hlCard").innerHTML=`<div class="empty">Couldn't load the headlines right now.</div>`; return; }
+    headlines={at:Date.now(), items:data.items.slice(0,5)}; store.set("hl",headlines); if ($("hlCard")) $("hlCard").innerHTML=headlinesHtml(); } catch {}
+}
+/* read my day aloud */
+function dayText(){
+  const t=todayStr(), nm=nowMin(), list=occs(W.addDays(t,-1),W.addDays(t,2)), vis=list.filter(o=>o.cal.visible!==false);
+  const timedV=W.timed(vis).filter(o=>o.kind!=="sleep"), d1=(W.dnum(t)+1)*DAY;
+  const nowO=timedV.find(o=>o.start<=nm && o.end>nm), next=timedV.filter(o=>o.start>nm && o.start<d1).sort((a,b)=>a.start-b.start);
+  const todo=groupPosts(postsFor(t,list)).filter(p=>!p.status.scheduled);
+  const say=m=>W.fmtTime(((m%DAY)+DAY)%DAY).replace(":00","");
+  let x=`${greeting()}${myName?", "+myName.split(" ")[0]:""}. It's ${fmtDay(t,{weekday:"long",day:"numeric",month:"long"})}. `;
+  if (nowO) x+=`Right now: ${nowO.ev.title}, until ${say(nowO.end)}. `;
+  x+= next.length ? `Coming up: ${next.slice(0,5).map(o=>`${o.ev.title} at ${say(o.start)}`).join("; ")}. ` : "Nothing else is planned today. ";
+  if (todo.length) x+=`${todo.length} post${todo.length>1?"s":""} to schedule: ${todo.slice(0,4).map(p=>p.title).join("; ")}. `;
+  const tr=tripOn(t); if (tr && tr.start<=t){ const st=(tr.stops||[]).find(s=>s.date===t); x+=`You're on the ${tr.title}${st?": "+st.place:""}. `; }
+  dueMoney(t).filter(m=>!m.paid && m.due).forEach(m=>{ x+=`${m.it.title} for ${monthName(t.slice(0,7))} is not marked paid. `; });
+  if (headlines.items?.length) x+=`In the news. ${headlines.items.map(h=>h.title).join(". ")}.`;
+  return x;
+}
+$("tSpeak").onclick=()=>{
+  if (!("speechSynthesis" in window)) return toast("This phone can't read aloud here");
+  const b=$("tSpeak");
+  if (speechSynthesis.speaking) { speechSynthesis.cancel(); b.textContent="🔊 Read my day"; return; }
+  const u=new SpeechSynthesisUtterance(dayText()); u.lang="en-GB"; u.rate=1;
+  u.onend=u.onerror=()=>{ b.textContent="🔊 Read my day"; };
+  b.textContent="⏹ Stop"; speechSynthesis.speak(u);
+};
+/* best hours: how often each hour was free and rested over the last two weeks */
+function bestHoursHtml(){
+  const t=todayStr(), from=W.addDays(t,-14), list=occs(W.addDays(from,-1),t), vis=W.timed(list.filter(o=>o.cal.visible!==false));
+  const score=new Array(24).fill(0); let logged=0;
+  for (let i=0;i<14;i++){
+    const d=W.addDays(from,i), d0=W.dnum(d)*DAY, h=health.find(x=>x.date===d && x.sleep_start && x.sleep_end);
+    let sleeps;
+    if (h){ logged++; const e=d0+W.tmin(hhmmLocal(h.sleep_end)), len=Math.round((Date.parse(h.sleep_end)-Date.parse(h.sleep_start))/60000); sleeps=[[e-len,e]]; }
+    else sleeps=vis.filter(o=>o.kind==="sleep" && o.end>d0 && o.start<d0+DAY).map(o=>[o.start,o.end]);
+    const busy=vis.filter(o=>o.kind!=="sleep" && o.end>d0 && o.start<d0+DAY).map(o=>[o.start,o.end]).concat(sleeps);
+    const wake=sleeps.length?Math.max(...sleeps.map(x=>x[1])):null;
+    for (let hr=0;hr<24;hr++){ const a=d0+hr*60, b=a+60;
+      const used=busy.reduce((m,x)=>m+Math.max(0,Math.min(b,x[1])-Math.max(a,x[0])),0);
+      if (used>=30) continue;
+      const since = wake==null?null:(a-wake+DAY*2)%DAY;
+      score[hr]+= (since!=null && since>=60 && since<=600) ? 1 : 0.5; }
+  }
+  const pct=score.map(x=>x/14); let best=0, bi=0;
+  for (let i=0;i<24;i++){ const v=pct[i]+pct[(i+1)%24]+pct[(i+2)%24]; if (v>best){ best=v; bi=i; } }
+  const lab=h=>W.fmtTime((h%24)*60).replace(":00","");
+  return `<div class="bh">${pct.map((v,i)=>`<i class="${(i-bi+24)%24<3?"top":""}" style="height:${Math.max(6,v*100).toFixed(0)}%" title="${lab(i)}"></i>`).join("")}</div>
+    <div class="bhx"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>
+    <div class="small">${best>0.6?`Your best window is usually <b>${lab(bi)} – ${lab(bi+3)}</b>. Put study or creative work there.`:"There's no clear free window yet."}</div>
+    <div class="small muted">Taller means free more often; the blue bars are your best three hours. ${logged?`Uses ${logged} night${logged>1?"s":""} of real sleep taps`:"Uses your planned sleep for now"}${logged<14?" and gets sharper as you tap Going to sleep and Woke up.":"."}</div>`;
+}
+/* the Goals, Ideas and Trips pages inside My week */
+function renderLife(){
+  const body=$("reviewBody"), wk=mondayOf(todayStr());
+  $("wkEyebrow").textContent = lifeTab==="goals"?"Goals by 25":lifeTab==="ideas"?"Idea vault":"Trips";
+  if (lifeTab==="goals"){
+    const moved=life.goals.filter(g=>g.moved===wk).length;
+    body.innerHTML=`<div class="card"><h3>Did anything move this week? <span class="small muted">${moved} of ${life.goals.length}</span></h3><div class="small muted">Tick a goal when you took even one small step on it this week.</div></div>
+      ${life.goals.map(g=>`<div class="card goal ${g.moved===wk?"mv":""}"><div class="gl"><button class="gt" data-gm="${esc(g.id)}" aria-label="Moved this week">${g.moved===wk?"✓":""}</button><button class="gb" data-ge="${esc(g.id)}"><b>${esc(g.title)}</b><span class="small muted">Next step: ${esc(g.next||"not set yet")}</span></button></div></div>`).join("") || `<div class="card"><div class="empty">No goals yet. Add your first one.</div></div>`}
+      <button class="btn soft" id="gAdd" style="margin-top:12px;width:100%">${icon("plus")} Add a goal</button>`;
+    body.querySelectorAll("[data-gm]").forEach(b=>b.onclick=async()=>{ const g=life.goals.find(x=>x.id===b.dataset.gm); g.moved = g.moved===wk?null:wk; await saveLife("goals"); renderLife(); });
+    body.querySelectorAll("[data-ge]").forEach(b=>b.onclick=()=>openGoal(b.dataset.ge));
+    $("gAdd").onclick=()=>openGoal(null);
+  } else if (lifeTab==="ideas"){
+    body.innerHTML=`<div class="card"><div class="line"><input id="idNew" class="field" placeholder="A new idea…" enterkeyhint="done"><button class="btn" id="idAdd">Save</button></div><div class="small muted">Or say “idea: …” to the mic and it lands here.</div></div>
+      ${life.ideas.length?`<div class="card">${life.ideas.map(x=>`<div class="idea"><span><b>${esc(x.text)}</b><span class="small muted">${esc(fmtDay((x.at||"").slice(0,10)||todayStr(),{day:"numeric",month:"short"}))}</span></span><button class="ib" data-idel="${esc(x.id)}" aria-label="Delete idea">✕</button></div>`).join("")}</div>`:`<div class="card"><div class="empty">Nothing here yet. Every idea you catch stays here so none of them dies.</div></div>`}`;
+    const add=async()=>{ const v=$("idNew").value.trim(); if(v.length<3) return; await addIdea(v); renderLife(); };
+    $("idAdd").onclick=add; $("idNew").onkeydown=e=>{ if(e.key==="Enter") add(); };
+    body.querySelectorAll("[data-idel]").forEach(b=>b.onclick=async()=>{ life.ideas=life.ideas.filter(x=>x.id!==b.dataset.idel); await saveLife("ideas"); renderLife(); });
+  } else {
+    const t=todayStr(), trips=[...life.trips].sort((a,b)=>b.start.localeCompare(a.start));
+    body.innerHTML=`${trips.map(tr=>{ const sp=tripSpent(tr), live=tr.start<=t&&tr.end>=t; return `<button class="card trip" data-trip="${esc(tr.id)}"><span class="trow"><b>🧳 ${esc(tr.title)}</b>${live?`<span class="pill ok">On now</span>`:tr.end<t?`<span class="pill">Done</span>`:`<span class="pill">Coming</span>`}</span>
+        <span class="small muted">${esc(fmtDay(tr.start,{day:"numeric",month:"short"}))} – ${esc(fmtDay(tr.end,{day:"numeric",month:"short"}))}${tr.budget?` · ${money(sp)} of ${money(tr.budget)}`:""}</span>
+        ${tr.budget?`<span class="tbar"><i style="width:${Math.min(100,sp/tr.budget*100).toFixed(1)}%;${sp>tr.budget?"background:var(--bad)":""}"></i></span>`:""}</button>`; }).join("") || `<div class="card"><div class="empty">No trips yet.</div></div>`}
+      <button class="btn soft" id="trAdd" style="margin-top:12px;width:100%">${icon("plus")} Plan a trip</button>`;
+    body.querySelectorAll("[data-trip]").forEach(b=>b.onclick=()=>openTrip(b.dataset.trip));
+    $("trAdd").onclick=openNewTrip;
+  }
+}
+async function addIdea(text){ life.ideas.unshift({id:rid("i"), text:String(text).trim().slice(0,400), at:new Date().toISOString()}); return saveLife("ideas"); }
+function openGoal(id){
+  const g=id?life.goals.find(x=>x.id===id):null;
+  sheet(`<h2>${g?"Goal":"New goal"}</h2>
+    <label class="fl"><span class="label">Goal</span><input id="gT" class="field" maxlength="120" value="${esc(g?.title||"")}" placeholder="Where you want to be"></label>
+    <label class="fl"><span class="label">One next step</span><input id="gN" class="field" maxlength="160" value="${esc(g?.next||"")}" placeholder="The very next small thing"></label>
+    <div class="actions"><button class="btn" id="gS">Save</button>${g?`<button class="btn danger" id="gD">Delete</button>`:""}</div>`);
+  $("gS").onclick=async()=>{ const title=$("gT").value.trim(); if(!title) return toast("Give the goal a name");
+    if (g) { g.title=title; g.next=$("gN").value.trim(); } else life.goals.push({id:rid("g"), title, next:$("gN").value.trim(), moved:null});
+    await saveLife("goals"); closeSheet(); renderLife(); };
+  if (g) $("gD").onclick=async()=>{ life.goals=life.goals.filter(x=>x.id!==g.id); await saveLife("goals"); closeSheet(); renderLife(); };
+}
+function openNewTrip(){
+  const t=todayStr();
+  sheet(`<h2>Plan a trip</h2>
+    <label class="fl"><span class="label">Where to</span><input id="nT" class="field" maxlength="80" placeholder="Murree weekend"></label>
+    <div class="grid2"><label class="fl"><span class="label">From</span><input id="nS" class="field" type="date" value="${t}"></label><label class="fl"><span class="label">To</span><input id="nE" class="field" type="date" value="${W.addDays(t,2)}"></label></div>
+    <label class="fl"><span class="label">Budget in rupees (optional)</span><input id="nB" class="field" inputmode="numeric" placeholder="50000"></label>
+    <div class="actions"><button class="btn" id="nGo">Save trip</button><button class="btn ghost" data-close>Cancel</button></div>`);
+  $("nGo").onclick=async()=>{
+    const title=$("nT").value.trim(), start=$("nS").value, end=$("nE").value; if(!title||!start||!end||end<start) return toast("Add a name and dates");
+    const stops=[]; for(let d=start; d<=end; d=W.addDays(d,1)) stops.push({date:d, place:"", stay:""});
+    const tr={id:rid("t"), title, start, end, budget:+$("nB").value.replace(/\D/g,"")||0, stops, packing:["Phone charger","Power bank","Laptop and charger","Warm jacket","Cash","CNIC","Water"].map(x=>({t:x,done:false})), spend:[]};
+    life.trips.push(tr); await saveLife("trips");
+    const cal=cals.find(c=>c.billing==="personal")||cals[0];
+    if (cal) await api.saveEvent({calendar_id:cal.id, title:"🧳 "+title, kind:"personal", date:start, start_time:null, end_time:null, repeat:start===end?"none":"daily", repeat_days:[], repeat_until:start===end?null:end, notes:null});
+    closeSheet(); await reload(); openTrip(tr.id);
+  };
+}
+function openTrip(id){
+  const tr=life.trips.find(x=>x.id===id); if(!tr) return;
+  const t=todayStr(), list=occs(W.addDays(tr.start,-1),W.addDays(tr.end,1)).filter(o=>o.cal.visible!==false), sp=tripSpent(tr), left=(tr.budget||0)-sp;
+  const save=async()=>{ await saveLife("trips"); openTrip(id); if(!$("sToday").classList.contains("hidden")) renderToday(); };
+  sheet(`<div class="line"><h2>🧳 ${esc(tr.title)}</h2><span class="small muted">${esc(fmtDay(tr.start,{day:"numeric",month:"short"}))} – ${esc(fmtDay(tr.end,{day:"numeric",month:"short"}))}</span></div>
+    <div style="max-height:66vh;overflow:auto;display:grid;gap:14px">
+    ${tr.budget?`<div><div class="trow"><b>${money(sp)} spent</b><span class="${left<0?"":"muted"}" style="${left<0?"color:var(--bad);font-weight:800":""}">${left<0?money(-left)+" over":money(left)+" left"} of ${money(tr.budget)}</span></div><span class="tbar big"><i style="width:${Math.min(100,sp/tr.budget*100).toFixed(1)}%;${left<0?"background:var(--bad)":""}"></i></span></div>`:""}
+    <div><div class="label">Days</div>${(tr.stops||[]).map((st,i)=>{ const sh=shiftOn(st.date,list); return `<button class="tday ${st.date===t?"on":""} ${st.date<t?"past":""}" data-st="${i}"><span class="dd"><b>${esc(fmtDay(st.date,{weekday:"short"}))}</b><small>${+st.date.slice(8)}</small></span><span class="t"><b>${esc(st.place||"Tap to add where you'll be")}</b>${sh?`<span class="small sh">🌙 Shift ${tShort(sh.start)}–${tShort(sh.end)}${st.stay?" · from "+esc(st.stay):" · where will you work from?"}</span>`:`<span class="small muted">No shift this night${st.stay?" · staying at "+esc(st.stay):""}</span>`}</span></button>`; }).join("")}</div>
+    <div><div class="label">Spending</div>
+      <div class="line"><input id="spW" class="field" placeholder="What" maxlength="40"><input id="spA" class="field" inputmode="numeric" placeholder="Rs" style="max-width:110px"><button class="btn" id="spAdd">Add</button></div>
+      <div class="more-add" style="justify-content:flex-start;margin-top:6px">${["Fuel","Food","Hotel","Toll","Other"].map(x=>`<button data-spq="${x}">${x}</button>`).join("")}</div>
+      ${(tr.spend||[]).length?(tr.spend||[]).map((x,i)=>`<div class="idea"><span><b>${esc(x.what)}</b><span class="small muted">${esc(fmtDay(x.date,{weekday:"short",day:"numeric"}))}</span></span><b class="num">${money(x.amount)}</b><button class="ib" data-spd="${i}" aria-label="Delete">✕</button></div>`).join(""):`<div class="small muted" style="margin-top:6px">Nothing logged yet.</div>`}</div>
+    <div><div class="label">Packing · ${(tr.packing||[]).filter(x=>x.done).length} of ${(tr.packing||[]).length}</div>
+      <div class="pack">${(tr.packing||[]).map((x,i)=>`<button class="${x.done?"done":""}" data-pk="${i}">${x.done?"✓ ":""}${esc(x.t)}</button>`).join("")}</div>
+      <div class="line" style="margin-top:6px"><input id="pkN" class="field" placeholder="Add an item" maxlength="40"><button class="btn soft" id="pkAdd">Add</button></div></div>
+    </div>
+    <div class="actions"><button class="btn ghost" data-close>Close</button><button class="btn danger" id="trDel">Delete trip</button></div>`);
+  const root=$("sheetRoot");
+  root.querySelectorAll("[data-pk]").forEach(b=>b.onclick=()=>{ const x=tr.packing[+b.dataset.pk]; x.done=!x.done; save(); });
+  $("pkAdd").onclick=()=>{ const v=$("pkN").value.trim(); if(!v) return; (tr.packing=tr.packing||[]).push({t:v,done:false}); save(); };
+  root.querySelectorAll("[data-spq]").forEach(b=>b.onclick=()=>{ $("spW").value=b.dataset.spq; $("spA").focus(); });
+  $("spAdd").onclick=()=>{ const what=$("spW").value.trim()||"Other", amount=+$("spA").value.replace(/\D/g,""); if(!amount) return toast("Type the amount"); (tr.spend=tr.spend||[]).unshift({date:t<tr.start?tr.start:t>tr.end?tr.end:t, what, amount}); save(); };
+  root.querySelectorAll("[data-spd]").forEach(b=>b.onclick=()=>{ tr.spend.splice(+b.dataset.spd,1); save(); });
+  root.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{ const st=tr.stops[+b.dataset.st];
+    sheet(`<h2>${esc(fmtDay(st.date,{weekday:"long",day:"numeric",month:"short"}))}</h2>
+      <label class="fl"><span class="label">Where you'll be</span><input id="stP" class="field" maxlength="120" value="${esc(st.place||"")}" placeholder="Balakot → Kaghan"></label>
+      <label class="fl"><span class="label">Staying or working from</span><input id="stS" class="field" maxlength="80" value="${esc(st.stay||"")}" placeholder="Hotel name"></label>
+      <div class="actions"><button class="btn" id="stGo">Save</button></div>`);
+    $("stGo").onclick=()=>{ st.place=$("stP").value.trim(); st.stay=$("stS").value.trim(); save(); }; });
+  $("trDel").onclick=async()=>{ if($("trDel").dataset.sure!=="1"){ $("trDel").dataset.sure="1"; $("trDel").textContent="Tap again to delete"; return; } life.trips=life.trips.filter(x=>x.id!==id); await saveLife("trips"); closeSheet(); render(); };
+}
+
 /* ---------- start ---------- */
 function handleLink(url){
   const u=new URL(url, location.href);
   if (u.searchParams.get("planner")) { openPlanner(); return; }
   if (u.searchParams.get("review")) { showTab("review"); return; }
+  const paid=u.searchParams.get("paid"); if (paid) { if (u.searchParams.get("done")) markPaid(paid,true); else openPaid(paid); return; }
   const d=u.searchParams.get("d"); if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) openDay(d);
 }
 (async function boot(){
@@ -2121,7 +2381,7 @@ function handleLink(url){
     me=user; $("auth").classList.add("hidden"); $("app").classList.remove("hidden");
     let d; try { d=await api.loadAll(); } catch(e){ d={error:e}; }
     if (d.error) { if (d.missing) return showSetup(); toast("Couldn't load: "+(d.error.message||d.error)); me=null; return; }
-    await loadHealth();
+    await loadHealth(); await loadLife();
     applyData(d); started=true; api.subscribe(reloadSoon);
     api.getAi().then(r=>{ const a=r?.data?.[0]; if(a) ai={...ai,...a}; aiOn=!!(a && a.enabled && a.has_key); }).catch(()=>{});
     showTab(tab);

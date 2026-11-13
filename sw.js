@@ -13,13 +13,15 @@ self.addEventListener('push', e => {
     silent: !!d.silent,
     icon: 'icon-192.png',
     badge: 'badge-96.png',
-    data: { url: d.url || './' },
+    actions: Array.isArray(d.actions) ? d.actions.slice(0, 2) : [],
+    data: { url: d.url || './', doneUrl: d.doneUrl || null },
   }));
 });
 
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  const url = new URL(e.notification.data?.url || './', self.registration.scope).href;
+  const d = e.notification.data || {};
+  const url = new URL((e.action === 'done' && d.doneUrl) || d.url || './', self.registration.scope).href;
   e.waitUntil((async () => {
     const all = await clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const c of all) {
