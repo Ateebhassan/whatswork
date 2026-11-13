@@ -1,8 +1,9 @@
 // WhatsWork background worker
 // - "cron" (every 5 min): the 9 am and 8 pm briefings, reminders before each entry, and the Sunday evening review
-// - "test_push", "quick_add", "voice_add", "review_now": called from the app by a signed-in user
-// - "health": posted by the iPhone Shortcut with an x-health-token header
-// - "widget": the Scriptable Home Screen widget, with its own key
+// - "test_push", "quick_add", "parse_text", "voice_add", "review_now": called from the app by a signed-in user
+// - "health" / "alarms": posted by iPhone Shortcuts with an x-health-token header
+// - "widget", "voice_text", "headlines": the Home Screen widget, the voice button (own keys) and the news lines
+// Deployed as a two-line loader that imports this file from the public repo at a pinned commit.
 import postgres from "npm:postgres@3.4.5";
 import webpush from "npm:web-push@3.6.7";
 import { WWCore, normaliseState, itemsOn, COLLEGES } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@49732ac/core.mjs";
@@ -241,26 +242,28 @@ async function moneyReminders() {
 
 /* World in 5 lines: two from Pakistan, two from the world, one on AI, straight from public news feeds. */
 let hlCache: { at: number; items: any[] } = { at: 0, items: [] };
-const FEEDS: [string, string, number][] = [
-  ["Pakistan", "https://www.dawn.com/feeds/home", 2],
-  ["World", "https://feeds.bbci.co.uk/news/world/rss.xml", 2],
-  ["AI", "https://news.google.com/rss/search?q=artificial+intelligence&hl=en-US&gl=US&ceid=US:en", 1],
+const FEEDS: [string, string[], number][] = [
+  ["Pakistan", ["https://www.dawn.com/feeds/home", "https://tribune.com.pk/feed/home"], 2],
+  ["World", ["https://feeds.bbci.co.uk/news/world/rss.xml", "https://www.aljazeera.com/xml/rss/all.xml"], 2],
+  ["AI", ["https://techcrunch.com/category/artificial-intelligence/feed/", "https://www.technologyreview.com/topic/artificial-intelligence/feed", "https://feeds.bbci.co.uk/news/technology/rss.xml"], 1],
 ];
 function unxml(t: string) { return t.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/\s+/g, " ").trim(); }
 async function headlines() {
   if (Date.now() - hlCache.at < 30 * 60000 && hlCache.items.length) return { items: hlCache.items };
   const out: any[] = [];
-  await Promise.all(FEEDS.map(async ([tag, url, n]) => {
-    try {
+  await Promise.all(FEEDS.map(async ([tag, urls, n]) => {
+    for (const url of urls) try {
       const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (WhatsWork headlines)" }, signal: AbortSignal.timeout(6000) });
-      if (!r.ok) return;
+      if (!r.ok) continue;
       const xml = await r.text();
       const items = [...xml.matchAll(/<item[\s>][\s\S]*?<\/item>/g)].slice(0, 8).map((m) => {
         const title = unxml((m[0].match(/<title[^>]*>([\s\S]*?)<\/title>/) || [])[1] || "");
         const link = unxml((m[0].match(/<link[^>]*>([\s\S]*?)<\/link>/) || [])[1] || "");
-        return { tag, title: tag === "AI" ? title.replace(/ - [^-]{2,40}$/, "") : title, url: link };
+        return { tag, title, url: link };
       }).filter((x) => x.title.length > 12 && /^https?:\/\//.test(x.url));
+      if (!items.length) continue;
       out.push(...items.slice(0, n));
+      break;
     } catch (e) { console.error("feed", tag, String(e)); }
   }));
   const order = ["Pakistan", "World", "AI"];
@@ -414,7 +417,7 @@ async function saveLifeDoc(uid: string, name: string, value: any) {
     on conflict (user_id, name) do update set json = excluded.json, updated_at = now()`;
 }
 async function applyActions(uid: string, out: any) {
-  const cals = (await sql`select id, name, short_name, billing, kind from public.calendars where user_id = ${uid} and not archived`) as any[];
+  const cals = (await sql`select id, name, short_name, billing, kind from public.calendars where user_id = ${uid} and not archived order by sort`) as any[];
   const msgs: string[] = [], asks: string[] = [];
   const ideas = (Array.isArray(out.ideas) ? out.ideas : []).filter((x: any) => typeof x === "string" && x.trim().length > 2).slice(0, 5);
   if (ideas.length) {
