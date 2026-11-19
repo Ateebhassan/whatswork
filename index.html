@@ -2015,8 +2015,8 @@ async function openWidget(){
       <li>Tap <b>Make my widget</b>, then <b>Copy the widget code</b>.</li>
       <li>Open Scriptable. Delete the old scripts: swipe left on <b>WhatsWork</b> and <b>Tell WhatsWork</b>, tap Delete.</li>
       <li>Tap <b>+</b>, paste, and name it <b>WhatsWork</b> (top of the screen, tap the title to rename).</li>
-      <li>On your Home Screen, remove the old small mic widget. Press and hold your wide widget, tap <b>Edit Widget</b>, and set Script to <b>WhatsWork</b>. (No wide widget yet? Add Widget, Scriptable, the medium size.)</li>
-      <li>Tap the 🎤 on the widget, tap the mic on your keyboard, say it, press <b>Send</b>. Tap anywhere else on the widget to open WhatsWork.</li>
+      <li>On your Home Screen, remove the old small mic widget. Press and hold your wide widget, tap <b>Edit Widget</b>: set Script to <b>WhatsWork</b> and <b>When Interacting</b> to <b>Run Script</b>. (No wide widget yet? Add Widget, Scriptable, the medium size.)</li>
+      <li>Tap the widget: the voice box opens. Tap the mic on your keyboard, say it, press <b>Send</b>. Or tap <b>See what's coming up</b>.</li>
     </ol>
     <button class="btn ghost" data-close>Done</button>`);
   const mk=p=>{ const bytes=new Uint8Array(24); crypto.getRandomValues(bytes); return p+[...bytes].map(x=>x.toString(16).padStart(2,"0")).join(""); };
@@ -2069,12 +2069,11 @@ if (config.runsInWidget) {
   }
 }
 Script.complete();`;
-const WIDGET_CODE = `// WhatsWork widget for Scriptable: your next activities on the left, a voice button on the right
+const WIDGET_CODE = `// WhatsWork widget for Scriptable: your next activities on the left, a voice button on the right.
+// In the widget's settings set "When Interacting" to "Run Script": a tap then opens the voice box.
 const KEY = "__KEY__";
 const MKEY = "__MKEY__";
 const URL_ = "__URL__";
-const APP = "https://ateebhassan.github.io/whatswork/";
-const q = args.queryParameters || {};
 
 async function call(body) {
   const r = new Request(URL_); r.method = "POST"; r.timeoutInterval = 40;
@@ -2083,14 +2082,25 @@ async function call(body) {
   return await r.loadJSON();
 }
 
+async function today() {
+  let data; try { data = await call({ action: "widget", key: KEY }); } catch (e) { data = { error: "No connection" }; }
+  const lines = data.error ? [data.error] : [(data.now ? "Now: " + data.now.title + " (until " + data.now.end + ")" : "Free time right now")]
+    .concat((data.next || []).map((x) => x.when + "  " + x.title));
+  if (data.posts && data.posts.total) lines.push("Posts today: " + data.posts.done + " of " + data.posts.total + " scheduled");
+  const a = new Alert(); a.title = "Coming up"; a.message = lines.join("\n"); a.addAction("OK");
+  await a.presentAlert();
+}
+
 async function voice() {
   const ask = new Alert();
   ask.title = "Tell WhatsWork";
   ask.message = "Tap the mic on your keyboard and say it, or type.";
   ask.addTextField("meeting with Sam Monday 3 pm", "");
   ask.addAction("Send");
+  ask.addAction("See what's coming up");
   ask.addCancelAction("Cancel");
   const pick = await ask.presentAlert();
+  if (pick === 1) return await today();
   const said = pick === 0 ? ask.textFieldValue(0) : "";
   if (!said || said.trim().length < 2) return;
   let msg;
@@ -2109,9 +2119,8 @@ async function build() {
   const w = new ListWidget();
   w.backgroundColor = Color.dynamic(new Color("#f4f5f9"), new Color("#141a2b"));
   w.setPadding(12, 12, 12, 12);
-  w.url = APP;
   const row = w.addStack(); row.layoutHorizontally(); row.topAlignContent();
-  const left = row.addStack(); left.layoutVertically(); left.url = APP;
+  const left = row.addStack(); left.layoutVertically();
   const title = left.addText(data.error ? "WhatsWork" : (data.now ? "Now: " + data.now.title : "Free time"));
   title.font = Font.boldSystemFont(14); title.textColor = ink; title.lineLimit = 1;
   if (data.now) { const s = left.addText("until " + data.now.end); s.font = Font.systemFont(11); s.textColor = muted; }
@@ -2134,7 +2143,6 @@ async function build() {
     row.addSpacer();
     const mic = row.addStack(); mic.layoutVertically(); mic.centerAlignContent();
     mic.size = new Size(64, 0);
-    mic.url = "scriptable:///run/" + encodeURIComponent(Script.name()) + "?mic=1";
     mic.addSpacer();
     const btn = mic.addStack(); btn.size = new Size(56, 56); btn.cornerRadius = 28; btn.backgroundColor = new Color("#3157e8"); btn.centerAlignContent();
     const img = btn.addImage(SFSymbol.named("mic.fill").image); img.imageSize = new Size(24, 24); img.tintColor = Color.white();
@@ -2146,11 +2154,10 @@ async function build() {
   return w;
 }
 
-if (q.mic === "1" && !config.runsInWidget) {
-  await voice();
+if (config.runsInWidget) {
+  Script.setWidget(await build());
 } else {
-  const w = await build();
-  if (config.runsInWidget) Script.setWidget(w); else await w.presentMedium();
+  await voice();
 }
 Script.complete();`;
 
