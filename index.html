@@ -452,9 +452,14 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
 .legend2{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;font-weight:700;color:var(--muted);padding:0 2px 4px}
 .legend2 span{display:inline-flex;align-items:center;gap:4px}.legend2 i{width:9px;height:9px;border-radius:3px}
 .nxlist{padding:4px 12px}
-.nx2{display:grid;grid-template-columns:58px 4px 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;padding:9px 0;border-top:1px solid var(--line)}
+.nx2{display:grid;grid-template-columns:96px 4px 1fr;gap:10px;align-items:center;width:100%;text-align:left;padding:9px 0;border-top:1px solid var(--line)}
 .nx2:first-child{border-top:0}
-.nx2 .when{font-size:12.5px;font-weight:800;color:var(--brand);font-variant-numeric:tabular-nums}
+.nx2 .when{display:flex;flex-direction:column;line-height:1.15;font-variant-numeric:tabular-nums}
+.nx2 .when b{font-size:14px;font-weight:800;color:var(--brand)}
+.nx2 .when small{font-size:10px;font-weight:800;color:var(--muted)}
+.nx2 .when em{font-style:normal;font-size:10px;font-weight:700;color:var(--muted)}
+.ag-it .tm .tf{display:flex;flex-direction:column;line-height:1.1}
+.ag-it .tm .tf em,.ag-it .tm .tf small{font-style:normal;font-size:9.5px;font-weight:700;color:var(--muted)}
 .nx2 i{align-self:stretch;border-radius:2px;min-height:30px}
 .nx2 .t{min-width:0}.nx2 b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nx2 small{font-size:12px;color:var(--muted)}
 .nx2 .cd{font-size:11.5px;font-weight:800;color:var(--muted);white-space:nowrap}
@@ -639,6 +644,33 @@ u.pok{color:var(--ok)} u.ptodo{color:#d97706}
 .strip i.pr{width:2px;background:#d4a017;z-index:2;top:-2px;bottom:-2px;border-radius:1px}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .tg-p span{background:#3a2f10;color:#f3cf6b;border-color:#6b5615} }
 :root[data-theme="dark"] .tg-p span{background:#3a2f10;color:#f3cf6b;border-color:#6b5615}
+.sg{display:grid;grid-template-columns:38px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.sg:first-child{border-top:0}
+.sgd{display:flex;flex-direction:column;align-items:center;line-height:1.05;background:var(--brand-soft);border-radius:9px;padding:4px 0;font-size:16px}
+.sgd b{font-size:15px;font-weight:800;color:var(--brand)} .sgd small{font-size:9.5px;font-weight:800;color:var(--brand)}
+.sgt{display:grid;gap:1px;min-width:0}.sgt b{font-size:13.5px;line-height:1.25}.sgt a{color:inherit;text-decoration:none}.sgt small{font-size:11.5px;color:var(--muted)}
+.sga{display:flex;align-items:center;gap:2px}
+/* month grid */
+.mg-head{display:grid;grid-template-columns:repeat(7,1fr);padding:0 max(4px,env(safe-area-inset-right)) 2px max(4px,env(safe-area-inset-left));text-align:center;font-size:10.5px;font-weight:800;color:var(--muted)}
+.mg-head .we{color:var(--brand)}
+.mg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(var(--rows),minmax(84px,1fr));gap:2px;padding:0 max(4px,env(safe-area-inset-right)) 0 max(4px,env(safe-area-inset-left));margin-bottom:96px;box-sizing:border-box}
+.mg-c{display:flex;flex-direction:column;align-items:stretch;gap:2px;min-width:0;overflow:hidden;text-align:left;padding:3px 2px 2px;border-radius:8px;background:var(--panel);border:1px solid var(--line);position:relative}
+.mg-c .strip{height:3px;margin:0 1px;border-radius:2px}
+.mg-c .strip i.pr{display:none}
+.mg-d{display:flex;align-items:center;justify-content:space-between;padding:0 2px}
+.mg-d b{font-size:12px;font-weight:800;line-height:1}
+.mg-d .rd{position:static;width:5px;height:5px}
+.mg-l{display:flex;flex-direction:column;gap:1px;min-height:0;overflow:hidden}
+.mi{display:block;font-size:8.2px;line-height:1.18;font-weight:600;color:var(--ink);padding:0 2px 0 3px;border-left:2px solid var(--c);overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow-wrap:break-word}
+.mi u{text-decoration:none;font-weight:800;color:var(--muted)}
+.mi.ad{background:color-mix(in srgb,var(--c) 16%,transparent);border-radius:0 3px 3px 0;font-weight:800}
+.mi.po{color:var(--muted)} .mi.po u{color:#d97706} .mi.po.ok u{color:var(--ok)}
+.mg-c.out{opacity:.35}
+.mg-c.past{background:transparent}
+.mg-c.past .mg-d b{color:var(--faint)}
+.mg-c.past .mi{opacity:.6}
+.mg-c.today{border:2px solid var(--brand);padding:2px 1px 1px}
+.mg-c.today .mg-d b{color:#fff;background:var(--brand);border-radius:6px;padding:2px 4px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -883,9 +915,9 @@ async function loadHealth(){
   try { const h = await api.loadHealth(); healthMissing = !!h.missing; if (!h.missing) { health=h.health||[]; screenWeeks=h.weeks||[]; reviews=h.reviews||[]; } }
   catch { healthMissing = true; }
 }
-let life={goals:[],ideas:[],trips:[],money:{items:[],paid:{}}};
+let life={goals:[],ideas:[],trips:[],money:{items:[],paid:{}},suggest:[]};
 async function loadLife(){
-  try { const {data}=await api.loadLife(); const L={goals:[],ideas:[],trips:[],money:{items:[],paid:{}}};
+  try { const {data}=await api.loadLife(); const L={goals:[],ideas:[],trips:[],money:{items:[],paid:{}},suggest:[]};
     (data||[]).forEach(r=>{ try{ const j=JSON.parse(r.json); if(r.name==="money") L.money={items:j.items||[],paid:j.paid||{}}; else if(L[r.name]) L[r.name]=Array.isArray(j)?j:(j.items||[]); }catch{} });
     life=L; } catch { /* the life table isn't there yet */ }
 }
@@ -919,7 +951,7 @@ $("authForm").onsubmit=async e=>{
 
 /* ---------- navigation ---------- */
 document.querySelectorAll("#nav button[data-tab]").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
-$("navAdd").onclick=()=>openAdd(tab==="cal"?(calView==="month"&&monthSel?monthSel:calDate):todayStr());
+$("navAdd").onclick=()=>openAdd(tab==="cal"?calDate:todayStr());
 function showTab(t){
   if (!["today","cal","review","settings"].includes(t)) t="today";
   tab=t; store.set("tab",t);
@@ -998,6 +1030,8 @@ function legendHtml(){
 /* ---------- small shared helpers ---------- */
 const ROUTINE = o => o.kind==="sleep" || ((o.kind==="shift"||o.kind==="university") && o.ev.repeat && o.ev.repeat!=="none");
 function dur(min){ min=Math.max(0,Math.round(min)); if(min<60) return min+" min"; const h=Math.floor(min/60), m=min%60; return h+"h"+(m?" "+m+"m":""); }
+const dayPart = m => { const h=Math.floor((((m%DAY)+DAY)%DAY)/60); return h<4?"night":h<12?"morning":h<17?"afternoon":h<21?"evening":"night"; };
+const tFull = m => { const x=((m%DAY)+DAY)%DAY, h=Math.floor(x/60), mi=x%60; return `${h%12||12}:${String(mi).padStart(2,"0")} ${h<12?"AM":"PM"}`; };
 const tShort = m => W.fmtTime(((m%DAY)+DAY)%DAY).replace(":00","").replace(" am","a").replace(" pm","p");
 function alertsFrom(an, fromDate, onlyDate, toDate){
   const t=todayStr(); if (fromDate<t) fromDate=t; if (onlyDate && onlyDate<t) return [];
@@ -1020,13 +1054,13 @@ function postStatusHtml(st){ return st.scheduled?`<span class="pill ok">✓ Sche
 function postPill(st){ return postStatusHtml(st); }
 
 /* one row in a list: a timed entry, an all-day entry, a prayer or a post */
-function rowHtml(x, nm){
+function rowHtml(x, nm, full){
   if (x.post){ const p=x.post; postIndex[p.id]=p;
     return `<button class="ag-it" data-post="${esc(p.id)}"><span class="tm">${p.cat==="birthday"?"🎂":"Post"}</span><span class="bar" style="background:${postColor(p)}"></span><span class="t"><b>${esc(p.title)}</b><span>${esc(p.calNames)}${files(p).length?` · 📎 ${files(p).length}`:""}</span></span>${postStatusHtml(p.status)}</button>`; }
   const o=x.o, d0=W.dnum(x.date)*DAY, now=!o.allDay && o.start<=nm && o.end>nm;
   if (o.kind==="prayer") return `<button class="ag-it pray" data-ev="${o.ev.id}" data-date="${o.date}"><span class="tm">${tShort(o.start)}</span><span class="bar" style="background:${colorOf(o)}"></span><span class="t"><b>🕌 ${esc(o.ev.title)}</b></span></button>`;
-  const tm = o.allDay ? "All day" : o.start<d0 ? "till "+tShort(o.end) : tShort(o.start);
-  return `<button class="ag-it ${now?"now":""}" data-ev="${o.ev.id}" data-date="${o.date}"><span class="tm">${tm}</span><span class="bar" style="background:${colorOf(o)}"></span><span class="t"><b>${esc(o.ev.title)}</b><span>${o.allDay?"":W.fmtTime(o.start)+" – "+W.fmtTime(o.end)+" · "}${esc(shortName(o.cal))}</span></span>${now?`<span class="pill ok">Now</span>`:""}</button>`;
+  const tm = o.allDay ? "All day" : full ? (o.start<d0 ? `<span class="tf"><small>till</small>${tFull(o.end)}</span>` : `<span class="tf">${tFull(o.start)}<em>${dayPart(o.start)}</em></span>`) : o.start<d0 ? "till "+tShort(o.end) : tShort(o.start);
+  return `<button class="ag-it ${now?"now":""}" data-ev="${o.ev.id}" data-date="${o.date}"><span class="tm">${tm}</span><span class="bar" style="background:${colorOf(o)}"></span><span class="t"><b>${esc(o.ev.title)}</b><span>${o.allDay?"":(full?tFull(o.start)+" – "+tFull(o.end):W.fmtTime(o.start)+" – "+W.fmtTime(o.end))+" · "}${esc(shortName(o.cal))}</span></span>${now?`<span class="pill ok">Now</span>`:""}</button>`;
 }
 /* what's on one date, in time order (sleep left out) */
 function dayRows(d, list, opts={}){
@@ -1040,7 +1074,7 @@ function dayRows(d, list, opts={}){
 }
 function agendaDayHtml(d, list, an, opts={}){
   const nm=nowMin(), {rows,posts}=dayRows(d,list,opts), t=todayStr();
-  const body = rows.map(x=>rowHtml(x,nm)).join("") + posts.map(p=>rowHtml({post:p},nm)).join("");
+  const body = rows.map(x=>rowHtml(x,nm,opts.full)).join("") + posts.map(p=>rowHtml({post:p},nm)).join("");
   if (!body && opts.hideEmpty) return "";
   return `<div class="ag-day">${opts.noHead?"":`<button class="ag-dh" data-day="${d}"><span class="dt">${esc(fmtDay(d,{weekday:"long"}))}</span><span class="muted small">${esc(fmtDay(d,{day:"numeric",month:"short"}))}</span>${d===t?`<span class="badge today">Today</span>`:d===W.addDays(t,1)?`<span class="badge">Tomorrow</span>`:""}</button>`}
     ${body || `<div class="ag-empty">Nothing planned.</div>`}</div>`;
@@ -1118,9 +1152,10 @@ function renderToday(){
   const sleepNext = W.timed(vis).filter(o=>o.kind==="sleep" && o.start>=nm-60 && o.start<nm+DAY).sort((a,b)=>a.start-b.start)[0];
   let sleepLeft=null; if (sleepNext){ const cut=an.shortSleep.find(s=>s.sleep.key===sleepNext.key); sleepLeft = cut?Math.max(0,cut.left):sleepNext.end-sleepNext.start; }
   let weekTodo=0; for(let i=0;i<7;i++) weekTodo+=groupPosts(postsFor(W.addDays(t,i),list)).filter(p=>!p.status.scheduled).length;
-  const when = o => o.start-nm<60 ? "in "+dur(o.start-nm) : o.date===todayStr() ? tShort(o.start) : (o.date===W.addDays(todayStr(),1) ? "Tmw" : relDay(o.date).slice(0,3))+" "+tShort(o.start);
-  const nextHtml = nextAll.map(o=>`<button class="nx2" data-ev="${o.ev.id}" data-date="${o.date}"><span class="when">${esc(when(o))}</span><i style="background:${colorOf(o)}"></i><span class="t"><b>${o.kind==="prayer"?"🕌 ":""}${esc(o.ev.title)}</b><small>${o.kind==="prayer"?"Prayer break":W.fmtTime(o.start)+" – "+W.fmtTime(o.end)+" · "+esc(shortName(o.cal))}</small></span><span class="cd">${o.start-nm<DAY?dur(o.start-nm):""}</span></button>`).join("");
-  let upHtml=""; for (let d=r0; d<=r1; d=W.addDays(d,1)) upHtml += agendaDayHtml(d, list, an, {skipRoutine:true, prayers:upRange==="today", hideEmpty:true, noHead:upRange==="today"});
+  const dayTag = o => { const sd=W.dstr(Math.floor(o.start/DAY)); return sd===t ? "" : sd===W.addDays(t,1) ? "Tomorrow" : relDay(sd).slice(0,3); };
+  const togo = m => m<60 ? `in ${m} min` : m<DAY ? `in ${dur(m)}` : `in ${Math.round(m/DAY)} day${Math.round(m/DAY)>1?"s":""}`;
+  const nextHtml = nextAll.map(o=>`<button class="nx2" data-ev="${o.ev.id}" data-date="${o.date}"><span class="when">${dayTag(o)?`<small>${dayTag(o)}</small>`:""}<b>${tFull(o.start)}</b><em>${dayPart(o.start)} · ${togo(o.start-nm)}</em></span><i style="background:${colorOf(o)}"></i><span class="t"><b>${o.kind==="prayer"?"🕌 ":""}${esc(o.ev.title)}</b><small>${o.kind==="prayer"?"Prayer break":tFull(o.start)+" – "+tFull(o.end)+" · "+esc(shortName(o.cal))}</small></span></button>`).join("");
+  let upHtml=""; for (let d=r0; d<=r1; d=W.addDays(d,1)) upHtml += agendaDayHtml(d, list, an, {skipRoutine:true, prayers:upRange==="today", hideEmpty:true, noHead:upRange==="today", full:true});
   $("todayBody").innerHTML = `
     <div class="hero">
       ${nowO ? `<div><div class="lbl">Now</div><div class="big">${esc(nowO.ev.title)}</div><div class="meta">ends ${W.fmtTime(nowO.end)} · ${dur(nowO.end-nm)} left</div></div>
@@ -1133,6 +1168,7 @@ function renderToday(){
     <div class="sec"><h2>Upcoming</h2></div>
     <div class="seg wide4" id="upSeg">${[["today","Today"],["week","This week"],["next","Next week"],["month","This month"]].map(([k,l])=>`<button data-r="${k}" class="${upRange===k?"on":""}">${l}</button>`).join("")}</div>
     <div class="card">${upHtml || `<div class="empty">Nothing planned${upRange==="today"?" for the rest of today":""}.</div>`}</div>
+    ${suggestHtml(t)}
     <div class="tiles">
       <div class="tile"><span class="k">Free today</span><span class="v num">${W.fmtDur(free)}</span></div>
       <div class="tile ${sleepLeft!=null&&sleepLeft<300?"bad":""}"><span class="k">Next sleep</span><span class="v num">${sleepLeft!=null?W.fmtDur(sleepLeft):"–"}</span><span class="s">${sleepNext?`${W.fmtTime(sleepNext.start)} – ${W.fmtTime(sleepNext.end)}`:"Not planned"}</span></div>
@@ -1150,7 +1186,7 @@ function renderToday(){
   const body=$("todayBody"); wire(body);
   $("upSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{ upRange=b.dataset.r; store.set("upRange",upRange); renderToday(); });
   $("tWeek").onclick=()=>showTab("review");
-  wireLifeToday(); loadHeadlines();
+  wireLifeToday(); wireSuggest(); loadHeadlines();
   $("tPosts").onclick=()=>$("postsSec").scrollIntoView({behavior:"smooth",block:"start"});
   $("dMode").querySelectorAll("button").forEach(b=>b.onclick=()=>{ donutMode=b.dataset.m; store.set("donut",donutMode); renderToday(); });
 }
@@ -1337,36 +1373,34 @@ function calScrolled(){
 }
 function updTodayBtn(){ $("calToday").classList.toggle("hidden", calView==="month" ? calDate.slice(0,7)===todayStr().slice(0,7) : calDate===todayStr()); }
 
-/* MONTH: a clean grid of dots, and the day you tap listed underneath */
-let monthSel=null;
-function monthSelHtml(day, list, an){
-  const t=todayStr(), rd=relDay(day), alerts = day>=t ? alertsFrom(an,day,day) : [];
-  return `<div class="mh"><b>${["Today","Tomorrow","Yesterday"].includes(rd)?rd+", ":""}${esc(fmtDay(day,{weekday:"short",day:"numeric",month:"short"}))}</b><span><button class="btn soft sm" id="msOpen">Open day</button> <button class="btn sm" id="msAdd" aria-label="Add on this day">${icon("plus")}</button></span></div>
-    ${agendaDayHtml(day, list, an, {noHead:true, skipRoutine:false})}${alerts.map(a=>alertHtml(a,false)).join("")}`;
-}
+/* MONTH: the whole month on one screen. Every day is a box with its events written small;
+   routines (shift, classes, sleep, prayer) show only as the thin bar at the top. Tap a day for its details. */
 function renderMonthView(){
   const d=dateObj(calDate), y=d.getFullYear(), m=d.getMonth()+1, first=`${y}-${String(m).padStart(2,"0")}-01`;
   const start=mondayOf(first), list=occs(W.addDays(start,-1), W.addDays(start,43)), vis=list.filter(o=>o.cal.visible!==false), an=W.analyse(list), t=todayStr();
   $("calTitle").textContent = dateObj(first).toLocaleDateString("en-GB",{month:"long",year:"numeric"});
-  if (!monthSel || monthSel.slice(0,7)!==first.slice(0,7)) monthSel = t.slice(0,7)===first.slice(0,7) ? t : first;
   let weeks=0; for (let i=0;i<42;i+=7){ if (i>=28 && +W.addDays(start,i).slice(5,7)!==m) break; weeks++; }
-  $("calTop").innerHTML = `<div class="mo-head">${WEEKDAYS.map(w=>`<span>${w[1]}</span>`).join("")}</div>`;
+  $("calTop").innerHTML = `<div class="mg-head">${WEEKDAYS.map(w=>`<span class="${w[0]===0||w[0]===5?"we":""}">${w[1]}</span>`).join("")}</div>`;
   const flagDays = new Set(an.clashes.map(c=>c.date).concat(an.shortSleep.map(s=>s.date)).filter(x=>x>=t));
   let html="";
   for (let i=0;i<weeks*7;i++){
-    const day=W.addDays(start,i), out=+day.slice(5,7)!==m, d0=W.dnum(day)*DAY, posts=groupPosts(postsFor(day,list));
-    const evs=vis.filter(o=>o.kind!=="sleep" && o.kind!=="post" && o.kind!=="prayer" && !ROUTINE(o) && (o.allDay ? o.date===day : (o.start>=d0 && o.start<d0+DAY)));
-    const cols=[...new Set(evs.map(o=>colorOf(o)))].slice(0,3);
-    const todo=posts.filter(p=>!p.status.scheduled).length;
-    html+=`<button class="mc2 ${out?"out":""} ${day===t?"today":""} ${day<t?"past":""} ${day===monthSel?"sel":""}" data-mday="${day}"><span class="d num">${+day.slice(8)}</span>
-      <span class="dots">${cols.map(c=>`<i style="background:${c}"></i>`).join("")}${posts.length?`<u class="${todo?"ptodo":"pok"}">${todo?"○":"✓"}</u>`:""}</span>${flagDays.has(day)?`<i class="rd"></i>`:""}</button>`;
+    const day=W.addDays(start,i), out=+day.slice(5,7)!==m, d0=W.dnum(day)*DAY;
+    const allDay=vis.filter(o=>o.allDay && o.kind!=="post" && o.date===day);
+    const evs=vis.filter(o=>!o.allDay && o.kind!=="sleep" && o.kind!=="post" && o.kind!=="prayer" && !ROUTINE(o) && o.start>=d0 && o.start<d0+DAY).sort((a,b)=>a.start-b.start);
+    const posts=groupPosts(postsFor(day,list));
+    const short = x => String(x).replace(/^Holiday:\s*/,"").replace(/^Birthday:\s*/,"").replace(/^International Day (of|for) (the )?/i,"Intl Day: ").replace(/^International /i,"Intl ").replace(/ post$/i,"");
+    const lines = allDay.map(o=>`<span class="mi ad" style="--c:${colorOf(o)}">${esc(short(o.ev.title))}</span>`)
+      .concat(evs.map(o=>`<span class="mi" style="--c:${colorOf(o)}"><u>${tShort(o.start)}</u> ${esc(short(o.ev.title))}</span>`))
+      .concat(posts.map(p=>`<span class="mi po ${p.status.scheduled?"ok":""}" style="--c:${postColor(p)}"><u>${p.cat==="birthday"?"🎂":p.status.scheduled?"✓":"○"}</u> ${esc(short(p.title))}</span>`));
+    html+=`<button class="mg-c ${out?"out":""} ${day===t?"today":""} ${day<t?"past":""}" data-mday="${day}" aria-label="${esc(fmtDay(day,{weekday:"long",day:"numeric",month:"long"}))}">
+      <span class="mg-d"><b class="num">${+day.slice(8)}</b>${flagDays.has(day)?`<i class="rd"></i>`:""}</span>
+      ${stripHtml(day,list)}
+      <span class="mg-l">${lines.join("")}</span></button>`;
   }
   const body=$("calBody");
-  body.innerHTML = `<div class="mo2">${html}</div><div class="mo-key"><i class="kd"></i> something on &nbsp; <u class="ptodo">○</u> post to do &nbsp; <u class="pok">✓</u> posts scheduled</div><div class="mosel" id="moSel"></div>`;
-  const showSel=()=>{ postIndex={}; $("moSel").innerHTML=monthSelHtml(monthSel,list,an); wire($("moSel"));
-    $("msOpen").onclick=()=>openDay(monthSel); $("msAdd").onclick=()=>openAdd(monthSel); };
-  body.querySelectorAll("[data-mday]").forEach(b=>b.onclick=()=>{ monthSel=b.dataset.mday; body.querySelectorAll(".mc2.sel").forEach(x=>x.classList.remove("sel")); b.classList.add("sel"); showSel(); });
-  showSel();
+  body.innerHTML = `<div class="mg" style="--rows:${weeks}">${html}</div>`;
+  const fit = body.clientHeight - 96; if (fit/weeks >= 84) body.querySelector(".mg").style.height = fit+"px";
+  body.querySelectorAll("[data-mday]").forEach(b=>b.onclick=()=>openDaySheet(b.dataset.mday));
 }
 function openDaySheet(day){
   const list=occs(W.addDays(day,-1), W.addDays(day,1)), an=W.analyse(list); postIndex={};
@@ -2283,6 +2317,23 @@ function lifeTodayHtml(t, list){
 function wireLifeToday(){
   const b=$("tTrip"); if(b) b.onclick=()=>openTrip(b.dataset.trip);
   $("todayBody").querySelectorAll("[data-paid]").forEach(x=>x.onclick=()=>markPaid(x.dataset.paid));
+}
+/* worth knowing: major events in Pakistan, Sargodha, Lahore and Islamabad, found by a daily web check */
+function suggestHtml(t){
+  const items=(life.suggest||[]).filter(x=>!x.hide && (!x.date || x.date>=t)).sort((a,b)=>(a.date||"9").localeCompare(b.date||"9")).slice(0,6);
+  if (!items.length) return "";
+  return `<div class="sec"><h2>Worth knowing</h2><span class="small muted">events and news near you</span></div>
+    <div class="card">${items.map(x=>`<div class="sg"><span class="sgd">${x.date?`<b>${esc(fmtDay(x.date,{day:"numeric"}))}</b><small>${esc(fmtDay(x.date,{month:"short"}))}</small>`:"📰"}</span>
+      <span class="sgt"><b>${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>`:esc(x.title)}</b><small>${esc([x.place,x.why].filter(Boolean).join(" · "))}</small></span>
+      <span class="sga">${x.date&&!x.added?`<button class="btn soft sm" data-sgadd="${esc(x.id)}">Add</button>`:x.added?`<span class="pill ok">Added</span>`:""}<button class="ib" data-sghide="${esc(x.id)}" aria-label="Hide">✕</button></span></div>`).join("")}</div>`;
+}
+function wireSuggest(){
+  const root=$("todayBody");
+  root.querySelectorAll("[data-sghide]").forEach(b=>b.onclick=async()=>{ const x=life.suggest.find(y=>y.id===b.dataset.sghide); if(!x) return; x.hide=true; await saveLife("suggest"); renderToday(); });
+  root.querySelectorAll("[data-sgadd]").forEach(b=>b.onclick=async()=>{ const x=life.suggest.find(y=>y.id===b.dataset.sgadd); if(!x) return;
+    const cal=cals.find(c=>c.billing==="personal")||cals[0];
+    const r=await api.saveEvent({calendar_id:cal.id, title:x.title.slice(0,140), kind:"personal", date:x.date, start_time:null, end_time:null, repeat:"none", repeat_days:[], repeat_until:null, notes:[x.place,x.url].filter(Boolean).join(" · ")||null});
+    if (r.error) return toast(r.error.message); x.added=true; await saveLife("suggest"); toast("Added to your calendar"); reload(); });
 }
 /* headlines */
 function headlinesHtml(){

@@ -605,12 +605,15 @@ var WWCore = (function () {
   function statusFrom(tr) { return { sent: !!tr.q || !!tr.sent, made: !!tr.m || !!tr.made, scheduled: !!tr.s || !!tr.scheduled, skip: !!tr.skip }; }
 
   /* ctx = { planner: normalised planner state or null, tracks: {'YYYY-MM': map}, calendars, postStatus: {calId: {key: row}}, occs } */
+  /* minor world and health days (World Television Day and the like) are left out everywhere in WhatsWork */
+  function relevantDay(it) { return !((it.cat === 'world' || it.cat === 'health') && it.size !== 'major'); }
   function postsOn(date, ctx) {
     var out = [];
     ctx.calendars.forEach(function (c) {
       if (c.archived) return;
       if (c.kind === 'planner' && ctx.planner && c.planner_college) {
         itemsOn(date, ctx.planner, c.planner_college, null).forEach(function (it) {
+          if (!relevantDay(it)) return;
           var key = it.id + '@' + date;
           out.push({ cal: c, key: key, source: 'planner', title: it.title, cat: it.cat, status: statusFrom(trackOf(ctx.tracks, key, date)), shared: it.college === 'both' });
         });
@@ -618,7 +621,7 @@ var WWCore = (function () {
       if (c.follows_world_days) {
         var cats = c.world_cats && c.world_cats.length ? c.world_cats : ['world'];
         builtinItemsOn(date).forEach(function (it) {
-          if (it.weekly || cats.indexOf(it.cat) < 0) return;
+          if (it.weekly || cats.indexOf(it.cat) < 0 || !relevantDay(it)) return;
           var key = 'w:' + it.id + '@' + date, st = statusFrom(((ctx.postStatus || {})[c.id] || {})[key] || {});
           if (st.skip) return;
           out.push({ cal: c, key: key, source: 'world', title: it.title, cat: it.cat, status: st });
@@ -892,7 +895,7 @@ var WWCore = (function () {
   return {
     DAY: DAY, KINDS: KINDS, dnum: dnum, dstr: dstr, weekday: weekday, tmin: tmin, addDays: addDays, fmtTime: fmtTime, fmtDur: fmtDur,
     occurrences: occurrences, timed: timed, analyse: analyse, isBackground: isBackground, daySplit: daySplit, overlap: overlap,
-    postsOn: postsOn, worldDaysOn: function (d) { return builtinItemsOn(d).filter(function (it) { return !it.weekly; }); }, statusText: statusText, mergePosts: mergePosts, briefing: briefing, fallbackCalendars: fallbackCalendars,
+    postsOn: postsOn, worldDaysOn: function (d) { return builtinItemsOn(d).filter(function (it) { return !it.weekly && relevantDay(it); }); }, relevantDay: relevantDay, statusText: statusText, mergePosts: mergePosts, briefing: briefing, fallbackCalendars: fallbackCalendars,
     weekHours: weekHours, billingTotals: billingTotals, parseQuick: parseQuick, hm: hm,
     buildReview: buildReview, sleepMinutes: sleepMinutes,
     resetPlannerCache: function () { clearCache(); }
