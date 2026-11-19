@@ -607,6 +607,38 @@ u.pok{color:var(--ok)} u.ptodo{color:#d97706}
 .pack button{font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:999px;background:var(--sunk)}
 .pack button.done{background:var(--ok-soft);color:var(--ok)}
 #tSpeak{align-self:center;white-space:nowrap}
+/* layered day grid */
+.tg{position:relative;display:grid;grid-template-columns:40px 1fr;margin:2px 0 4px}
+.tg-hours{position:relative}
+.tg-h{position:absolute;right:6px;transform:translateY(-6px);font-size:10.5px;font-weight:700;color:var(--faint);white-space:nowrap}
+.tg-body{position:relative;border-left:1px solid var(--line)}
+.tg-line{position:absolute;left:0;right:0;border-top:1px solid var(--grid)}
+.tg-lane{position:absolute;left:0;right:0;text-align:left;padding:0;border-radius:0 12px 12px 0;z-index:1}
+.tg-lane.shift{background:color-mix(in srgb,var(--c) 13%,transparent);border-left:5px solid var(--c)}
+.tg-lane.sleep{background:repeating-linear-gradient(135deg,var(--sunk) 0 6px,transparent 6px 12px);border-left:5px solid var(--faint)}
+.tg-lane.sleep.clash{box-shadow:inset 0 0 0 1.5px var(--bad)}
+.tg-lab{position:sticky;top:34px;display:block;padding:3px 8px;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tg-lane.shift .tg-lab{color:color-mix(in srgb,var(--c) 75%,var(--ink))}
+.tg-lab.v{position:absolute;top:6px;left:1px;writing-mode:vertical-rl;padding:0;font-size:10.5px;line-height:13px;max-height:calc(100% - 10px)}
+.tg-lab b{font-weight:800}
+.tg-fg{position:absolute;top:0;bottom:0;left:20px;right:4px;z-index:2;pointer-events:none}
+.tg-b{position:absolute;pointer-events:auto;text-align:left;display:flex;flex-direction:column;gap:1px;overflow:hidden;padding:5px 8px;border-radius:9px;background:color-mix(in srgb,var(--c) 18%,var(--panel));border-left:4px solid var(--c);box-shadow:0 1px 3px rgba(21,26,37,.14)}
+.tg-b b{font-size:13px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tg-b small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tg-b.sm{flex-direction:row;align-items:center;gap:6px;padding:2px 7px}
+.tg-b.on{box-shadow:0 0 0 2px var(--brand),0 1px 3px rgba(21,26,37,.14)}
+.tg-b.clash{box-shadow:0 0 0 2px var(--bad)}
+.tg-x{position:absolute;top:4px;right:5px;width:16px;height:16px;border-radius:50%;background:var(--bad);color:#fff;font-style:normal;font-size:11px;font-weight:900;display:grid;place-items:center}
+.tg-p{position:absolute;left:0;right:0;z-index:3;background:color-mix(in srgb,#d4a017 30%,transparent);border-top:2px solid #d4a017;padding:0}
+.tg-p span{position:absolute;right:6px;top:-9px;font-size:10.5px;font-weight:800;color:#8a6508;background:#fdf3d6;border:1px solid #ecd28a;border-radius:7px;padding:0 6px;white-space:nowrap;line-height:15px}
+.tg-now{position:absolute;left:0;right:0;border-top:2px solid var(--brand);z-index:4;pointer-events:none}
+.tg-now span{position:absolute;left:-44px;top:-9px;font-size:10px;font-weight:800;color:#fff;background:var(--brand);border-radius:6px;padding:1px 4px}
+.strip i.bg{opacity:.38;top:0;bottom:0}
+.wl.bgl{background:color-mix(in srgb,var(--c) 12%,transparent);border-radius:6px;padding:1px 4px;margin:0 -4px;color:var(--muted)}
+.strip i.fg{z-index:1;top:2px;bottom:2px;border-radius:2px}
+.strip i.pr{width:2px;background:#d4a017;z-index:2;top:-2px;bottom:-2px;border-radius:1px}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .tg-p span{background:#3a2f10;color:#f3cf6b;border-color:#6b5615} }
+:root[data-theme="dark"] .tg-p span{background:#3a2f10;color:#f3cf6b;border-color:#6b5615}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -970,7 +1002,7 @@ const tShort = m => W.fmtTime(((m%DAY)+DAY)%DAY).replace(":00","").replace(" am"
 function alertsFrom(an, fromDate, onlyDate, toDate){
   const t=todayStr(); if (fromDate<t) fromDate=t; if (onlyDate && onlyDate<t) return [];
   return an.clashes.filter(c=>onlyDate?c.date===onlyDate:(c.date>=fromDate && (!toDate||c.date<=toDate))).map(c=>({date:c.date, cls:"", text:`${relDay(c.date)}, ${W.fmtTime(c.start)}: ${c.a.ev.title} and ${c.b.ev.title} overlap`}))
-    .concat(an.shortSleep.filter(s=>onlyDate?s.date===onlyDate:(s.date>=fromDate && (!toDate||s.date<=toDate))).map(s=>({date:s.date, cls:"sleep", text:`${relDay(s.date)}: only ${W.fmtDur(Math.max(0,s.left))} of sleep (${s.by.map(o=>o.ev.title).join(", ")})`})))
+    .concat(an.shortSleep.filter(s=>onlyDate?s.date===onlyDate:(s.date>=fromDate && (!toDate||s.date<=toDate))).map(s=>({date:s.date, cls:"sleep", text:`${relDay(s.date)}: ${s.by.map(o=>o.ev.title).join(", ")} ${s.by.length>1?"are":"is"} inside your sleep${s.left<300?` (only ${W.fmtDur(Math.max(0,s.left))} left)`:""}`})))
     .sort((a,b)=>a.date.localeCompare(b.date));
 }
 function alertHtml(a, clickable){ return `<${clickable?"button":"div"} class="alert ${a.cls}" ${clickable?`data-day="${a.date}"`:""}>${icon(a.cls?"moon":"warn")}<span>${esc(a.text)}</span></${clickable?"button":"div"}>`; }
@@ -1015,9 +1047,12 @@ function agendaDayHtml(d, list, an, opts={}){
 }
 function stripHtml(d, list){
   const vis=list.filter(o=>o.cal.visible!==false), d0=W.dnum(d)*DAY;
-  const bits=W.timed(vis).filter(o=>o.end>d0&&o.start<d0+DAY).map(o=>{ const s=Math.max(o.start,d0)-d0, e=Math.min(o.end,d0+DAY)-d0;
-    return `<i class="${o.kind==="sleep"?"sl":""}" style="left:${(s/DAY*100).toFixed(2)}%;width:${((e-s)/DAY*100).toFixed(2)}%;${o.kind==="sleep"?"":"background:"+colorOf(o)}"></i>`; }).join("");
-  return `<div class="strip">${bits}</div>`;
+  const pos=o=>{ const s=Math.max(o.start,d0)-d0, e=Math.min(o.end,d0+DAY)-d0; return `left:${(s/DAY*100).toFixed(2)}%;width:${((e-s)/DAY*100).toFixed(2)}%`; };
+  const t=W.timed(vis).filter(o=>o.end>d0&&o.start<d0+DAY);
+  const bg=t.filter(o=>W.isBackground(o)).map(o=>`<i class="${o.kind==="sleep"?"sl":"bg"}" style="${pos(o)};${o.kind==="sleep"?"":"background:"+colorOf(o)}"></i>`).join("");
+  const fg=t.filter(o=>!W.isBackground(o)).map(o=>`<i class="fg" style="${pos(o)};background:${colorOf(o)}"></i>`).join("");
+  const pr=prayersOf(vis,d).map(o=>`<i class="pr" style="left:${((o.start-d0)/DAY*100).toFixed(2)}%"></i>`).join("");
+  return `<div class="strip">${bg}${fg}${pr}</div>`;
 }
 
 /* ---------- the 24 hours by type (for the round chart) ---------- */
@@ -1149,40 +1184,70 @@ function dstripHtml(d, list){
 
 /* DAY: every day joined in one scrolling feed */
 function setDayTitle(){ const rd=relDay(calDate); $("calTitle").textContent=["Today","Tomorrow","Yesterday"].includes(rd)? rd+", "+fmtDay(calDate,{day:"numeric",month:"short"}) : fmtDay(calDate,{weekday:"short",day:"numeric",month:"short"}); }
+/* DAY: a time grid in layers. Background lanes (shift, sleep) run full height; foreground blocks
+   sit on top, side by side when they overlap; prayers are thin markers over everything. */
+const HOUR_H = { busy:48, shift:22, prayer:26, free:18, sleep:12 };
+function dayScale(d0, fg, bg, prayers){
+  const kind=new Array(24).fill("free");
+  const mark=(s,e,k,rank)=>{ for(let h=Math.max(0,Math.floor((s-d0)/60)); h<Math.min(24,Math.ceil((e-d0)/60)); h++){ const r={free:0,sleep:1,shift:2,prayer:3,busy:4}; if(r[k]>r[kind[h]]) kind[h]=k; } };
+  bg.forEach(o=>mark(o.start,o.end,o.kind==="sleep"?"sleep":"shift"));
+  prayers.forEach(o=>mark(o.start,o.start+15,"prayer"));
+  fg.forEach(o=>mark(o.start,o.end,"busy"));
+  const hh=kind.map(k=>HOUR_H[k]), off=[0]; for(let h=0;h<24;h++) off.push(off[h]+hh[h]);
+  const y=m=>{ const x=Math.max(0,Math.min(DAY,m-d0)), h=Math.min(23,Math.floor(x/60)); return off[h]+(x-h*60)/60*hh[h]; };
+  return {y, hh, off, total:off[24]};
+}
+function columnsFor(items){
+  /* group overlapping blocks, then give each a column inside its group */
+  const sorted=[...items].sort((a,b)=>a.s-b.s || b.e-a.e), out=[];
+  let group=[], end=-1;
+  const flush=()=>{ const cols=[]; group.forEach(it=>{ let c=cols.findIndex(e=>e<=it.s); if(c<0){ c=cols.length; cols.push(0); } cols[c]=it.e; it.col=c; }); group.forEach(it=>{ it.ncol=cols.length; out.push(it); }); group=[]; };
+  sorted.forEach(it=>{ if(it.s>=end && group.length) flush(); group.push(it); end=Math.max(end,it.e); });
+  if (group.length) flush();
+  return out;
+}
 function daySecHtml(d, list, an, nm){
   const vis=list.filter(o=>o.cal.visible!==false), d0=W.dnum(d)*DAY, t=todayStr();
   const posts=groupPosts(postsFor(d,list)); posts.forEach(p=>postIndex[p.id]=p);
   const allDay=vis.filter(o=>o.allDay && o.kind!=="post" && o.date===d);
-  const items=W.timed(vis).filter(o=>o.end>d0 && o.start<d0+DAY).map(o=>({o, s:Math.max(o.start,d0), e:Math.min(o.end,d0+DAY), kind:"item"}));
-  const prayers=prayersOf(vis,d).map(o=>({o, s:o.start, e:o.start, kind:"pray"}));
-  const all=items.concat(prayers).sort((a,b)=>a.s-b.s || (a.kind==="pray")-(b.kind==="pray"));
-  let html="", cursor=d0, nowDone=!(nm>=d0 && nm<d0+DAY);
-  const nowLine = ()=>`<div class="dnow"><span>Now ${W.fmtTime(nm%DAY)}</span></div>`;
-  all.forEach(x=>{
-    if (x.kind==="item" && x.s-cursor>=60) { if(!nowDone && nm<x.s){ html+=nowLine(); nowDone=true; } html+=`<button class="dgap" data-add="${x.s-d0}" data-aday="${d}"><span>+</span> ${dur(x.s-cursor)} free</button>`; }
-    if (!nowDone && nm<x.s) { html+=nowLine(); nowDone=true; }
-    if (x.kind==="pray") { html+=`<button class="dpray" data-ev="${x.o.ev.id}" data-date="${x.o.date}"><span class="tm">${tShort(x.o.start)}</span><i></i><b>🕌 ${esc(x.o.ev.title)}</b><small>prayer break</small></button>`; return; }
-    const o=x.o, mins=x.e-x.s, sleep=o.kind==="sleep", h=sleep?48:Math.max(54, Math.min(104, mins*0.2)), on=nm>=o.start&&nm<o.end;
-    html+=`<button class="dcard ${sleep?"sleep":""} ${an.flagged[o.key]?"clash":""} ${on?"on":""}" style="--c:${colorOf(o)};min-height:${h}px" data-ev="${o.ev.id}" data-date="${o.date}">
-      <span class="tm"><b>${tShort(o.start)}</b><small>${tShort(o.end)}</small></span>
-      <span class="bd"><b>${esc(o.ev.title)}</b><small>${dur(o.end-o.start)} · ${esc(shortName(o.cal))}${o.start<d0?" · from yesterday":o.end>d0+DAY?" · into tomorrow":""}</small></span>${on?`<span class="pill ok">Now</span>`:""}</button>`;
-    cursor=Math.max(cursor,x.e);
-  });
-  if (d0+DAY-cursor>=60) html+=`<button class="dgap" data-add="${cursor-d0}" data-aday="${d}"><span>+</span> ${dur(d0+DAY-cursor)} free</button>`;
-  if (!nowDone) html+=nowLine();
+  const inDay=W.timed(vis).filter(o=>o.end>d0 && o.start<d0+DAY);
+  const bg=inDay.filter(o=>W.isBackground(o)), fgO=inDay.filter(o=>!W.isBackground(o)), prayers=prayersOf(vis,d);
+  const sc=dayScale(d0, fgO, bg, prayers);
+  const top=m=>sc.y(m).toFixed(1), hgt=(s,e)=>Math.max(0,sc.y(e)-sc.y(s));
+  let lanes="", blocks="", marks="", hours="";
+  let lastY=-99;
+  for (let h=0;h<24;h++){ if ((sc.hh[h]>=18 || h%3===0) && sc.off[h]-lastY>=14 && (lastY=sc.off[h])>=0) hours+=`<span class="tg-h" style="top:${sc.off[h].toFixed(1)}px">${W.fmtTime(h*60).replace(":00","").replace(" ","")}</span>`; }
+  bg.forEach(o=>{ const s=Math.max(o.start,d0), e=Math.min(o.end,d0+DAY), sl=o.kind==="sleep";
+    lanes+=`<button class="tg-lane ${sl?"sleep":"shift"} ${an.flagged[o.key]&&sl?"clash":""}" style="--c:${colorOf(o)};top:${top(s)}px;height:${hgt(s,e).toFixed(1)}px" data-ev="${o.ev.id}" data-date="${o.date}" aria-label="${esc(o.ev.title)}, ${tShort(o.start)} to ${tShort(o.end)}">
+      <span class="tg-lab ${sl?"":"v"}"><b>${sl?"🌙 ":""}${esc(o.ev.title)}</b> ${tShort(o.start)}–${tShort(o.end)}${o.start<d0?" · from yesterday":o.end>d0+DAY?" · into tomorrow":""}</span></button>`; });
+  columnsFor(fgO.map(o=>({o, s:Math.max(o.start,d0), e:Math.min(o.end,d0+DAY)}))).forEach(it=>{
+    const o=it.o, h=hgt(it.s,it.e), on=nm>=o.start&&nm<o.end, w=100/it.ncol, small=h<34;
+    blocks+=`<button class="tg-b ${an.flagged[o.key]?"clash":""} ${on?"on":""} ${small?"sm":""}" style="--c:${colorOf(o)};top:${top(it.s)}px;height:${Math.max(20,h-2).toFixed(1)}px;left:calc(${(it.col*w).toFixed(3)}% + 2px);width:calc(${w.toFixed(3)}% - 4px)" data-ev="${o.ev.id}" data-date="${o.date}">
+      <b>${esc(o.ev.title)}</b><small>${tShort(o.start)}–${tShort(o.end)}${it.ncol<3&&!small?" · "+esc(shortName(o.cal)):""}</small>${an.flagged[o.key]?`<i class="tg-x" aria-label="Clash">!</i>`:""}</button>`; });
+  prayers.forEach(o=>{ marks+=`<button class="tg-p" style="top:${top(o.start)}px;height:${Math.max(3,hgt(o.start,o.start+15)).toFixed(1)}px" data-ev="${o.ev.id}" data-date="${o.date}" aria-label="${esc(o.ev.title)} prayer at ${tShort(o.start)}"><span>🕌 ${esc(o.ev.title)} ${tShort(o.start)}</span></button>`; });
+  const now = (nm>=d0 && nm<d0+DAY) ? `<div class="tg-now" style="top:${top(nm)}px"><span>${W.fmtTime(nm%DAY).replace(" ","")}</span></div>` : "";
   const rd=relDay(d), head = ["Today","Tomorrow","Yesterday"].includes(rd) ? `${rd} <span class="muted">· ${fmtDay(d,{weekday:"short",day:"numeric",month:"short"})}</span>` : fmtDay(d,{weekday:"long",day:"numeric",month:"short"});
   const alerts = d>=t ? alertsFrom(an,d,d) : [];
   return `<section class="dsec ${d<t?"past":""}" data-dsec="${d}">
     <div class="dshead"><b class="${d===t?"tdy":""}">${head}</b></div>
     ${(allDay.length||posts.length)?`<div class="dposts">${allDay.map(o=>rowHtml({o,date:d},nm)).join("")}${posts.map(p=>rowHtml({post:p},nm)).join("")}</div>`:""}
-    ${html || `<button class="dgap" data-add="540" data-aday="${d}">Nothing planned · tap to add</button>`}
+    <div class="tg" data-tday="${d}" data-off="${sc.off.join(",")}" style="height:${sc.total.toFixed(0)}px">
+      <div class="tg-hours">${hours}</div>
+      <div class="tg-body">${sc.off.slice(0,24).map(o=>`<i class="tg-line" style="top:${o.toFixed(1)}px"></i>`).join("")}${lanes}<div class="tg-fg">${blocks}</div>${marks}${now}</div>
+    </div>
     ${alerts.map(a=>alertHtml(a,false)).join("")}
   </section>`;
 }
 let dayLo=null, dayHi=null, wkLo=null, wkHi=null, feedBusy=false;
 function dayRangeHtml(a,b,nm){ const list=occs(W.addDays(a,-1),W.addDays(b,1)), an=W.analyse(list); let h=""; for(let d=a; d<=b; d=W.addDays(d,1)) h+=daySecHtml(d,list,an,nm); return h; }
 function wireStrip(){ $("calTop").querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ calDate=b.dataset.pick; renderCal(); }); }
-function wireFeed(){ const body=$("calBody"); wire(body); body.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>openEvent(null, b.dataset.aday||calDate, Math.round(+b.dataset.add/30)*30)); }
+function wireFeed(){ const body=$("calBody"); wire(body);
+  body.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>openEvent(null, b.dataset.aday||calDate, Math.round(+b.dataset.add/30)*30));
+  body.querySelectorAll(".tg-body").forEach(g=>{ if (g.dataset.w) return; g.dataset.w=1; g.onclick=e=>{ if (e.target!==g && !e.target.classList.contains("tg-line") && !e.target.classList.contains("tg-fg")) return;
+    const tg=g.closest(".tg"), off=tg.dataset.off.split(",").map(Number), yy=e.clientY-g.getBoundingClientRect().top;
+    let h=0; while(h<23 && off[h+1]<=yy) h++; const m=h*60+Math.round((yy-off[h])/(off[h+1]-off[h])*60/30)*30;
+    openEvent(null, tg.dataset.tday, Math.min(DAY-30,m)); }; });
+}
 function renderDayView(){
   const d=calDate; dayLo=W.addDays(d,-4); dayHi=W.addDays(d,10);
   setDayTitle();
@@ -1190,7 +1255,7 @@ function renderDayView(){
   wireStrip();
   $("calBody").innerHTML = `<div class="dview dfeed">${dayRangeHtml(dayLo,dayHi,nowMin())}</div>`;
   wireFeed();
-  requestAnimationFrame(()=>{ const sec=$("calBody").querySelector(`[data-dsec="${d}"]`); if(!sec) return; const n=sec.querySelector(".dcard.on")||sec.querySelector(".dnow"); $("calBody").scrollTop = (n && d===todayStr() && n.offsetTop-sec.offsetTop>260) ? Math.max(0,n.offsetTop-44) : Math.max(0,sec.offsetTop-2); });
+  requestAnimationFrame(()=>{ const sec=$("calBody").querySelector(`[data-dsec="${d}"]`); if(!sec) return; const n=sec.querySelector(".tg-b.on")||sec.querySelector(".tg-now"); $("calBody").scrollTop = (n && d===todayStr() && n.offsetTop-sec.offsetTop>260) ? Math.max(0,n.offsetTop-44) : Math.max(0,sec.offsetTop-2); });
 }
 function extendDayFeed(dir){
   if (feedBusy) return; feedBusy=true;
@@ -1218,7 +1283,9 @@ function weekBoxHtml(d, list, an, compact){
   const fl=d>=t && (an.clashes.some(c=>c.date===d)||an.shortSleep.some(s=>s.date===d));
   const lines=aday.map(o=>`<span class="wl"><i style="background:${colorOf(o)}"></i><u>★</u>${esc(o.ev.title)}</span>`)
     .concat(cont.map(o=>`<span class="wl"><i style="background:${colorOf(o)}"></i><u>till ${tShort(o.end)}</u>${esc(o.ev.title)}</span>`))
-    .concat(items.map(o=>`<span class="wl"><i style="background:${colorOf(o)}"></i><u>${tShort(o.start)}</u>${esc(o.ev.title)}</span>`));
+    .concat(items.map(o=>o.kind==="shift"
+      ? `<span class="wl bgl" style="--c:${colorOf(o)}"><i style="background:${colorOf(o)}"></i><u>${tShort(o.start)}–${tShort(o.end)}</u>${esc(o.ev.title)}</span>`
+      : `<span class="wl"><i style="background:${colorOf(o)}"></i><u>${tShort(o.start)}</u>${esc(o.ev.title)}</span>`));
   const pl=posts.slice(0,3).map(p=>`<span class="wl ${p.status.scheduled?"done":""}"><u class="pm" style="color:${postColor(p)}">${p.status.scheduled?"✓":"○"}</u>${esc(p.title)}</span>`).join("")
     + (posts.length>3?`<span class="wl muted">+${posts.length-3} more post${posts.length>4?"s":""}</span>`:"");
   return `<button class="wbox ${d===t?"today":""} ${d<t?"past":""} ${compact?"wide":""}" data-day="${d}">

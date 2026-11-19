@@ -525,24 +525,26 @@ var WWCore = (function () {
   /* a meeting inside your own shift on the same calendar is part of the shift, not a clash */
   function partOfShift(a, b) { return a.cal.id === b.cal.id && (a.kind === 'shift' || b.kind === 'shift'); }
 
+  /* Layers: a shift and sleep are background; prayers are markers (never timed here).
+     A real clash = two foreground things at once, or anything (shift included) placed inside sleep. */
+  function isBackground(o) { return o.kind === 'shift' || o.kind === 'sleep'; }
   function analyse(occs) {
     var t = timed(occs), clashes = [], shortSleep = [], flagged = {};
-    var busy = t.filter(function (o) { return o.kind !== 'sleep'; });
-    for (var i = 0; i < busy.length; i++) for (var j = i + 1; j < busy.length; j++) {
-      var a = busy[i], b = busy[j];
-      if (b.start >= a.end) continue;
-      if (overlap(a, b) <= 0 || partOfShift(a, b)) continue;
+    var fg = t.filter(function (o) { return !isBackground(o); });
+    for (var i = 0; i < fg.length; i++) for (var j = i + 1; j < fg.length; j++) {
+      var a = fg[i], b = fg[j];
+      if (overlap(a, b) <= 0) continue;
       clashes.push({ a: a, b: b, start: Math.max(a.start, b.start), end: Math.min(a.end, b.end), date: dstr(Math.floor(Math.max(a.start, b.start) / DAY)) });
       flagged[a.key] = flagged[b.key] = 1;
     }
+    var intoSleep = t.filter(function (o) { return o.kind !== 'sleep'; });
     t.filter(function (o) { return o.kind === 'sleep'; }).forEach(function (s) {
-      var cut = [], lost = minutesCovered(busy.map(function (o) {
+      var cut = [], lost = minutesCovered(intoSleep.map(function (o) {
         var lo = Math.max(o.start, s.start), hi = Math.min(o.end, s.end);
-        if (hi > lo) cut.push(o);
+        if (hi > lo) { cut.push(o); flagged[o.key] = 1; }
         return [lo, hi];
       }).filter(function (r) { return r[1] > r[0]; }));
-      var left = (s.end - s.start) - lost;
-      if (lost > 0 && left < 300) { shortSleep.push({ sleep: s, left: left, by: cut, date: s.date }); flagged[s.key] = 1; }
+      if (lost > 0) { shortSleep.push({ sleep: s, left: (s.end - s.start) - lost, lost: lost, by: cut, date: s.date }); flagged[s.key] = 1; }
     });
     return { clashes: clashes, shortSleep: shortSleep, flagged: flagged };
   }
@@ -889,7 +891,7 @@ var WWCore = (function () {
 
   return {
     DAY: DAY, KINDS: KINDS, dnum: dnum, dstr: dstr, weekday: weekday, tmin: tmin, addDays: addDays, fmtTime: fmtTime, fmtDur: fmtDur,
-    occurrences: occurrences, timed: timed, analyse: analyse, daySplit: daySplit, overlap: overlap,
+    occurrences: occurrences, timed: timed, analyse: analyse, isBackground: isBackground, daySplit: daySplit, overlap: overlap,
     postsOn: postsOn, worldDaysOn: function (d) { return builtinItemsOn(d).filter(function (it) { return !it.weekly; }); }, statusText: statusText, mergePosts: mergePosts, briefing: briefing, fallbackCalendars: fallbackCalendars,
     weekHours: weekHours, billingTotals: billingTotals, parseQuick: parseQuick, hm: hm,
     buildReview: buildReview, sleepMinutes: sleepMinutes,
