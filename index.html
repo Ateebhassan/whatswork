@@ -2087,7 +2087,7 @@ async function today() {
   const lines = data.error ? [data.error] : [(data.now ? "Now: " + data.now.title + " (until " + data.now.end + ")" : "Free time right now")]
     .concat((data.next || []).map((x) => x.when + "  " + x.title));
   if (data.posts && data.posts.total) lines.push("Posts today: " + data.posts.done + " of " + data.posts.total + " scheduled");
-  const a = new Alert(); a.title = "Coming up"; a.message = lines.join("\n"); a.addAction("OK");
+  const a = new Alert(); a.title = "Coming up"; a.message = lines.join("\\n"); a.addAction("OK");
   await a.presentAlert();
 }
 
