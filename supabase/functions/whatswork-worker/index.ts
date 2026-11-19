@@ -326,9 +326,9 @@ async function aiSettings(uid: string) {
 const QUICK_SYSTEM = `You turn one short note into one calendar entry for a planner app.
 Answer ONLY with JSON: {"title": string, "calendar": string, "kind": string, "date": "YYYY-MM-DD", "start": "HH:MM" or null, "end": "HH:MM" or null, "repeat": "none"|"daily"|"weekly", "repeat_days": [numbers 0-6, 0 = Sunday]}
 Rules:
-- title: short and clear, without the date or time words (e.g. "Meeting with Sam").
+- title: short and clear, without the date or time words, but KEEP every name and subject word the person said (e.g. "Meeting with Sam", "International America event", "Tariq Studio shoot"). Never a bare generic word like "Event", "Meeting" or "Task" on its own.
 - calendar: exactly one of the calendar names given. Pick by meaning (a client, a college, a job). If nothing fits, use the personal calendar.
-- kind: one of sleep, shift, university, work, meeting, call, personal, post. A "post" is an all-day social media post with start and end null.
+- kind: one of sleep, shift, university, work, meeting, call, personal, post. Use "meeting" for anything with other people (meetings, events or ceremonies to attend, visits), "call" for calls, "work" for tasks done for a college, client or job, "university" for classes and exams, and "personal" only for private life (family, friends, errands, health). A "post" is an all-day social media post with start and end null.
 - date: work it out from today's date given. A weekday name means the next one coming (today if it is that weekday and the time has not passed). "next Thursday" said on a Thursday means a week later.
 - times are 24-hour local time. If a time has no am/pm, choose the sensible one: this person works night shifts, so late-evening times are common. If no end time, meetings and work last 1 hour, calls 30 minutes.
 - If the note says "every day" use repeat "daily"; "every Monday and Wednesday" use "weekly" with those days.`;

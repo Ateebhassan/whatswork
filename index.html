@@ -1632,7 +1632,8 @@ function handleActions(data){
   const newIdeas=(data.ideas||[]).filter(x=>typeof x==="string" && x.trim().length>2);
   if (newIdeas.length) { newIdeas.forEach(x=>life.ideas.unshift({id:"i"+Date.now()+Math.random().toString(36).slice(2,6), text:x.trim(), at:new Date().toISOString()})); saveLife("ideas"); toast(newIdeas.length>1?`Saved ${newIdeas.length} ideas 💡`:"Saved to your ideas 💡");
     if (!(data.add||data.entries||[]).length && !(data.remove||[]).length && !(data.day_off||[]).length) { closeSheet(); return; } }
-  const adds=(data.add||data.entries||[]).map(a=>fromAI(a, W.parseQuick(a.title||"", cals, todayStr(), nm)));
+  const one=(data.add||data.entries||[]).length===1;
+  const adds=(data.add||data.entries||[]).map(a=>fromAI(a, W.parseQuick((one && data.transcript && (!a.title || GENERIC_TITLE.test(String(a.title).trim())) ? data.transcript : a.title)||"", cals, todayStr(), nm)));
   let rem=[];
   (data.remove||[]).forEach(r=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(r?.date||"")) rem=rem.concat(matchOccs(r.what, r.date)); });
   (data.day_off||[]).forEach(d=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(d||"")) rem=rem.concat(matchOccs("", d)); });
@@ -1652,15 +1653,15 @@ function openVoicePlan(adds, rem, heard){
     ${rem.length?`<div class="label">Remove</div><div class="vlist">${rem.map((o,i)=>`<label class="vitem"><input type="checkbox" data-r="${i}" ${imp(o)?"":"checked"}><span class="sw" style="background:${colorOf(o)};width:12px;height:12px;border-radius:50%"></span><span class="t"><b>${esc(o.ev.title)}</b><span class="small muted">${esc(relDay(o.date))}${o.allDay?"":", "+W.fmtTime(o.start%DAY)} · ${esc(shortName(o.cal))}${imp(o)?` · <b style="color:var(--warn)">important — tick to remove it too</b>`:""}</span></span></label>`).join("")}</div><div class="small muted">A repeating thing is only removed for that day, never for good.</div>`:""}
     <div class="actions"><button class="btn" id="vpGo">Do it</button><button class="btn ghost" data-close>Cancel</button></div>`);
   $("vpGo").onclick=async()=>{
-    const root=$("sheetRoot"); let na=0, nr=0, err=null;
+    const root=$("sheetRoot"); let na=0, nr=0, err=null; const newIds=[];
     for (const x of root.querySelectorAll("[data-a]:checked")){ const e=adds[+x.dataset.a];
       const v={calendar_id:e.calendar_id||(cals.find(c=>c.billing==="personal")||cals[0]).id, title:e.title, kind:e.kind||"other", date:e.date, start_time:e.kind==="post"?null:(e.start_time||null), end_time:e.kind==="post"?null:(e.end_time||(e.start_time?hm((W.tmin(e.start_time)+60)%DAY):null)), repeat:e.repeat||"none", repeat_days:e.repeat==="weekly"?(e.repeat_days?.length?e.repeat_days:[W.weekday(W.dnum(e.date))]):[], repeat_until:null, notes:null };
-      const r=await api.saveEvent(v); if(r.error){ err=r.error.message; break; } na++; }
+      const r=await api.saveEvent(v); if(r.error){ err=r.error.message; break; } na++; if (r.data?.id) newIds.push(r.data.id); }
     for (const x of root.querySelectorAll("[data-r]:checked")){ const o=rem[+x.dataset.r];
       const r = (o.ev.repeat && o.ev.repeat!=="none") ? await api.saveEvent({id:o.ev.id, skip_dates:[...new Set([...(o.ev.skip_dates||[]), o.date])]}) : await api.deleteEvent(o.ev.id);
       if(r.error){ err=r.error.message; break; } nr++; }
     closeSheet(); if(err) toast(err); else toast((na?`Added ${na}. `:"")+(nr?`Removed ${nr}.`:"") || "Nothing ticked");
-    reload();
+    await reload(); if (newIds.length) checkSleep(newIds);
   };
 }
 function openVoiceList(entries, heard){
@@ -1669,15 +1670,19 @@ function openVoiceList(entries, heard){
     <div class="actions"><button class="btn" id="vAdd">Add ticked</button><button class="btn ghost" data-close>Cancel</button></div>`);
   $("sheetRoot").querySelectorAll("[data-edit]").forEach(b=>b.onclick=e=>{ e.preventDefault(); const x=entries[+b.dataset.edit]; closeSheet(); openEvent(null,x.date,null,x); });
   $("vAdd").onclick=async()=>{
-    const pick=[...$("sheetRoot").querySelectorAll("[data-i]:checked")].map(x=>entries[+x.dataset.i]); let n=0;
+    const pick=[...$("sheetRoot").querySelectorAll("[data-i]:checked")].map(x=>entries[+x.dataset.i]); let n=0; const newIds=[];
     for (const e of pick){ const v={calendar_id:e.calendar_id||(cals.find(c=>c.billing==="personal")||cals[0]).id, title:e.title, kind:e.kind||"other", date:e.date, start_time:e.kind==="post"?null:(e.start_time||null), end_time:e.kind==="post"?null:(e.end_time||(e.start_time?hm((W.tmin(e.start_time)+60)%DAY):null)), repeat:e.repeat||"none", repeat_days:e.repeat==="weekly"?(e.repeat_days?.length?e.repeat_days:[W.weekday(W.dnum(e.date))]):[], repeat_until:null, notes:null };
-      const r=await api.saveEvent(v); if(r.error){ toast(r.error.message); break; } n++; }
-    closeSheet(); if(n) toast(`Added ${n}`); reload();
+      const r=await api.saveEvent(v); if(r.error){ toast(r.error.message); break; } n++; if (r.data?.id) newIds.push(r.data.id); }
+    closeSheet(); if(n) toast(`Added ${n}`); await reload(); if (newIds.length) checkSleep(newIds);
   };
 }
 /* trust the AI's answer only where it is well formed; fall back to the simple reader for the rest */
+const GENERIC_TITLE = /^\(?\s*(event|meeting|call|task|appointment|reminder|work|plan|thing|class|new event)s?\s*\)?$/i;
 function fromAI(a, local){
   const ok = (v,re)=>typeof v==="string" && re.test(v);
+  if (typeof a.title==="string" && GENERIC_TITLE.test(a.title.trim()) && local.title && !GENERIC_TITLE.test(local.title)) {
+    let t=local.title.replace(/^(please\s+)?(add|put|set\s+up|set|create|schedule|make|book|remind\s+me\s+(about|of|to))\s+/i,"").replace(/^(an?|the|my)\s+/i,"").trim();
+    a={...a, title:(t.charAt(0).toUpperCase()+t.slice(1)) || a.title}; }
   const cal = cals.find(c=>[c.name,c.short_name].filter(Boolean).some(n=>n.toLowerCase()===String(a.calendar||"").toLowerCase()));
   return {
     via:"ai", guessed:[],
@@ -1690,6 +1695,51 @@ function fromAI(a, local){
     repeat: ["none","daily","weekly"].includes(a.repeat) ? a.repeat : local.repeat,
     repeat_days: Array.isArray(a.repeat_days) ? a.repeat_days.filter(x=>Number.isInteger(x)&&x>=0&&x<=6) : local.repeat_days,
   };
+}
+
+/* ---------- sleep that something new lands in: offer to move it for that day only ---------- */
+function sleepPlan(s, list){
+  const by=s.by.filter(o=>o.kind!=="sleep"), sl=s.sleep, len=sl.end-sl.start;
+  const first=Math.min(...by.map(o=>o.start)), last=Math.max(...by.map(o=>o.end));
+  /* two ways out: wake up before it, or sleep after it for the usual length (stopping before the next thing). Pick the longer sleep. */
+  const before={start:sl.start, end:first-30};
+  const after={start:last+30, end:last+30+len};
+  const nextUp=W.timed(list).filter(o=>o.kind!=="sleep" && o.kind!=="prayer" && o.start>=after.start && o.start<after.end).sort((a,b)=>a.start-b.start)[0];
+  if (nextUp) after.end=nextUp.start-30;
+  const pick=(before.end-before.start) > (after.end-after.start) ? before : after;
+  return {start:pick.start, end:Math.max(pick.end,pick.start+60)};
+}
+function checkSleep(ids){
+  try {
+    const mine=[]; ids.forEach(id=>{ const ev=events.find(e=>e.id===id); if(ev) mine.push(ev); });
+    if (!mine.length) return;
+    const d0=mine.map(e=>e.date).sort()[0], list=occs(W.addDays(d0,-1), W.addDays(d0,3)), an=W.analyse(list);
+    const hit=an.shortSleep.find(s=>s.by.some(o=>ids.includes(o.ev.id)));
+    if (!hit) return;
+    const sl=hit.sleep, plan=sleepPlan(hit, list), what=hit.by.filter(o=>ids.includes(o.ev.id)).map(o=>o.ev.title).join(", ");
+    const hmOf=m=>hm(((m%DAY)+DAY)%DAY);
+    sheet(`<h2>😴 Move your sleep?</h2>
+      <p class="small" style="margin:0"><b>${esc(what)}</b> is during your sleep ${esc(["Today","Tomorrow","Yesterday"].includes(relDay(sl.date))?relDay(sl.date).toLowerCase():"on "+relDay(sl.date))} (${tFull(sl.start)} – ${tFull(sl.end)}).</p>
+      <p class="small muted" style="margin:0">Move that sleep, for this day only, to:</p>
+      <div class="grid2"><label class="fl"><span class="label">Sleep at</span><input id="slS" class="field" type="time" value="${hmOf(plan.start)}"></label>
+        <label class="fl"><span class="label">Wake at</span><input id="slE" class="field" type="time" value="${hmOf(plan.end)}"></label></div>
+      <div class="small muted" id="slLen"></div>
+      <div class="actions"><button class="btn" id="slGo">Move sleep</button><button class="btn ghost" data-close>Keep as it is</button></div>`);
+    const len=()=>{ const a=W.tmin($("slS").value), b=W.tmin($("slE").value); if(a==null||b==null) return; $("slLen").textContent=W.fmtDur(((b-a)+DAY)%DAY||DAY)+" of sleep"; };
+    $("slS").oninput=len; $("slE").oninput=len; len();
+    $("slGo").onclick=async()=>{
+      const sS=$("slS").value, sE=$("slE").value; if(!sS||!sE) return toast("Add both times");
+      const startMin=W.tmin(sS), base=Math.floor(plan.start/DAY)*DAY;
+      const date=W.dstr(Math.floor((base+startMin)/DAY)), ev=sl.ev;
+      let r;
+      if (ev.repeat && ev.repeat!=="none") {
+        r=await api.saveEvent({id:ev.id, skip_dates:[...new Set([...(ev.skip_dates||[]), sl.date])]});
+        if (!r.error) r=await api.saveEvent({calendar_id:ev.calendar_id, title:ev.title, kind:"sleep", date, start_time:sS, end_time:sE, repeat:"none", repeat_days:[], repeat_until:null, notes:"Moved for "+what});
+      } else r=await api.saveEvent({id:ev.id, date, start_time:sS, end_time:sE});
+      if (r.error) return toast(r.error.message);
+      closeSheet(); toast("Sleep moved for that day"); reload();
+    };
+  } catch (e) { console.error("sleep check", e); }
 }
 
 /* ---------- hours per calendar ---------- */
@@ -1726,10 +1776,11 @@ function openEvent(ev, date, startMin, prefill){
   const defCal = calById(lastCal) ? lastCal : (cals.find(c=>c.kind!=="planner")||cals[0]).id;
   const startM = startMin ?? Math.min(23*60, (Math.floor((nowMin()%DAY)/30)+1)*30);
   const e = ev ? {...ev} : { calendar_id:defCal, title:"", kind:"meeting", date, start_time:hm(startM), end_time:hm((startM+60)%DAY), repeat:"none", repeat_days:[], repeat_until:null, notes:"" };
-  if (prefill) { for (const k of Object.keys(prefill)) if (prefill[k]!=null && k!=="guessed" && k!=="via") e[k]=prefill[k]; if (!prefill.start_time && prefill.kind!=="post") { e.start_time=hm(startM); e.end_time=hm((startM+60)%DAY); } if (prefill.kind==="post") { e.start_time=null; e.end_time=null; } }
+  if (prefill) { for (const k of Object.keys(prefill)) if (prefill[k]!=null && k!=="guessed" && k!=="via" && k!=="heard") e[k]=prefill[k]; if (!prefill.start_time && prefill.kind!=="post") { e.start_time=hm(startM); e.end_time=hm((startM+60)%DAY); } if (prefill.kind==="post") { e.start_time=null; e.end_time=null; } }
   const allDay = e.start_time==null;
   const guess = prefill ? [prefill.via==="ai"?"Filled in by AI.":"Read from what you typed.", ...(prefill.guessed||[]).map(g=>g==="pm"?"I took the time as pm.":g==="time"?"No time given, so I picked the next half hour.":"")].filter(Boolean).join(" ")+" Check it, then press Add." : "";
   sheet(`<h2>${isNew?(prefill?"Check and add":"Add to calendar"):repeating?"Repeating: "+esc(ev.title):"Edit"}</h2>
+    ${prefill?.heard?`<div class="small muted">I heard: “${esc(prefill.heard)}”</div>`:""}
     ${guess?`<div class="small muted">${esc(guess)}</div>`:""}
     <input id="eTitle" class="field" placeholder="What is it? e.g. Meeting with Sam" value="${esc(e.title)}" maxlength="140">
     <div class="grid2">
@@ -1765,7 +1816,7 @@ function openEvent(ev, date, startMin, prefill){
     if (!all && (!v.start_time || !v.end_time)){ toast("Add a start and end time"); return null; }
     return v;
   };
-  const done=(r,msg)=>{ if(r.error){ toast(r.error.message); return; } closeSheet(); toast(msg); reload(); };
+  const done=async(r,msg)=>{ if(r.error){ toast(r.error.message); return; } closeSheet(); toast(msg); await reload(); if (r.data?.id) checkSleep([r.data.id]); };
   $("eSave").onclick=async()=>{ const v=read(); if(!v) return; store.set("lastCal",v.calendar_id); done(await api.saveEvent(isNew?v:{id:ev.id,...v}), isNew?"Added":"Saved"); };
   if ($("eOne")) $("eOne").onclick=async()=>{ const v=read(); if(!v) return;
     const r1=await api.saveEvent({...v, date, repeat:"none", repeat_days:[], repeat_until:null}); if(r1.error) return toast(r1.error.message);
