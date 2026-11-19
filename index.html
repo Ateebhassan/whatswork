@@ -2009,37 +2009,23 @@ async function openShortcut(){
 /* Home Screen widget through the Scriptable app */
 async function openWidget(){
   sheet(`<h2>📱 Home Screen widget</h2>
-    <p class="small muted" style="margin:0">iPhone web apps can't add widgets by themselves, so this uses the free <b>Scriptable</b> app. The widget shows what's on now, your next activities and today's posts, in your colours.</p>
+    <p class="small muted" style="margin:0">One wide widget: what's on now, your next activities and today's posts on the left, and a 🎤 button on the right to add things by voice. It uses the free <b>Scriptable</b> app.</p>
     <div id="wBox"><button class="btn" id="wMake">Make my widget</button></div>
     <ol class="small" style="margin:0;padding-left:18px;display:grid;gap:6px">
-      <li>Install <b>Scriptable</b> from the App Store.</li>
-      <li>Tap <b>Make my widget</b> above, then <b>Copy the widget code</b>.</li>
-      <li>Open Scriptable, tap <b>+</b>, paste, and name it <b>WhatsWork</b>.</li>
-      <li>On your Home Screen, press and hold, tap <b>Edit</b>, <b>Add Widget</b>, choose <b>Scriptable</b> (medium size is best), then tap the widget and pick <b>WhatsWork</b>.</li>
-    </ol>
-    <h2 style="margin-top:6px">🎤 Voice button</h2>
-    <p class="small muted" style="margin:0">A mic on your Home Screen. Tap it, tap the 🎤 on your keyboard, say it ("meeting with Sam Monday 3 pm", "remove my classes tomorrow", "idea: …") and press Send.</p>
-    <div id="mBox"><button class="btn" id="mMake">Make my voice button</button></div>
-    <ol class="small" style="margin:0;padding-left:18px;display:grid;gap:6px">
-      <li>Tap <b>Make my voice button</b>, then <b>Copy the code</b>.</li>
-      <li>In Scriptable, open <b>Tell WhatsWork</b>, select all, and paste over the old code (or tap <b>+</b> for a new one with that name).</li>
-      <li>Keep (or add) the small Scriptable widget that points to <b>Tell WhatsWork</b>.</li>
+      <li>Tap <b>Make my widget</b>, then <b>Copy the widget code</b>.</li>
+      <li>Open Scriptable. Delete the old scripts: swipe left on <b>WhatsWork</b> and <b>Tell WhatsWork</b>, tap Delete.</li>
+      <li>Tap <b>+</b>, paste, and name it <b>WhatsWork</b> (top of the screen, tap the title to rename).</li>
+      <li>On your Home Screen, remove the old small mic widget. Press and hold your wide widget, tap <b>Edit Widget</b>, and set Script to <b>WhatsWork</b>. (No wide widget yet? Add Widget, Scriptable, the medium size.)</li>
+      <li>Tap the 🎤 on the widget, tap the mic on your keyboard, say it, press <b>Send</b>. Tap anywhere else on the widget to open WhatsWork.</li>
     </ol>
     <button class="btn ghost" data-close>Done</button>`);
-  $("mMake").onclick=async()=>{
-    const bytes=new Uint8Array(24); crypto.getRandomValues(bytes);
-    const key="wm_"+[...bytes].map(x=>x.toString(16).padStart(2,"0")).join("");
-    const {error}=await api.setMicToken(await sha256hex(key)); if(error) return toast(error.message);
-    const code=MIC_CODE.replace("__KEY__",key).replace("__URL__",SUPABASE_URL+"/functions/v1/"+WORKER);
-    $("mBox").innerHTML=`<button class="btn" id="mCopy">${icon("copy")} Copy the code</button>`;
-    $("mCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(code); toast("Copied. Now paste it in Scriptable"); }catch{ sheet(`<h2>Copy this</h2><textarea class="field" style="height:50vh;font-size:11px">${esc(code)}</textarea><button class="btn ghost" data-close>Done</button>`); } };
-  };
+  const mk=p=>{ const bytes=new Uint8Array(24); crypto.getRandomValues(bytes); return p+[...bytes].map(x=>x.toString(16).padStart(2,"0")).join(""); };
   $("wMake").onclick=async()=>{
-    const bytes=new Uint8Array(24); crypto.getRandomValues(bytes);
-    const key="wg_"+[...bytes].map(x=>x.toString(16).padStart(2,"0")).join("");
-    const {error}=await api.setWidgetToken(await sha256hex(key)); if(error) return toast(error.message);
-    const code=WIDGET_CODE.replace("__KEY__",key).replace("__URL__",SUPABASE_URL+"/functions/v1/"+WORKER);
-    $("wBox").innerHTML=`<button class="btn" id="wCopy">${icon("copy")} Copy the widget code</button><div class="small muted">Made. Making a new one later stops the old widget.</div>`;
+    const wkey=mk("wg_"), mkey=mk("wm_");
+    const r1=await api.setWidgetToken(await sha256hex(wkey)); if(r1.error) return toast(r1.error.message);
+    const r2=await api.setMicToken(await sha256hex(mkey)); if(r2.error) return toast(r2.error.message);
+    const code=WIDGET_CODE.replace("__KEY__",wkey).replace("__MKEY__",mkey).replace("__URL__",SUPABASE_URL+"/functions/v1/"+WORKER);
+    $("wBox").innerHTML=`<button class="btn" id="wCopy">${icon("copy")} Copy the widget code</button><div class="small muted">Made. The old widget and the old voice button stop working now, so paste this one in.</div>`;
     $("wCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(code); toast("Copied. Now paste it in Scriptable"); }catch{ sheet(`<h2>Copy this</h2><textarea class="field" style="height:50vh;font-size:11px">${esc(code)}</textarea><button class="btn ghost" data-close>Done</button>`); } };
   };
 }
@@ -2083,43 +2069,89 @@ if (config.runsInWidget) {
   }
 }
 Script.complete();`;
-const WIDGET_CODE = `// WhatsWork widget for Scriptable
+const WIDGET_CODE = `// WhatsWork widget for Scriptable: your next activities on the left, a voice button on the right
 const KEY = "__KEY__";
+const MKEY = "__MKEY__";
 const URL_ = "__URL__";
-let data;
-try {
-  const r = new Request(URL_); r.method = "POST";
+const APP = "https://ateebhassan.github.io/whatswork/";
+const q = args.queryParameters || {};
+
+async function call(body) {
+  const r = new Request(URL_); r.method = "POST"; r.timeoutInterval = 40;
   r.headers = { "Content-Type": "application/json" };
-  r.body = JSON.stringify({ action: "widget", key: KEY });
-  data = await r.loadJSON();
-} catch (e) { data = { error: "No connection" }; }
-const w = new ListWidget();
-w.backgroundColor = Color.dynamic(new Color("#f4f5f9"), new Color("#141a2b"));
-w.url = "https://ateebhassan.github.io/whatswork/";
-const ink = Color.dynamic(new Color("#151a25"), new Color("#e8ecf4"));
-const muted = Color.dynamic(new Color("#687186"), new Color("#929bb0"));
-const size = config.widgetFamily || "medium";
-const title = w.addText(data.error ? "WhatsWork" : (data.now ? "Now: " + data.now.title : "Free time"));
-title.font = Font.boldSystemFont(14); title.textColor = ink; title.lineLimit = 1;
-if (data.now) { const s = w.addText("until " + data.now.end); s.font = Font.systemFont(11); s.textColor = muted; }
-w.addSpacer(6);
-if (data.error) { const e = w.addText(data.error); e.textColor = muted; e.font = Font.systemFont(12); }
-const max = size === "small" ? 3 : size === "large" ? 9 : 4;
-for (const it of (data.next || []).slice(0, max)) {
-  const row = w.addStack(); row.centerAlignContent(); row.spacing = 6;
-  const dot = row.addStack(); dot.size = new Size(4, 16); dot.backgroundColor = new Color(it.color); dot.cornerRadius = 2;
-  const tm = row.addText(it.when); tm.font = Font.semiboldMonospacedSystemFont(11); tm.textColor = muted;
-  const tx = row.addText(it.title); tx.font = Font.semiboldSystemFont(12.5); tx.textColor = ink; tx.lineLimit = 1;
-  w.addSpacer(3);
+  r.body = JSON.stringify(body);
+  return await r.loadJSON();
 }
-if (data.posts && data.posts.total && size !== "small") {
-  w.addSpacer(4);
-  const p = w.addText("📌 Posts today: " + data.posts.done + " of " + data.posts.total + " scheduled");
-  p.font = Font.semiboldSystemFont(11); p.textColor = data.posts.done < data.posts.total ? new Color("#b45309") : new Color("#169a62");
+
+async function voice() {
+  const ask = new Alert();
+  ask.title = "Tell WhatsWork";
+  ask.message = "Tap the mic on your keyboard and say it, or type.";
+  ask.addTextField("meeting with Sam Monday 3 pm", "");
+  ask.addAction("Send");
+  ask.addCancelAction("Cancel");
+  const pick = await ask.presentAlert();
+  const said = pick === 0 ? ask.textFieldValue(0) : "";
+  if (!said || said.trim().length < 2) return;
+  let msg;
+  try { const j = await call({ action: "voice_text", key: MKEY, text: said }); msg = j.message || j.error || "Done"; }
+  catch (e) { msg = "No connection. Try again."; }
+  const a = new Alert(); a.title = "WhatsWork"; a.message = msg; a.addAction("OK");
+  await a.presentAlert();
 }
-w.addSpacer();
-w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
-if (config.runsInWidget) Script.setWidget(w); else w.presentMedium();
+
+async function build() {
+  let data;
+  try { data = await call({ action: "widget", key: KEY }); } catch (e) { data = { error: "No connection" }; }
+  const ink = Color.dynamic(new Color("#151a25"), new Color("#e8ecf4"));
+  const muted = Color.dynamic(new Color("#687186"), new Color("#929bb0"));
+  const size = config.widgetFamily || "medium";
+  const w = new ListWidget();
+  w.backgroundColor = Color.dynamic(new Color("#f4f5f9"), new Color("#141a2b"));
+  w.setPadding(12, 12, 12, 12);
+  w.url = APP;
+  const row = w.addStack(); row.layoutHorizontally(); row.topAlignContent();
+  const left = row.addStack(); left.layoutVertically(); left.url = APP;
+  const title = left.addText(data.error ? "WhatsWork" : (data.now ? "Now: " + data.now.title : "Free time"));
+  title.font = Font.boldSystemFont(14); title.textColor = ink; title.lineLimit = 1;
+  if (data.now) { const s = left.addText("until " + data.now.end); s.font = Font.systemFont(11); s.textColor = muted; }
+  left.addSpacer(6);
+  if (data.error) { const e = left.addText(data.error); e.textColor = muted; e.font = Font.systemFont(12); }
+  const max = size === "small" ? 3 : size === "large" ? 9 : 4;
+  for (const it of (data.next || []).slice(0, max)) {
+    const r = left.addStack(); r.centerAlignContent(); r.spacing = 6;
+    const dot = r.addStack(); dot.size = new Size(4, 16); dot.backgroundColor = new Color(it.color); dot.cornerRadius = 2;
+    const tm = r.addText(it.when); tm.font = Font.semiboldMonospacedSystemFont(11); tm.textColor = muted;
+    const tx = r.addText(it.title); tx.font = Font.semiboldSystemFont(12.5); tx.textColor = ink; tx.lineLimit = 1;
+    left.addSpacer(3);
+  }
+  if (data.posts && data.posts.total && size !== "small") {
+    left.addSpacer(2);
+    const p = left.addText("📌 Posts today: " + data.posts.done + " of " + data.posts.total + " scheduled");
+    p.font = Font.semiboldSystemFont(11); p.textColor = data.posts.done < data.posts.total ? new Color("#b45309") : new Color("#169a62");
+  }
+  if (size !== "small") {
+    row.addSpacer();
+    const mic = row.addStack(); mic.layoutVertically(); mic.centerAlignContent();
+    mic.size = new Size(64, 0);
+    mic.url = "scriptable:///run/" + encodeURIComponent(Script.name()) + "?mic=1";
+    mic.addSpacer();
+    const btn = mic.addStack(); btn.size = new Size(56, 56); btn.cornerRadius = 28; btn.backgroundColor = new Color("#3157e8"); btn.centerAlignContent();
+    const img = btn.addImage(SFSymbol.named("mic.fill").image); img.imageSize = new Size(24, 24); img.tintColor = Color.white();
+    mic.addSpacer(5);
+    const lr = mic.addStack(); lr.addSpacer(); const l = lr.addText("Say it"); l.font = Font.semiboldSystemFont(10.5); l.textColor = muted; lr.addSpacer();
+    mic.addSpacer();
+  }
+  w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
+  return w;
+}
+
+if (q.mic === "1" && !config.runsInWidget) {
+  await voice();
+} else {
+  const w = await build();
+  if (config.runsInWidget) Script.setWidget(w); else await w.presentMedium();
+}
 Script.complete();`;
 
 /* ---------- notification choices ---------- */
