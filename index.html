@@ -2070,10 +2070,11 @@ if (config.runsInWidget) {
 }
 Script.complete();`;
 const WIDGET_CODE = `// WhatsWork widget for Scriptable: your next activities on the left, a voice button on the right.
-// In the widget's settings set "When Interacting" to "Run Script": a tap then opens the voice box.
+// Tapping the mic opens WhatsWork in Safari with the voice recorder already listening.
 const KEY = "__KEY__";
 const MKEY = "__MKEY__";
 const URL_ = "__URL__";
+const APP = "https://ateebhassan.github.io/whatswork/";
 
 async function call(body) {
   const r = new Request(URL_); r.method = "POST"; r.timeoutInterval = 40;
@@ -2119,6 +2120,7 @@ async function build() {
   const w = new ListWidget();
   w.backgroundColor = Color.dynamic(new Color("#f4f5f9"), new Color("#141a2b"));
   w.setPadding(12, 12, 12, 12);
+  w.url = APP + "?voice=1";
   const row = w.addStack(); row.layoutHorizontally(); row.topAlignContent();
   const left = row.addStack(); left.layoutVertically();
   const title = left.addText(data.error ? "WhatsWork" : (data.now ? "Now: " + data.now.title : "Free time"));
@@ -2143,6 +2145,7 @@ async function build() {
     row.addSpacer();
     const mic = row.addStack(); mic.layoutVertically(); mic.centerAlignContent();
     mic.size = new Size(64, 0);
+    mic.url = APP + "?voice=1";
     mic.addSpacer();
     const btn = mic.addStack(); btn.size = new Size(56, 56); btn.cornerRadius = 28; btn.backgroundColor = new Color("#3157e8"); btn.centerAlignContent();
     const img = btn.addImage(SFSymbol.named("mic.fill").image); img.imageSize = new Size(24, 24); img.tintColor = Color.white();
@@ -2578,6 +2581,16 @@ function handleLink(url){
   const u=new URL(url, location.href);
   if (u.searchParams.get("planner")) { openPlanner(); return; }
   if (u.searchParams.get("review")) { showTab("review"); return; }
+  if (u.searchParams.get("voice")) {
+    try { history.replaceState(null, "", location.pathname); } catch {}
+    /* wait for the AI settings, open the add screen, and start listening straight away
+       (if Safari wants a tap first, the big mic is right there) */
+    Promise.race([window.aiReady||Promise.resolve(), new Promise(r=>setTimeout(r,2500))]).then(()=>{
+      openAdd(todayStr());
+      setTimeout(()=>{ try { if (aiOn && ["gemini","openai"].includes(ai.provider) && $("qMic") && !$("qMic").classList.contains("rec")) $("qMic").click(); } catch {} }, 300);
+    });
+    return;
+  }
   const paid=u.searchParams.get("paid"); if (paid) { if (u.searchParams.get("done")) markPaid(paid,true); else openPaid(paid); return; }
   const d=u.searchParams.get("d"); if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) openDay(d);
 }
@@ -2591,7 +2604,7 @@ function handleLink(url){
     if (d.error) { if (d.missing) return showSetup(); toast("Couldn't load: "+(d.error.message||d.error)); me=null; return; }
     await loadHealth(); await loadLife();
     applyData(d); started=true; api.subscribe(reloadSoon);
-    api.getAi().then(r=>{ const a=r?.data?.[0]; if(a) ai={...ai,...a}; aiOn=!!(a && a.enabled && a.has_key); }).catch(()=>{});
+    window.aiReady = api.getAi().then(r=>{ const a=r?.data?.[0]; if(a) ai={...ai,...a}; aiOn=!!(a && a.enabled && a.has_key); }).catch(()=>{});
     showTab(tab);
     if (location.search) { handleLink(location.href); history.replaceState(null,"",location.pathname); }
   });
