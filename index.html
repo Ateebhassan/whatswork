@@ -355,6 +355,36 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
 .vitem{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px;text-align:left;width:100%}
 .vitem .t{flex:1;min-width:0}.vitem .t b{display:block}
 .vitem input{width:20px;height:20px;accent-color:var(--brand)}
+.backb{font-size:13px;font-weight:800;color:var(--brand);padding:2px 0 4px}
+.teamcard{display:flex;align-items:center;gap:12px;width:100%;text-align:left}
+.teamcard .t{flex:1;min-width:0}.teamcard .t b{display:block;font-size:15.5px}
+.tm-ic{font-size:26px}
+.tm-av{display:flex}.tm-av i{width:24px;height:24px;border-radius:50%;color:#fff;font-style:normal;font-size:11px;font-weight:800;display:grid;place-items:center;margin-left:-6px;border:2px solid var(--panel)}
+.tstrip{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:none}.tstrip::-webkit-scrollbar{display:none}
+.tperson{flex:0 0 auto;min-width:120px;max-width:150px;display:grid;gap:2px;justify-items:start;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:10px 12px}
+.tperson b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.tperson.on{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand) inset}
+.tperson.add{border-style:dashed}.tperson.add .av{background:var(--sunk);color:var(--muted)}
+.av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px;flex:0 0 auto}
+.tsec{margin-top:14px}
+.tph{display:flex;align-items:center;gap:10px;margin:0 2px 8px}.tph .t{flex:1;min-width:0;text-align:left}.tph .t b{display:block;font-size:16px}
+.jlist{display:grid;gap:8px}
+.job{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:14px;padding:9px 10px 9px 0;overflow:hidden}
+.job .jb{align-self:stretch;width:5px;border-radius:0 4px 4px 0;flex:0 0 auto}
+.job .t{flex:1;min-width:0;text-align:left}.job .t b{display:block;font-size:14.5px;line-height:1.3}
+.job.done .t b{text-decoration:line-through;color:var(--muted)}
+.urg{background:var(--bad);color:#fff;border-radius:6px;padding:1px 6px;font-size:11px;font-weight:800;vertical-align:1px}
+.stb{flex:0 0 auto;min-width:64px;padding:7px 10px;border-radius:999px;font-size:12.5px;font-weight:800;border:1px solid var(--line);color:var(--muted);background:var(--sunk)}
+.stb.doing{background:var(--warn);border-color:var(--warn);color:#3a2600}
+.stb.done{background:var(--ok);border-color:var(--ok);color:#fff}
+.addjob{font-size:13.5px;font-weight:800;color:var(--brand);text-align:left;padding:4px 2px}
+.donebtn{font-size:12.5px;font-weight:700;color:var(--muted);text-align:left;padding:2px}
+.dotb{width:28px;height:28px;border-radius:50%;border:3px solid transparent}.dotb.on{border-color:var(--ink)}
+.vchoose{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chipb{padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:12.5px;font-weight:700;color:var(--muted)}
+.chipb.on{background:var(--brand);border-color:var(--brand);color:var(--on-brand,#fff)}
+.vtimes{display:flex;align-items:center;gap:6px;margin-top:6px}.vtimes .field{width:auto;padding:6px 8px;font-size:14px}
+.vhelp{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.vhelp span{font-size:12px;font-weight:600;color:var(--muted);background:var(--sunk);border-radius:999px;padding:4px 9px}
 
 
 /* ===== v3: calendar fits one screen ===== */
@@ -748,6 +778,11 @@ u.pok{color:var(--ok)} u.ptodo{color:#d97706}
     <div class="scroll" id="settingsBody"></div>
   </section>
 
+  <section class="screen hidden" id="sTeam">
+    <div class="head"><div><button class="backb" id="tmBack">‹ Today</button><h1>Team work</h1></div><button class="btn sm" id="tmNew">+ Job</button></div>
+    <div class="scroll" id="teamBody"></div>
+  </section>
+
   <section class="screen hidden" id="sSetup"><div id="setup"></div></section>
 
   <nav id="nav">
@@ -843,11 +878,20 @@ const api = window.WW_TEST_API || {
       .on("postgres_changes",{event:"*",schema:"public",table:"health_days",filter:f},onChange)
       .on("postgres_changes",{event:"*",schema:"public",table:"health_weeks",filter:f},onChange)
       .on("postgres_changes",{event:"*",schema:"public",table:"post_files",filter:f},onChange)
+      .on("postgres_changes",{event:"*",schema:"public",table:"team_jobs",filter:f},onChange)
+      .on("postgres_changes",{event:"*",schema:"public",table:"team_people",filter:f},onChange)
       .subscribe();
   },
   saveCalendar(c){ const {id,...v}=c; return id ? sb.from("calendars").update(v).eq("id",id).select().single() : sb.from("calendars").insert(v).select().single(); },
   saveEvent(ev){ const {id,...v}=ev; v.updated_at=new Date().toISOString(); return id ? sb.from("events").update(v).eq("id",id).select().single() : sb.from("events").insert(v).select().single(); },
   deleteEvent(id){ return sb.from("events").delete().eq("id",id); },
+  teamPeople(){ return sb.from("team_people").select("id,name,role,role_label,color,sort,link_made,last_seen,created_at").order("sort").order("created_at"); },
+  teamJobs(){ return sb.from("team_jobs").select("*").or("status.neq.done,done_at.gt.\""+new Date(Date.now()-21*864e5).toISOString()+"\"").order("created_at"); },
+  saveJob(j){ const {id,...v}=j; v.updated_at=new Date().toISOString(); return id ? sb.from("team_jobs").update(v).eq("id",id).select().single() : sb.from("team_jobs").insert(v).select().single(); },
+  deleteJob(id){ return sb.from("team_jobs").delete().eq("id",id); },
+  savePerson(p){ const {id,...v}=p; return id ? sb.from("team_people").update(v).eq("id",id).select("id,name,role,role_label,color,sort,link_made,last_seen,created_at").single() : sb.from("team_people").insert(v).select("id,name,role,role_label,color,sort,link_made,last_seen,created_at").single(); },
+  deletePerson(id){ return sb.from("team_people").delete().eq("id",id); },
+  restoreEvent(row){ return sb.from("events").upsert(row).select().single(); },
   setPostStatus(calendar_id,item_key,patch){ return sb.from("post_status").upsert({calendar_id,item_key,...patch,updated_at:new Date().toISOString()},{onConflict:"calendar_id,item_key"}).select().single(); },
   async setPlannerTrack(key, date, patch){
     const name="track-"+date.slice(0,7);
@@ -915,15 +959,15 @@ async function loadHealth(){
   try { const h = await api.loadHealth(); healthMissing = !!h.missing; if (!h.missing) { health=h.health||[]; screenWeeks=h.weeks||[]; reviews=h.reviews||[]; } }
   catch { healthMissing = true; }
 }
-let life={goals:[],ideas:[],trips:[],money:{items:[],paid:{}},suggest:[]};
+let life={goals:[],ideas:[],trips:[],money:{items:[],paid:{}},suggest:[],undo:[]};
 async function loadLife(){
-  try { const {data}=await api.loadLife(); const L={goals:[],ideas:[],trips:[],money:{items:[],paid:{}},suggest:[]};
+  try { const {data}=await api.loadLife(); const L={goals:[],ideas:[],trips:[],money:{items:[],paid:{}},suggest:[],undo:[]};
     (data||[]).forEach(r=>{ try{ const j=JSON.parse(r.json); if(r.name==="money") L.money={items:j.items||[],paid:j.paid||{}}; else if(L[r.name]) L[r.name]=Array.isArray(j)?j:(j.items||[]); }catch{} });
     life=L; } catch { /* the life table isn't there yet */ }
 }
 async function saveLife(name){ const {error}=await api.saveLife(name, name==="money"?life.money:life[name]); if(error) toast("Couldn't save: "+error.message); return !error; }
 async function reload(){
-  const [d] = await Promise.all([api.loadAll(), loadHealth(), loadLife()]);
+  const [d] = await Promise.all([api.loadAll(), loadHealth(), loadLife(), loadTeam()]);
   if (d.error) { if (d.missing) return showSetup(); return toast("Couldn't load: "+(d.error.message||d.error)); }
   applyData(d); render();
 }
@@ -951,11 +995,15 @@ $("authForm").onsubmit=async e=>{
 
 /* ---------- navigation ---------- */
 document.querySelectorAll("#nav button[data-tab]").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+$("tmBack").onclick=()=>showTab("today");
+$("tmNew").onclick=()=>openJob(null, teamFilter!=="all"?teamFilter:null);
 $("navAdd").onclick=()=>openAdd(tab==="cal"?calDate:todayStr());
 function showTab(t){
-  if (!["today","cal","review","settings"].includes(t)) t="today";
+  if (!["today","cal","review","settings","team"].includes(t)) t="today";
   tab=t; store.set("tab",t);
-  document.querySelectorAll("#nav button[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  document.querySelectorAll("#nav button[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===(t==="team"?"today":t)));
+  $("sTeam").classList.toggle("hidden",t!=="team");
+  if (t==="team") loadTeam().then(()=>{ if(tab==="team") renderTeam(); });
   $("sToday").classList.toggle("hidden",t!=="today");
   $("sCal").classList.toggle("hidden",t!=="cal");
   $("sSettings").classList.toggle("hidden",t!=="settings");
@@ -968,6 +1016,7 @@ function render(){
   else if (tab==="cal") renderCal();
   else if (tab==="settings") renderSettings();
   else if (tab==="review") renderReview();
+  else if (tab==="team") renderTeam();
 }
 function openDay(date){ calDate=date; calView="day"; store.set("calView","day"); showTab("cal"); }
 
@@ -1182,8 +1231,11 @@ function renderToday(){
     <div class="sec" id="postsSec"><h2>Posts today</h2></div>
     <div class="card">${pToday.length?pToday.map(postRowHtml).join(""):`<div class="empty">No posts due today.</div>`}</div>
     ${warnsHtml(alerts)}
+    <div class="sec"><h2>Team</h2></div>
+    ${teamSummaryHtml()}
     <div style="height:20px"></div>`;
   const body=$("todayBody"); wire(body);
+  $("tTeam").onclick=()=>showTab("team");
   $("upSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{ upRange=b.dataset.r; store.set("upRange",upRange); renderToday(); });
   $("tWeek").onclick=()=>showTab("review");
   wireLifeToday(); wireSuggest(); loadHeadlines();
@@ -1553,6 +1605,7 @@ function openPost(p){
 }
 
 /* ---------- ADD: one button for everything, with voice ---------- */
+const VOICE_CMD = /\b(remove|cancel|skip|delete|clear|day off|off tomorrow|off today|move|shift|push|postpone|undo|what'?s|what|when|free|find|done|sent|made|scheduled|posted|paid|had|met|remind|note|sleep|wake|hatao|chutti|kya)\b/i;
 const QUICK_EXAMPLES = ["Meeting with Sam Thursday 11pm","Tariq shoot tomorrow 3-5pm","Call Ma'am Sofia Friday 4pm","Gym every Mon and Wed 6pm"];
 let addType = "event";
 function openAdd(date){
@@ -1561,7 +1614,8 @@ function openAdd(date){
   sheet(`<div style="display:grid;gap:12px;justify-items:stretch">
     <h2 style="text-align:center;margin:0">What do you want to add?</h2>
     <button class="mic" id="qMic" aria-label="Speak to add">${icon("mic")}</button>
-    <div class="small muted" id="qMicHelp" style="text-align:center">${voiceAI?"Tap and just say it, e.g. “meeting with Sam Thursday 11pm and call Tariq Saturday 5”. Tap again to stop.":"Tap, then press the 🎤 on your keyboard and say it."}</div>
+    <div class="small muted" id="qMicHelp" style="text-align:center">${voiceAI?"Tap and just say it, in English or Urdu. Tap again to stop.":"Tap, then press the 🎤 on your keyboard and say it."}</div>
+    ${voiceAI?`<div class="vhelp">${["Meeting with Sam Thursday 11pm","Move Sofia meeting to 4pm","What's tomorrow?","When am I free Friday?","Find 2 hours for editing","APS post done","Committee paid","Remind me at 3 to call Hamza","I'll sleep at 11 tonight","Kal 3 baje meeting","Undo that"].map(x=>`<span>${esc(x)}</span>`).join("")}</div>`:""}
     <input id="qText" class="field" placeholder="Or type it here" maxlength="300" enterkeyhint="go" autocomplete="off">
     <div class="actions"><button class="btn" id="qGo">Add</button><button class="btn ghost" id="qForm">Use a form</button></div>
     <div class="more-add"><span class="small muted">Also:</span><button data-t="post">📌 College post</button><button data-t="bday">🎂 Birthday</button><button data-t="note">❔ To confirm</button></div></div>`);
@@ -1572,9 +1626,9 @@ function openAdd(date){
     const im=text.match(/^ideas?\s*[:\-–,]?\s+(.{3,})/i);
     if (im) { await addIdea(im[1]); closeSheet(); return toast("Saved to your ideas 💡"); }
     const nm=nowMin()%DAY, local = W.parseQuick(text, cals, todayStr(), nm);
-    if (aiOn && /\b(remove|cancel|skip|delete|clear|day off|off tomorrow|off today)\b/i.test(text)) {
+    if (aiOn && (VOICE_CMD.test(text) || /\?\s*$/.test(text))) {
       try { const {data,error}=await api.parseText(text, todayStr(), hm(nm));
-        if (!error && data && !data.error && ((data.remove||[]).length || (data.day_off||[]).length)) { closeSheet(); return handleActions(data); }
+        if (!error && data && !data.error && ["remove","day_off","move","push","posts_done","paid","done","remind","note","sleep"].some(k=>(data[k]||[]).length) || data?.undo || data?.ask?.type || data?.find_time) { closeSheet(); return handleActions(data); }
       } catch { /* fall through to adding */ }
       btn.disabled=true; btn.textContent="Reading…";
     }
@@ -1627,41 +1681,254 @@ function matchOccs(what, d){
         (/shift/.test(w) && o.kind==="shift") ||
         w.split(/\s+/).some(x=>x.length>3 && t.includes(x)); });
 }
+/* ---------- VOICE COMMANDS: everything the mic (or a typed command) can do ---------- */
+const evFields = e => ({calendar_id:e.calendar_id, title:e.title, kind:e.kind, date:e.date, start_time:e.start_time, end_time:e.end_time, repeat:e.repeat, repeat_days:e.repeat_days, repeat_until:e.repeat_until, skip_dates:e.skip_dates||[], notes:e.notes, source:e.source});
+const minOf = s => (typeof s==="string" && /^\d{2}:\d{2}$/.test(s)) ? W.tmin(s) : null;
+const isDate = s => typeof s==="string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
+const personalCal = () => cals.find(c=>c.billing==="personal")||cals[0];
+const sayTime = m => tFull(m).replace(":00","");
+/* one change at a time, each one remembered so "undo that" can put it back */
+async function evInsert(v, ops){ const r=await api.saveEvent(v); if(r.error) throw new Error(r.error.message); if(r.data?.id) ops.push({t:"ins", id:r.data.id}); return r.data; }
+async function evUpdate(ev, patch, ops){ const before={}; Object.keys(patch).forEach(k=>before[k]=ev[k]??null); const r=await api.saveEvent({id:ev.id, ...patch}); if(r.error) throw new Error(r.error.message); ops.push({t:"upd", id:ev.id, before}); return r.data; }
+async function evDelete(ev, ops){ const r=await api.deleteEvent(ev.id); if(r.error) throw new Error(r.error.message); ops.push({t:"del", row:{...ev}}); }
+/* take one day out of a repeating thing, or change a one-off, so a move never touches other days */
+async function moveOcc(o, toDate, startM, endM, ops){
+  const ev=o.ev, dur=Math.max(5,o.end-o.start);
+  const s = startM!=null ? startM : ((o.start%DAY)+DAY)%DAY;
+  const e = endM!=null ? endM : s+dur;
+  const date = toDate || o.date;
+  if (ev.repeat && ev.repeat!=="none") {
+    await evUpdate(ev, {skip_dates:[...new Set([...(ev.skip_dates||[]), o.date])]}, ops);
+    await evInsert({calendar_id:ev.calendar_id, title:ev.title, kind:ev.kind, date, start_time:hm(((s%DAY)+DAY)%DAY), end_time:hm(((e%DAY)+DAY)%DAY), repeat:"none", repeat_days:[], repeat_until:null, notes:ev.notes||null, source:ev.source||"manual"}, ops);
+  } else await evUpdate(ev, {date, start_time:hm(((s%DAY)+DAY)%DAY), end_time:hm(((e%DAY)+DAY)%DAY)}, ops);
+}
+function bestOcc(what, date){
+  const hits=matchOccs(what, date); if (!hits.length) return null;
+  const w=String(what||"").toLowerCase();
+  return hits.sort((a,b)=>(b.ev.title.toLowerCase().includes(w)-a.ev.title.toLowerCase().includes(w)) || ((b.kind!=="shift")-(a.kind!=="shift")))[0];
+}
+/* free time on a day: everything except planned things and sleep (prayer breaks don't block) */
+function freeGaps(date, minLen, afterM, beforeM){
+  const d0=W.dnum(date)*DAY, list=occs(W.addDays(date,-1), W.addDays(date,1));
+  const busy=W.timed(list.filter(o=>o.cal.visible!==false && !o.cal.archived && !(o.ev&&o.ev.source==="reminder"))).map(o=>[o.start,o.end]).filter(r=>r[1]>d0 && r[0]<d0+DAY).sort((a,b)=>a[0]-b[0]);
+  let from=d0+(afterM!=null?afterM:0); const to=d0+(beforeM!=null?beforeM:DAY);
+  const now=nowMin(); if (from<now) from=Math.ceil(now/15)*15;
+  const gaps=[]; let cur=from;
+  for (const [a,b] of busy){ if (b<=cur) continue; if (a>cur){ const e=Math.min(a,to); if (e-cur>=minLen) gaps.push([cur,e]); } cur=Math.max(cur,b); if (cur>=to) break; }
+  if (to-cur>=minLen) gaps.push([cur,to]);
+  return gaps;
+}
+function findPost(what, date){
+  const t=todayStr(), w=String(what||"").toLowerCase().replace(/\b(post|the|for|day)\b/g," ").trim();
+  const words=w.split(/\s+/).filter(x=>x.length>2);
+  const from=date?W.addDays(date,-1):W.addDays(t,-10), to=date?W.addDays(date,1):W.addDays(t,40);
+  const list=occs(W.addDays(from,-1), W.addDays(to,1)); let best=null, bs=0;
+  for (let d=from; d<=to; d=W.addDays(d,1)) groupPosts(postsFor(d,list)).forEach(p=>{
+    const tt=p.title.toLowerCase(); let sc=words.filter(x=>tt.includes(x)).length/(words.length||1);
+    if (tt.includes(w) && w) sc+=1; if (!sc) return;
+    sc -= Math.abs(W.dnum(d)-W.dnum(t))/1000;
+    if (sc>bs){ bs=sc; best=p; } });
+  return best;
+}
+function sleepNight(date){
+  const d0=W.dnum(date)*DAY, list=occs(W.addDays(date,-1), W.addDays(date,2));
+  return W.timed(list).filter(o=>o.kind==="sleep" && o.start>=d0+12*60 && o.start<d0+DAY+6*60).sort((a,b)=>a.start-b.start)[0]
+      || W.timed(list).filter(o=>o.kind==="sleep" && o.start>=d0 && o.start<d0+DAY+6*60).sort((a,b)=>a.start-b.start)[0];
+}
+/* each thing heard becomes one row to tick: what it'll do, and how */
+function voiceOps(data){
+  const out=[], t=todayStr();
+  (data.move||[]).forEach(m=>{ const d=isDate(m.date)?m.date:t, o=bestOcc(m.what,d);
+    if(!o) return out.push({miss:`Nothing called “${m.what}” on ${relDay(d)}`});
+    const s=minOf(m.to_start), e=minOf(m.to_end), nd=isDate(m.to_date)?m.to_date:null;
+    if (s==null && !nd) return out.push({miss:`Move ${o.ev.title}: to when?`});
+    const ns=s!=null?s:((o.start%DAY)+DAY)%DAY, ne=e!=null?e:ns+(o.end-o.start);
+    out.push({group:"Move", o, label:o.ev.title, sub:`${relDay(o.date)} ${sayTime(o.start)} → ${relDay(nd||o.date)} ${sayTime(ns)} – ${sayTime(ne)}`, on:true,
+      run:ops=>moveOcc(o, nd, ns, ne, ops), done:`Moved ${o.ev.title}`}); });
+  (data.push||[]).forEach(p=>{ const d=isDate(p.date)?p.date:t, mins=Math.round(Number(p.minutes)||0); if(!mins) return;
+    const af=minOf(p.after), d0=W.dnum(d)*DAY, from=af!=null?d0+af:(d===t?nowMin():d0);
+    const list=occs(W.addDays(d,-1),W.addDays(d,1)).filter(o=>o.date===d && !o.allDay && !["sleep","prayer","post"].includes(o.kind) && o.start>=from && o.cal.visible!==false);
+    if(!list.length) out.push({miss:`Nothing to push on ${relDay(d)}${af!=null?" after "+sayTime(d0+af):""}`});
+    list.sort((a,b)=>a.start-b.start).forEach(o=>{ const fixed=o.kind==="university"||o.kind==="shift";
+      out.push({group:`Push ${mins>0?"later":"earlier"} by ${dur(Math.abs(mins))}`, o, label:o.ev.title, sub:`${sayTime(o.start)} → ${sayTime(o.start+mins)}${fixed?" · class or shift, tick to move it too":""}`, on:!fixed, imp:fixed,
+        run:ops=>moveOcc(o, null, ((o.start%DAY)+DAY)%DAY+mins, ((o.start%DAY)+DAY)%DAY+mins+(o.end-o.start), ops), done:`Pushed ${o.ev.title}`}); }); });
+  if (data.find_time && Number(data.find_time.minutes)>0){ const f=data.find_time, len=Math.round(Number(f.minutes));
+    const from=isDate(f.from_date)&&f.from_date>=t?f.from_date:t, to=isDate(f.to_date)&&f.to_date>=from?f.to_date:W.addDays(from,6);
+    const opts=[]; for (let d=from; d<=to && opts.length<3 && d<=W.addDays(from,13); d=W.addDays(d,1)) { const g=freeGaps(d,len,minOf(f.after),minOf(f.before))[0]; if(g) opts.push({date:d,s:g[0]}); }
+    const title=(f.title||"Focus time").slice(0,140), guess=W.parseQuick(title,cals,t,nowMin()%DAY);
+    if (!opts.length) out.push({miss:`No free ${dur(len)} between ${relDay(from)} and ${relDay(to)}`});
+    else out.push({group:"Block time", label:`${title} · ${dur(len)}`, on:true, choose:opts.map(x=>`${relDay(x.date)} ${sayTime(x.s)} – ${sayTime(x.s+len)}`),
+      run:(ops,pick)=>{ const x=opts[pick||0]; return evInsert({calendar_id:guess.calendar_id||personalCal().id, title, kind:"work", date:x.date, start_time:hm(((x.s%DAY)+DAY)%DAY), end_time:hm(((x.s+len)%DAY+DAY)%DAY), repeat:"none", repeat_days:[], repeat_until:null, notes:null, source:"voice"}, ops); }, done:`Blocked ${title}`}); }
+  (data.posts_done||[]).forEach(p=>{ const post=findPost(p.what, isDate(p.date)?p.date:null);
+    if(!post) return out.push({miss:`No post called “${p.what}”`});
+    const field=p.status==="scheduled"?"scheduled":p.status==="sent"?"sent":"made", word={sent:"with designer",made:"made",scheduled:"scheduled"}[field];
+    if (post.status[field]) return out.push({miss:`${post.title} is already ${word}`});
+    out.push({group:"Posts", label:post.title, sub:`${relDay(post.key.split("@").pop())} · mark ${word}`, color:postColor(post), on:true, run:ops=>setPostField(post, field, ops), done:`${post.title}: ${word}`}); });
+  (data.paid||[]).forEach(x=>{ const w=String(x||"").toLowerCase(), items=life.money.items||[];
+    const it=items.find(i=>i.title.toLowerCase().split(/\s+/).some(y=>y.length>3 && w.includes(y))) || (items.length===1?items[0]:null);
+    if(!it) return out.push({miss:`No payment reminder called “${x}”`});
+    const key=it.id+"@"+t.slice(0,7);
+    if (life.money.paid[key]) return out.push({miss:`${it.title} is already paid for ${monthName(t.slice(0,7))}`});
+    out.push({group:"Money", label:`💰 ${it.title}`, sub:`Mark paid for ${monthName(t.slice(0,7))}`, on:true, run:async ops=>{ ops.push({t:"money", key, before:life.money.paid[key]||null}); life.money.paid[key]=t; if(!await saveLife("money")) throw new Error("Couldn't save"); }, done:`${it.title} paid`}); });
+  (data.done||[]).forEach(x=>{ const d=isDate(x.date)?x.date:t, w=String(x.what||"").trim(); if(!w) return;
+    const o=bestOcc(w,d), cham=/chamber|lawyer|vakeel|wakeel/i.test(w) || (o && /chamber/i.test(o.cal.name));
+    if (o) out.push({group:"Done", label:`✓ ${o.ev.title}`, sub:`Already in your calendar ${relDay(d).toLowerCase()}`, on:false, info:true});
+    else { const tm=minOf(x.time), endM = tm!=null ? tm+60 : (d===t ? (nowMin()%DAY) : 13*60), stM = tm!=null ? tm : endM-60;
+      const cal = cham ? (cals.find(c=>/chamber/i.test(c.name))||personalCal()) : (W.parseQuick(w,cals,t,0).calendar_id ? calById(W.parseQuick(w,cals,t,0).calendar_id) : personalCal());
+      const title="✓ "+w.charAt(0).toUpperCase()+w.slice(1);
+      out.push({group:"Done", label:title.slice(0,140), sub:`Log it ${relDay(d).toLowerCase()}, ${sayTime(stM)} – ${sayTime(endM)} · ${shortName(cal)}`, on:true,
+        run:ops=>evInsert({calendar_id:cal.id, title:title.slice(0,140), kind:"meeting", date:d, start_time:hm(((stM%DAY)+DAY)%DAY), end_time:hm(((endM%DAY)+DAY)%DAY), repeat:"none", repeat_days:[], repeat_until:null, notes:"Logged by voice", source:"voice"}, ops), done:`Logged ${w}`}); }
+    if (cham){ const next=events.filter(e=>/chamber check-?in/i.test(e.title) && e.repeat==="none" && e.date>d).sort((a,b)=>a.date.localeCompare(b.date))[0];
+      const nd=W.addDays(d,30);
+      if (next && next.date<nd) out.push({group:"Done", label:"Next chamber check-in", sub:`${relDay(next.date)} → ${relDay(nd)} (a month after this meeting)`, on:true, run:ops=>evUpdate(next,{date:nd},ops), done:"Moved the next check-in"}); } });
+  (data.remind||[]).forEach(x=>{ const d=isDate(x.date)?x.date:t, m=minOf(x.time); if(m==null||!x.text) return out.push({miss:"Remind you when?"});
+    const title=("⏰ "+String(x.text).trim()).slice(0,140);
+    out.push({group:"Reminders", label:title, sub:`${relDay(d)} ${sayTime(m)} · a notification at that time`, on:true,
+      run:ops=>evInsert({calendar_id:personalCal().id, title, kind:"other", date:d, start_time:hm(m), end_time:hm((m+5)%DAY), repeat:"none", repeat_days:[], repeat_until:null, notes:null, source:"reminder"}, ops), done:"Reminder set"}); });
+  (data.note||[]).forEach(x=>{ const d=isDate(x.date)?x.date:null, w=String(x.what||"");
+    let o=null; if (d) o=bestOcc(w,d); else for (let i=0;i<21 && !o;i++) o=bestOcc(w, W.addDays(t,i));
+    const ev = o ? o.ev : events.find(e=>e.title.toLowerCase().includes(w.toLowerCase()) && w.length>2);
+    if(!ev || !x.text) return out.push({miss:`Nothing called “${w}” to add a note to`});
+    out.push({group:"Notes", label:ev.title, sub:`Add note: “${x.text}”`, on:true, run:ops=>evUpdate(ev,{notes:[ev.notes,String(x.text).trim()].filter(Boolean).join("\n").slice(0,2000)},ops), done:`Note added to ${ev.title}`}); });
+  (data.sleep||[]).forEach(x=>{ const d=isDate(x.date)?x.date:t, sl=sleepNight(d);
+    if(!sl) return out.push({miss:`No sleep planned for ${relDay(d).toLowerCase()} night`});
+    let s=minOf(x.start), e=minOf(x.end); const d0=W.dnum(sl.date)*DAY;
+    const ns = s!=null ? d0+s+(s<12*60?DAY:0) : sl.start; let ne = e!=null ? d0+e : sl.end;
+    while (ne<=ns) ne+=DAY;
+    out.push({group:"Sleep", label:"😴 "+sl.ev.title, sub:`${relDay(sl.date)} night: ${sayTime(sl.start)} – ${sayTime(sl.end)} → `, on:true, times:[hm(((ns%DAY)+DAY)%DAY), hm(((ne%DAY)+DAY)%DAY)],
+      run:async(ops,pick,tm)=>{ const a=W.tmin(tm[0]), b=W.tmin(tm[1]); const st=d0+a+(a<12*60?DAY:0); const date=W.dstr(Math.floor(st/DAY));
+        if (sl.ev.repeat && sl.ev.repeat!=="none") { await evUpdate(sl.ev,{skip_dates:[...new Set([...(sl.ev.skip_dates||[]), sl.date])]},ops);
+          await evInsert({calendar_id:sl.ev.calendar_id, title:sl.ev.title, kind:"sleep", date, start_time:tm[0], end_time:tm[1], repeat:"none", repeat_days:[], repeat_until:null, notes:"Changed by voice", source:"voice"},ops); }
+        else await evUpdate(sl.ev,{date, start_time:tm[0], end_time:tm[1]},ops); }, done:"Sleep changed"}); });
+  return out;
+}
+async function setPostField(p, field, ops){
+  const date=p.key.split("@").pop();
+  if (p.source==="planner") {
+    const tr=(plannerTracks[date.slice(0,7)]||{})[p.key]||{};
+    ops.push({t:"track", key:p.key, date, before:{q:!!tr.q, m:!!tr.m, s:!!tr.s}});
+    const patch = field==="scheduled"?{s:true,m:true,q:true}:field==="made"?{m:true,q:true}:{q:true};
+    const r=await api.setPlannerTrack(p.key, date, patch); if(r?.error) throw new Error(r.error.message);
+  } else {
+    const cur=(postMap()[p.cal.id]||{})[p.key]||{};
+    ops.push({t:"status", cal:p.cal.id, key:p.key, before:{sent:!!cur.sent, made:!!cur.made, scheduled:!!cur.scheduled}});
+    const patch = field==="scheduled"?{scheduled:true,made:true,sent:true}:field==="made"?{made:true,sent:true}:{sent:true};
+    const r=await api.setPostStatus(p.cal.id, p.key, patch); if(r?.error) throw new Error(r.error.message);
+  }
+}
+async function rememberUndo(label, ops){
+  if (!ops.length) return;
+  life.undo=[{at:new Date().toISOString(), label, ops}, ...(life.undo||[])].slice(0,5);
+  await saveLife("undo");
+}
+async function doUndo(){
+  if (!life.undo?.length) await loadLife();
+  const last=(life.undo||[])[0];
+  if (!last) return toast("Nothing to undo");
+  sheet(`<h2>↩️ Undo?</h2><p class="small" style="margin:0">Your last change by voice (${esc(relDay(last.at.slice(0,10)).toLowerCase())}): <b>${esc(last.label)}</b></p>
+    <div class="actions"><button class="btn" id="unGo">Undo it</button><button class="btn ghost" data-close>Keep it</button></div>`);
+  $("unGo").onclick=async()=>{ $("unGo").disabled=true; let err=null;
+    for (const op of last.ops.slice().reverse()) { try {
+      let r=null;
+      if (op.t==="ins") r=await api.deleteEvent(op.id);
+      else if (op.t==="upd") r=await api.saveEvent({id:op.id, ...op.before});
+      else if (op.t==="del") r=await api.restoreEvent(op.row);
+      else if (op.t==="track") r=await api.setPlannerTrack(op.key, op.date, op.before);
+      else if (op.t==="status") r=await api.setPostStatus(op.cal, op.key, op.before);
+      else if (op.t==="money") { if (op.before) life.money.paid[op.key]=op.before; else delete life.money.paid[op.key]; await saveLife("money"); }
+      if (r?.error) err=r.error.message; } catch(e){ err=e.message; } }
+    life.undo=(life.undo||[]).slice(1); await saveLife("undo");
+    closeSheet(); toast(err?"Undone, with a problem: "+err:"Undone ↩️"); reload(); };
+}
+/* questions: answered on screen and read out loud */
+function answerAsk(a){
+  const t=todayStr(), d=isDate(a.date)?a.date:t; let lines=[], head="", say="";
+  if (a.type==="free") {
+    const g=freeGaps(d,45);
+    head=`Free ${relDay(d).toLowerCase()==="today"?"today":"on "+relDay(d)}`;
+    lines=g.map(([s,e])=>({b:`${tFull(s)} – ${tFull(e)}`, s:dur(e-s)}));
+    say = g.length ? `${head}: ${g.map(([s,e])=>`${sayTime(s)} to ${sayTime(e)}`).join(", ")}.` : `You're not free ${relDay(d).toLowerCase()==="today"?"for the rest of today":"on "+relDay(d)}.`;
+  } else if (a.type==="posts") {
+    const to=isDate(a.to_date)&&a.to_date>=d?a.to_date:W.addDays(d,6), list=occs(W.addDays(d,-1),W.addDays(to,1));
+    for (let x=d; x<=to; x=W.addDays(x,1)) groupPosts(postsFor(x,list)).forEach(p=>lines.push({b:p.title, s:`${relDay(x)} · ${p.status.scheduled?"scheduled ✓":p.status.made?"made":p.status.sent?"with designer":"not started"}`, c:postColor(p)}));
+    head=`Posts ${relDay(d)} – ${relDay(to)}`;
+    const open=lines.filter(l=>!/scheduled/.test(l.s));
+    say = lines.length ? `${lines.length} post${lines.length>1?"s":""}, ${open.length} still to do. ${open.slice(0,6).map(l=>l.b).join(", ")}.` : "No posts due then.";
+  } else if (a.type==="next") {
+    const nm=nowMin(), list=occs(W.addDays(t,-1),W.addDays(t,3)), n=W.timed(list.filter(o=>o.cal.visible!==false)).filter(o=>o.kind!=="sleep" && o.start>nm).sort((x,y)=>x.start-y.start).slice(0,3);
+    head="Coming up"; lines=n.map(o=>({b:o.ev.title, s:`${relDay(W.dstr(Math.floor(o.start/DAY)))} ${tFull(o.start)}`, c:colorOf(o)}));
+    say = n.length ? n.map(o=>`${o.ev.title} at ${sayTime(o.start)}`).join(", then ")+"." : "Nothing coming up.";
+  } else {
+    if (d===t) { say=dayText(); head="Your day"; }
+    const list=occs(W.addDays(d,-1),W.addDays(d,1)), vis=list.filter(o=>o.cal.visible!==false);
+    const items=W.timed(vis).filter(o=>o.date===d && o.kind!=="sleep").sort((x,y)=>x.start-y.start);
+    const posts=groupPosts(postsFor(d,list)), allDay=vis.filter(o=>o.date===d && o.allDay && o.kind!=="post");
+    lines=[...allDay.map(o=>({b:o.ev.title, s:"All day", c:colorOf(o)})), ...items.map(o=>({b:o.ev.title, s:`${tFull(o.start)} – ${tFull(o.end)}`, c:colorOf(o)})), ...posts.map(p=>({b:"📌 "+p.title, s:p.status.scheduled?"scheduled ✓":"post to do", c:postColor(p)}))];
+    if (d!==t) { head=fmtDay(d,{weekday:"long",day:"numeric",month:"long"});
+      say=`${relDay(d)==="Tomorrow"?"Tomorrow, ":""}${fmtDay(d,{weekday:"long",day:"numeric",month:"long"})}. `+(items.length?items.map(o=>`${o.ev.title} at ${sayTime(o.start)}`).join("; ")+". ":"Nothing planned. ")+(posts.length?`Posts: ${posts.map(p=>p.title).join(", ")}.`:""); }
+  }
+  sheet(`<h2>${esc(head)}</h2>
+    <div class="vlist">${lines.length?lines.map(l=>`<div class="vitem"><span class="sw" style="background:${l.c||"var(--ok)"};width:12px;height:12px;border-radius:50%"></span><span class="t"><b>${esc(l.b)}</b><span class="small muted">${esc(l.s)}</span></span></div>`).join(""):`<div class="small muted">${esc(say)}</div>`}</div>
+    <div class="actions"><button class="btn soft" id="askSay">🔊 Read it</button><button class="btn ghost" data-close>Close</button></div>`);
+  const speak=()=>{ if(!("speechSynthesis" in window)) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(say); u.lang="en-GB"; speechSynthesis.speak(u); };
+  $("askSay").onclick=speak; try{ speak(); }catch{}
+}
 function handleActions(data){
   const nm=nowMin()%DAY;
   const newIdeas=(data.ideas||[]).filter(x=>typeof x==="string" && x.trim().length>2);
-  if (newIdeas.length) { newIdeas.forEach(x=>life.ideas.unshift({id:"i"+Date.now()+Math.random().toString(36).slice(2,6), text:x.trim(), at:new Date().toISOString()})); saveLife("ideas"); toast(newIdeas.length>1?`Saved ${newIdeas.length} ideas 💡`:"Saved to your ideas 💡");
-    if (!(data.add||data.entries||[]).length && !(data.remove||[]).length && !(data.day_off||[]).length) { closeSheet(); return; } }
+  if (newIdeas.length) { newIdeas.forEach(x=>life.ideas.unshift({id:"i"+Date.now()+Math.random().toString(36).slice(2,6), text:x.trim(), at:new Date().toISOString()})); saveLife("ideas"); toast(newIdeas.length>1?`Saved ${newIdeas.length} ideas 💡`:"Saved to your ideas 💡"); }
+  if (data.undo) return doUndo();
   const one=(data.add||data.entries||[]).length===1;
   const adds=(data.add||data.entries||[]).map(a=>fromAI(a, W.parseQuick((one && data.transcript && (!a.title || GENERIC_TITLE.test(String(a.title).trim())) ? data.transcript : a.title)||"", cals, todayStr(), nm)));
   let rem=[];
-  (data.remove||[]).forEach(r=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(r?.date||"")) rem=rem.concat(matchOccs(r.what, r.date)); });
-  (data.day_off||[]).forEach(d=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(d||"")) rem=rem.concat(matchOccs("", d)); });
+  (data.remove||[]).forEach(r=>{ if(isDate(r?.date)) rem=rem.concat(matchOccs(r.what, r.date)); });
+  (data.day_off||[]).forEach(d=>{ if(isDate(d)) rem=rem.concat(matchOccs("", d)); });
   const seen={}; rem=rem.filter(o=>{ const k=o.ev.id+"@"+o.date; if(seen[k]) return false; seen[k]=1; return true; });
-  if (!adds.length && !rem.length) {
+  const ops=voiceOps(data), real=ops.filter(x=>!x.miss);
+  if (data.ask && data.ask.type && !adds.length && !rem.length && !real.length) return answerAsk(data.ask);
+  if (!adds.length && !rem.length && !ops.length) {
+    if (newIdeas.length) { closeSheet(); return; }
     const msg=data.transcript?`I heard “${data.transcript}” but found nothing to do.`:"I didn't catch anything. Try again.";
     if ($("qMicHelp")) $("qMicHelp").textContent=msg; else toast(msg); return;
   }
-  if (rem.length) return openVoicePlan(adds, rem, data.transcript);
+  if (rem.length || ops.length) return openVoicePlan(adds, rem, data.transcript, ops, data.ask);
   if (adds.length===1) { closeSheet(); return openEvent(null, adds[0].date, null, {...adds[0], heard:data.transcript}); }
   openVoiceList(adds, data.transcript);
 }
-function openVoicePlan(adds, rem, heard){
+function addRow(e){ return {calendar_id:e.calendar_id||personalCal().id, title:e.title, kind:e.kind||"other", date:e.date, start_time:e.kind==="post"?null:(e.start_time||null), end_time:e.kind==="post"?null:(e.end_time||(e.start_time?hm((W.tmin(e.start_time)+60)%DAY):null)), repeat:e.repeat||"none", repeat_days:e.repeat==="weekly"?(e.repeat_days?.length?e.repeat_days:[W.weekday(W.dnum(e.date))]):[], repeat_until:null, notes:null, source:"voice"}; }
+function openVoicePlan(adds, rem, heard, ops=[], ask=null){
   const imp=o=>["meeting","call","shift"].includes(o.kind);
+  const groups=[]; ops.forEach((x,i)=>{ if(x.miss) return; let g=groups.find(y=>y.name===x.group); if(!g) groups.push(g={name:x.group,items:[]}); g.items.push(i); });
+  const misses=ops.filter(x=>x.miss);
   sheet(`<h2>Is this right?</h2>${heard?`<div class="small muted">I heard: “${esc(heard)}”</div>`:""}
-    ${adds.length?`<div class="label">Add</div><div class="vlist">${adds.map((e,i)=>{ const c=calById(e.calendar_id); return `<label class="vitem"><input type="checkbox" data-a="${i}" checked><span class="sw" style="background:${c?.color||"var(--faint)"};width:12px;height:12px;border-radius:50%"></span><span class="t"><b>${esc(e.title)}</b><span class="small muted">${esc(relDay(e.date))}${e.start_time?", "+W.fmtTime(W.tmin(e.start_time)):""}${c?" · "+esc(c.name):""}</span></span></label>`; }).join("")}</div>`:""}
+    ${adds.length?`<div class="label">Add</div><div class="vlist">${adds.map((e,i)=>{ const c=calById(e.calendar_id); return `<label class="vitem"><input type="checkbox" data-a="${i}" checked><span class="sw" style="background:${c?.color||"var(--faint)"};width:12px;height:12px;border-radius:50%"></span><span class="t"><b>${esc(e.title)}</b><span class="small muted">${esc(relDay(e.date))}${e.start_time?", "+W.fmtTime(W.tmin(e.start_time)):""}${c?" · "+esc(c.name):""}${e.repeat==="weekly"?" · every week":e.repeat==="daily"?" · every day":""}</span></span></label>`; }).join("")}</div>`:""}
     ${rem.length?`<div class="label">Remove</div><div class="vlist">${rem.map((o,i)=>`<label class="vitem"><input type="checkbox" data-r="${i}" ${imp(o)?"":"checked"}><span class="sw" style="background:${colorOf(o)};width:12px;height:12px;border-radius:50%"></span><span class="t"><b>${esc(o.ev.title)}</b><span class="small muted">${esc(relDay(o.date))}${o.allDay?"":", "+W.fmtTime(o.start%DAY)} · ${esc(shortName(o.cal))}${imp(o)?` · <b style="color:var(--warn)">important — tick to remove it too</b>`:""}</span></span></label>`).join("")}</div><div class="small muted">A repeating thing is only removed for that day, never for good.</div>`:""}
+    ${groups.map(g=>`<div class="label">${esc(g.name)}</div><div class="vlist">${g.items.map(i=>{ const x=ops[i]; return `<label class="vitem"><input type="checkbox" data-o="${i}" ${x.on?"checked":""} ${x.info?"disabled":""}><span class="sw" style="background:${x.color||(x.o?colorOf(x.o):"var(--brand)")};width:12px;height:12px;border-radius:50%"></span><span class="t"><b>${esc(x.label)}</b><span class="small muted">${esc(x.sub||"")}${x.imp?"":""}</span>
+      ${x.choose?`<span class="vchoose">${x.choose.map((c,k)=>`<button type="button" class="chipb ${k?"":"on"}" data-oc="${i}" data-k="${k}">${esc(c)}</button>`).join("")}</span>`:""}
+      ${x.times?`<span class="vtimes"><input type="time" class="field sm" data-ot="${i}" data-k="0" value="${x.times[0]}"><span class="small muted">to</span><input type="time" class="field sm" data-ot="${i}" data-k="1" value="${x.times[1]}"></span>`:""}</span></label>`; }).join("")}</div>`).join("")}
+    ${misses.length?`<div class="small" style="color:var(--warn-ink)">${misses.map(m=>"⚠️ "+esc(m.miss)).join("<br>")}</div>`:""}
     <div class="actions"><button class="btn" id="vpGo">Do it</button><button class="btn ghost" data-close>Cancel</button></div>`);
+  const root=$("sheetRoot"), pickOf={};
+  root.querySelectorAll("[data-oc]").forEach(b=>b.onclick=e=>{ e.preventDefault(); pickOf[b.dataset.oc]=+b.dataset.k; root.querySelectorAll(`[data-oc="${b.dataset.oc}"]`).forEach(x=>x.classList.toggle("on",x===b)); });
+  root.querySelectorAll("[data-ot]").forEach(inp=>inp.onclick=e=>e.stopPropagation());
+  if (!adds.length && !rem.length && !groups.length) $("vpGo").classList.add("hidden");
   $("vpGo").onclick=async()=>{
-    const root=$("sheetRoot"); let na=0, nr=0, err=null; const newIds=[];
-    for (const x of root.querySelectorAll("[data-a]:checked")){ const e=adds[+x.dataset.a];
-      const v={calendar_id:e.calendar_id||(cals.find(c=>c.billing==="personal")||cals[0]).id, title:e.title, kind:e.kind||"other", date:e.date, start_time:e.kind==="post"?null:(e.start_time||null), end_time:e.kind==="post"?null:(e.end_time||(e.start_time?hm((W.tmin(e.start_time)+60)%DAY):null)), repeat:e.repeat||"none", repeat_days:e.repeat==="weekly"?(e.repeat_days?.length?e.repeat_days:[W.weekday(W.dnum(e.date))]):[], repeat_until:null, notes:null };
-      const r=await api.saveEvent(v); if(r.error){ err=r.error.message; break; } na++; if (r.data?.id) newIds.push(r.data.id); }
-    for (const x of root.querySelectorAll("[data-r]:checked")){ const o=rem[+x.dataset.r];
-      const r = (o.ev.repeat && o.ev.repeat!=="none") ? await api.saveEvent({id:o.ev.id, skip_dates:[...new Set([...(o.ev.skip_dates||[]), o.date])]}) : await api.deleteEvent(o.ev.id);
-      if(r.error){ err=r.error.message; break; } nr++; }
-    closeSheet(); if(err) toast(err); else toast((na?`Added ${na}. `:"")+(nr?`Removed ${nr}.`:"") || "Nothing ticked");
+    $("vpGo").disabled=true; let na=0, nr=0, nd=0, err=null; const newIds=[], undo=[], did=[];
+    try {
+      for (const x of root.querySelectorAll("[data-a]:checked")){ const e=adds[+x.dataset.a]; const row=await evInsert(addRow(e), undo); na++; if (row?.id) newIds.push(row.id); }
+      for (const x of root.querySelectorAll("[data-r]:checked")){ const o=rem[+x.dataset.r];
+        if (o.ev.repeat && o.ev.repeat!=="none") await evUpdate(o.ev, {skip_dates:[...new Set([...(o.ev.skip_dates||[]), o.date])]}, undo); else await evDelete(o.ev, undo); nr++; }
+      for (const x of root.querySelectorAll("[data-o]:checked")){ const i=+x.dataset.o, op=ops[i];
+        const tm=[...root.querySelectorAll(`[data-ot="${i}"]`)].map(inp=>inp.value);
+        if (op.times && tm.some(v=>!v)) throw new Error("Add both sleep times");
+        const before=undo.length; await op.run(undo, pickOf[i]||0, tm); nd++; did.push(op.done);
+        undo.slice(before).forEach(u=>{ if(u.t==="ins") newIds.push(u.id); }); }
+    } catch(e){ err=e.message||String(e); }
+    const label=[na?`added ${na}`:"", nr?`removed ${nr}`:"", ...did].filter(Boolean).join(", ");
+    await rememberUndo(label.charAt(0).toUpperCase()+label.slice(1), undo);
+    closeSheet(); toast(err ? "Stopped: "+err : (label ? label.charAt(0).toUpperCase()+label.slice(1)+". Say “undo” to put it back." : "Nothing ticked"));
     await reload(); if (newIds.length) checkSleep(newIds);
+    if (ask && ask.type) setTimeout(()=>answerAsk(ask), 300);
   };
 }
 function openVoiceList(entries, heard){
@@ -1670,9 +1937,9 @@ function openVoiceList(entries, heard){
     <div class="actions"><button class="btn" id="vAdd">Add ticked</button><button class="btn ghost" data-close>Cancel</button></div>`);
   $("sheetRoot").querySelectorAll("[data-edit]").forEach(b=>b.onclick=e=>{ e.preventDefault(); const x=entries[+b.dataset.edit]; closeSheet(); openEvent(null,x.date,null,x); });
   $("vAdd").onclick=async()=>{
-    const pick=[...$("sheetRoot").querySelectorAll("[data-i]:checked")].map(x=>entries[+x.dataset.i]); let n=0; const newIds=[];
-    for (const e of pick){ const v={calendar_id:e.calendar_id||(cals.find(c=>c.billing==="personal")||cals[0]).id, title:e.title, kind:e.kind||"other", date:e.date, start_time:e.kind==="post"?null:(e.start_time||null), end_time:e.kind==="post"?null:(e.end_time||(e.start_time?hm((W.tmin(e.start_time)+60)%DAY):null)), repeat:e.repeat||"none", repeat_days:e.repeat==="weekly"?(e.repeat_days?.length?e.repeat_days:[W.weekday(W.dnum(e.date))]):[], repeat_until:null, notes:null };
-      const r=await api.saveEvent(v); if(r.error){ toast(r.error.message); break; } n++; if (r.data?.id) newIds.push(r.data.id); }
+    const pick=[...$("sheetRoot").querySelectorAll("[data-i]:checked")].map(x=>entries[+x.dataset.i]); let n=0; const newIds=[], undo=[];
+    for (const e of pick){ try { const row=await evInsert(addRow(e), undo); n++; if (row?.id) newIds.push(row.id); } catch(err){ toast(err.message); break; } }
+    await rememberUndo(`Added ${n}`, undo);
     closeSheet(); if(n) toast(`Added ${n}`); await reload(); if (newIds.length) checkSleep(newIds);
   };
 }
@@ -1817,7 +2084,9 @@ function openEvent(ev, date, startMin, prefill){
     return v;
   };
   const done=async(r,msg)=>{ if(r.error){ toast(r.error.message); return; } closeSheet(); toast(msg); await reload(); if (r.data?.id) checkSleep([r.data.id]); };
-  $("eSave").onclick=async()=>{ const v=read(); if(!v) return; store.set("lastCal",v.calendar_id); done(await api.saveEvent(isNew?v:{id:ev.id,...v}), isNew?"Added":"Saved"); };
+  $("eSave").onclick=async()=>{ const v=read(); if(!v) return; store.set("lastCal",v.calendar_id); const before=isNew?null:evFields(ev); const r=await api.saveEvent(isNew?v:{id:ev.id,...v});
+    if (!r.error) rememberUndo(isNew?`Added ${v.title}`:`Changed ${v.title}`, isNew?(r.data?.id?[{t:"ins",id:r.data.id}]:[]):[{t:"upd",id:ev.id,before}]);
+    done(r, isNew?"Added":"Saved"); };
   if ($("eOne")) $("eOne").onclick=async()=>{ const v=read(); if(!v) return;
     const r1=await api.saveEvent({...v, date, repeat:"none", repeat_days:[], repeat_until:null}); if(r1.error) return toast(r1.error.message);
     done(await api.saveEvent({id:ev.id, skip_dates:[...(ev.skip_dates||[]), date]}), "Changed for this day"); };
@@ -2214,6 +2483,158 @@ async function openAlarms(){
     const r=await api.setNotify(notify); if(r?.error) return toast(r.error.message); closeSheet(); toast("Saved"); renderSettings(); };
 }
 
+/* ---------- TEAM: who is making what, with a private link per person ---------- */
+const CLIENTS = [["ailc","AILC","#8c1d2f"],["superior","Superior","#0b8a84"],["ceo","CEO brand","#b7791f"],["chamber","Chamber","#475569"],["tariq","Tariq Studio","#111827"],["other","Other","#7c3aed"]];
+const clientOf = k => CLIENTS.find(c=>c[0]===k) || null;
+const ROLES = [["designer","Graphic designer"],["editor","Video editor"],["other","Other"]];
+let teamPeople=[], teamJobs=[], teamFilter="all", teamShowDone={};
+async function loadTeam(){
+  try { const [p,j]=await Promise.all([api.teamPeople(), api.teamJobs()]); if(!p.error) teamPeople=p.data||[]; if(!j.error) teamJobs=j.data||[]; } catch {}
+}
+const personName = p => p ? (p.name || p.role_label || "Someone") : "Not given to anyone";
+function dueText(d){ if(!d) return ""; const t=todayStr(), n=W.dnum(d)-W.dnum(t);
+  return n<0 ? `${-n} day${n<-1?"s":""} late` : n===0 ? "due today" : n===1 ? "due tomorrow" : n<7 ? `due ${fmtDay(d,{weekday:"short"})}` : `due ${fmtDay(d,{day:"numeric",month:"short"})}`; }
+function teamPosts(){
+  const t=todayStr(), to=W.addDays(t,7), list=occs(W.addDays(t,-4), W.addDays(to,1)), out=[];
+  for (let d=W.addDays(t,-3); d<=to; d=W.addDays(d,1)) groupPosts(postsFor(d,list)).filter(p=>p.source==="planner" && !p.status.scheduled && (d>=t || !p.status.made)).forEach(p=>{ postIndex[p.id]=p; out.push({p, date:d, status:p.status.made?"done":p.status.sent?"doing":"todo"}); });
+  return out;
+}
+function teamCounts(pid){ const js=teamJobs.filter(j=>j.person_id===pid); const t=todayStr();
+  return {todo:js.filter(j=>j.status==="todo").length, doing:js.filter(j=>j.status==="doing").length, late:js.filter(j=>j.status!=="done" && j.due && j.due<t).length}; }
+function teamSummaryHtml(){
+  const open=teamJobs.filter(j=>j.status!=="done"), doing=open.filter(j=>j.status==="doing").length, late=open.filter(j=>j.due && j.due<todayStr()).length;
+  return `<button class="card teamcard" id="tTeam"><span class="tm-ic">🎬</span><span class="t"><b>Team work</b><span class="small muted">${open.length?`${open.length} open · ${doing} in progress${late?` · <b style="color:var(--bad)">${late} late</b>`:""}`:"Videos and designs your team is making"}</span></span>
+    <span class="tm-av">${teamPeople.slice(0,4).map(p=>`<i style="background:${esc(p.color||"var(--brand)")}">${esc((p.name||p.role_label||"?").charAt(0).toUpperCase())}</i>`).join("")}</span>${icon("right")}</button>`;
+}
+const stLabel = {todo:"To do", doing:"Doing", done:"Done"};
+const stNext = {todo:"doing", doing:"done", done:"todo"};
+function jobRowHtml(j){
+  const c=clientOf(j.client), late=j.status!=="done" && j.due && j.due<todayStr();
+  return `<div class="job ${j.status}"><i class="jb" style="background:${c?c[2]:"var(--faint)"}"></i>
+    <button class="t" data-job="${esc(j.id)}"><b>${j.priority==="urgent"&&j.status!=="done"?`<span class="urg">Urgent</span> `:""}${esc(j.title)}</b>
+      <span class="small muted">${[c?c[1]:"", j.due?`<span style="${late?"color:var(--bad);font-weight:800":""}">${esc(dueText(j.due))}</span>`:"", j.brief?"📝":"", j.refs?"🔗":""].filter(Boolean).join(" · ")}</span></button>
+    <button class="stb ${j.status}" data-jst="${esc(j.id)}">${stLabel[j.status]}</button></div>`;
+}
+function postJobHtml(x){
+  const late=x.status!=="done" && x.date<todayStr();
+  return `<div class="job ${x.status}"><i class="jb" style="background:${postColor(x.p)}"></i>
+    <button class="t" data-post="${esc(x.p.id)}"><b>📌 ${esc(x.p.title)}</b><span class="small muted">${esc(x.p.calNames)} · <span style="${late?"color:var(--bad);font-weight:800":""}">${esc(relDay(x.date))}</span> · from your planner</span></button>
+    <button class="stb ${x.status}" data-pst="${esc(x.p.id)}">${stLabel[x.status]}</button></div>`;
+}
+function sortJobs(a,b){ const o={doing:0,todo:1,done:2}; return o[a.status]-o[b.status] || ((b.priority==="urgent")-(a.priority==="urgent")) || (a.due||"9").localeCompare(b.due||"9") || a.created_at.localeCompare(b.created_at); }
+async function renderTeam(){
+  const body=$("teamBody"); if(!body) return;
+  postIndex={};
+  const people=teamPeople.slice().sort((a,b)=>a.sort-b.sort||a.created_at.localeCompare(b.created_at));
+  const show = teamFilter==="all" ? people : people.filter(p=>p.id===teamFilter);
+  const posts = teamPosts();
+  const section = p => {
+    const js=teamJobs.filter(j=>j.person_id===p.id).sort(sortJobs), open=js.filter(j=>j.status!=="done"), done=js.filter(j=>j.status==="done");
+    const ps = p.role==="designer" ? posts : [];
+    const cn=teamCounts(p.id);
+    return `<div class="tsec"><div class="tph"><span class="av" style="background:${esc(p.color||"var(--brand)")}">${esc((p.name||p.role_label||"?").charAt(0).toUpperCase())}</span>
+      <button class="t" data-person="${esc(p.id)}"><b>${p.name?esc(p.name):`<span class="muted">Add name</span>`}</b><span class="small muted">${esc(p.role_label||ROLES.find(r=>r[0]===p.role)?.[1]||"")}${p.last_seen?` · opened ${esc(relDay(p.last_seen.slice(0,10)).toLowerCase())}`:p.link_made?" · link not opened yet":""}</span></button>
+      <button class="btn soft sm" data-plink="${esc(p.id)}">${icon("copy")} Link</button></div>
+      <div class="card jlist">${open.map(jobRowHtml).join("")}${ps.filter(x=>x.status!=="done").map(postJobHtml).join("")}
+        ${!open.length && !ps.filter(x=>x.status!=="done").length?`<div class="empty">Nothing given to ${esc(p.name||"them")} yet.</div>`:""}
+        <button class="addjob" data-newjob="${esc(p.id)}">+ Give ${esc(p.name||"them")} a job</button>
+        ${done.length||ps.some(x=>x.status==="done")?`<button class="donebtn" data-sdone="${esc(p.id)}">${teamShowDone[p.id]?"Hide":"Show"} done (${done.length+ps.filter(x=>x.status==="done").length})</button>`:""}
+        ${teamShowDone[p.id]?done.map(jobRowHtml).join("")+ps.filter(x=>x.status==="done").map(postJobHtml).join(""):""}</div></div>`;
+  };
+  const loose=teamJobs.filter(j=>!j.person_id && j.status!=="done");
+  body.innerHTML = `
+    <div class="tstrip">${people.map(p=>{ const c=teamCounts(p.id); if (p.role==="designer") posts.forEach(x=>{ if(x.status==="doing") c.doing++; else if(x.status==="todo") c.todo++; if(x.status!=="done" && x.date<todayStr()) c.late++; }); return `<button class="tperson ${teamFilter===p.id?"on":""}" data-tf="${esc(p.id)}"><span class="av" style="background:${esc(p.color||"var(--brand)")}">${esc((p.name||p.role_label||"?").charAt(0).toUpperCase())}</span><b>${esc(p.name||p.role_label||"Someone")}</b><span class="small muted">${c.doing} doing · ${c.todo} to do${c.late?` · <b style="color:var(--bad)">${c.late} late</b>`:""}</span></button>`; }).join("")}
+      <button class="tperson add" id="tmAddP"><span class="av">+</span><b>Add person</b><span class="small muted">editor, designer…</span></button></div>
+    ${teamFilter!=="all"?`<button class="btn ghost sm" id="tmAll" style="margin:0 2px 4px">Show everyone</button>`:""}
+    ${show.map(section).join("")}
+    ${loose.length&&teamFilter==="all"?`<div class="tsec"><div class="tph"><span class="av" style="background:var(--faint)">?</span><span class="t"><b>Not given to anyone</b></span></div><div class="card jlist">${loose.sort(sortJobs).map(jobRowHtml).join("")}</div></div>`:""}
+    ${!people.length?`<div class="empty">Add the people who make your videos and designs.</div>`:""}
+    <div style="height:30px"></div>`;
+  body.querySelectorAll("[data-tf]").forEach(b=>b.onclick=()=>{ teamFilter = teamFilter===b.dataset.tf?"all":b.dataset.tf; renderTeam(); });
+  if ($("tmAll")) $("tmAll").onclick=()=>{ teamFilter="all"; renderTeam(); };
+  $("tmAddP").onclick=()=>openPerson(null);
+  body.querySelectorAll("[data-person]").forEach(b=>b.onclick=()=>openPerson(teamPeople.find(p=>p.id===b.dataset.person)));
+  body.querySelectorAll("[data-plink]").forEach(b=>b.onclick=()=>openPersonLink(teamPeople.find(p=>p.id===b.dataset.plink)));
+  body.querySelectorAll("[data-newjob]").forEach(b=>b.onclick=()=>openJob(null, b.dataset.newjob));
+  body.querySelectorAll("[data-job]").forEach(b=>b.onclick=()=>openJob(teamJobs.find(j=>j.id===b.dataset.job)));
+  body.querySelectorAll("[data-jst]").forEach(b=>b.onclick=async()=>{ const j=teamJobs.find(x=>x.id===b.dataset.jst); if(!j) return; const st=stNext[j.status];
+    const r=await api.saveJob({id:j.id, status:st, done_at:st==="done"?new Date().toISOString():null}); if(r.error) return toast(r.error.message); Object.assign(j,r.data); toast(`${j.title}: ${stLabel[st]}`); renderTeam(); });
+  body.querySelectorAll("[data-pst]").forEach(b=>b.onclick=async()=>{ const p=postIndex[b.dataset.pst]; if(!p) return; const cur=p.status.made?"done":p.status.sent?"doing":"todo", st=stNext[cur], date=p.key.split("@").pop();
+    const r=await api.setPlannerTrack(p.key, date, st==="done"?{q:true,m:true}:st==="doing"?{q:true,m:false}:{q:false,m:false}); if(r?.error) return toast(r.error.message); toast(`${p.title}: ${stLabel[st]}`); reload(); });
+  body.querySelectorAll("[data-post]").forEach(b=>b.onclick=()=>openPost(postIndex[b.dataset.post]));
+  body.querySelectorAll("[data-sdone]").forEach(b=>b.onclick=()=>{ teamShowDone[b.dataset.sdone]=!teamShowDone[b.dataset.sdone]; renderTeam(); });
+}
+function openJob(j, personId){
+  const isNew=!j; const v=j?{...j}:{title:"", person_id:personId||teamPeople[0]?.id||null, client:null, due:null, priority:"normal", status:"todo", brief:"", refs:""};
+  sheet(`<h2>${isNew?"New job":"Job"}</h2>
+    <input id="jTitle" class="field" placeholder="What to make, e.g. CEO reel 3: 30 lakh story" maxlength="140" value="${esc(v.title)}">
+    <div class="fl"><span class="label">Who</span><div class="vchoose" id="jWho">${teamPeople.map(p=>`<button type="button" class="chipb ${v.person_id===p.id?"on":""}" data-v="${esc(p.id)}">${esc(personName(p))}</button>`).join("")}</div></div>
+    <div class="fl"><span class="label">For</span><div class="vchoose" id="jFor">${CLIENTS.map(c=>`<button type="button" class="chipb ${v.client===c[0]?"on":""}" data-v="${c[0]}" style="${v.client===c[0]?`background:${c[2]};border-color:${c[2]};color:#fff`:""}">${esc(c[1])}</button>`).join("")}</div></div>
+    <div class="grid2"><label class="fl"><span class="label">Due</span><input id="jDue" class="field" type="date" value="${esc(v.due||"")}"></label>
+      <div class="fl"><span class="label">Priority</span><div class="seg3" id="jPri"><button type="button" data-v="normal" class="${v.priority!=="urgent"?"on":""}">Normal</button><button type="button" data-v="urgent" class="${v.priority==="urgent"?"on":""}">Urgent</button></div></div></div>
+    <textarea id="jBrief" class="field" rows="4" placeholder="Brief or script: what it should say and look like" maxlength="4000">${esc(v.brief||"")}</textarea>
+    <textarea id="jRefs" class="field" rows="2" placeholder="Links: raw footage folder, sample videos" maxlength="2000">${esc(v.refs||"")}</textarea>
+    ${isNew?"":`<div class="fl"><span class="label">Status</span><div class="seg3" id="jSt">${["todo","doing","done"].map(s=>`<button type="button" data-v="${s}" class="${v.status===s?"on":""}">${stLabel[s]}</button>`).join("")}</div></div>`}
+    <div class="actions"><button class="btn" id="jSave">${isNew?"Add job":"Save"}</button>${isNew?`<button class="btn ghost" data-close>Cancel</button>`:`<button class="btn danger" id="jDel">Delete</button>`}</div>`);
+  const pick=(id,multi)=>$(id).querySelectorAll("button").forEach(b=>b.onclick=()=>{ const on=!b.classList.contains("on")||!multi; $(id).querySelectorAll("button").forEach(x=>{ x.classList.remove("on"); x.style.cssText=""; }); if(on){ b.classList.add("on"); if(id==="jFor"){ const c=clientOf(b.dataset.v); b.style.cssText=`background:${c[2]};border-color:${c[2]};color:#fff`; } } });
+  pick("jWho",true); pick("jFor",true); pick("jPri"); if($("jSt")) pick("jSt");
+  $("jTitle").focus();
+  $("jSave").onclick=async()=>{
+    const title=$("jTitle").value.trim(); if(!title) return toast("Give the job a name");
+    const st=$("jSt")?.querySelector(".on")?.dataset.v||v.status;
+    const row={title, person_id:$("jWho").querySelector(".on")?.dataset.v||null, client:$("jFor").querySelector(".on")?.dataset.v||null, due:$("jDue").value||null,
+      priority:$("jPri").querySelector(".on")?.dataset.v||"normal", brief:$("jBrief").value.trim()||null, refs:$("jRefs").value.trim()||null, status:st,
+      done_at: st==="done" ? (v.done_at||new Date().toISOString()) : null};
+    const r=await api.saveJob(isNew?row:{id:j.id,...row}); if(r.error) return toast(r.error.message);
+    closeSheet(); toast(isNew?"Job added":"Saved"); await loadTeam(); renderTeam(); if(tab==="today") renderToday();
+  };
+  if ($("jDel")) $("jDel").onclick=async()=>{ const b=$("jDel"); if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Tap again to delete"; return; }
+    const r=await api.deleteJob(j.id); if(r.error) return toast(r.error.message); closeSheet(); toast("Deleted"); await loadTeam(); renderTeam(); };
+}
+const TEAM_COLORS=["#3157e8","#8c1d2f","#0b8a84","#b7791f","#7c3aed","#ea580c","#475569"];
+function openPerson(p){
+  const isNew=!p; const v=p?{...p}:{name:"", role:"editor", role_label:"", color:TEAM_COLORS.find(c=>!teamPeople.some(x=>x.color===c))||TEAM_COLORS[0]};
+  sheet(`<h2>${isNew?"Add person":"Person"}</h2>
+    <input id="pName" class="field" placeholder="Their name" maxlength="60" value="${esc(v.name)}">
+    <div class="fl"><span class="label">Does</span><div class="seg3" id="pRole">${ROLES.map(r=>`<button type="button" data-v="${r[0]}" class="${v.role===r[0]?"on":""}">${r[1]}</button>`).join("")}</div></div>
+    <input id="pLabel" class="field" placeholder="Where, e.g. AILC studio" maxlength="60" value="${esc(v.role_label||"")}">
+    <div class="small muted" id="pHint">${v.role==="designer"?"A graphic designer also sees your college posts from the planner on his list.":""}</div>
+    <div class="fl"><span class="label">Colour</span><div class="vchoose" id="pCol">${TEAM_COLORS.map(c=>`<button type="button" class="dotb ${v.color===c?"on":""}" data-v="${c}" style="background:${c}" aria-label="Colour"></button>`).join("")}</div></div>
+    <div class="actions"><button class="btn" id="pSave">${isNew?"Add":"Save"}</button>${isNew?`<button class="btn ghost" data-close>Cancel</button>`:`<button class="btn danger" id="pDel">Remove</button>`}</div>`);
+  $("pRole").querySelectorAll("button").forEach(b=>b.onclick=()=>{ $("pRole").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); $("pHint").textContent=b.dataset.v==="designer"?"A graphic designer also sees your college posts from the planner on his list.":""; });
+  $("pCol").querySelectorAll("button").forEach(b=>b.onclick=()=>$("pCol").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)));
+  $("pSave").onclick=async()=>{
+    const row={name:$("pName").value.trim(), role:$("pRole").querySelector(".on")?.dataset.v||"editor", role_label:$("pLabel").value.trim()||null, color:$("pCol").querySelector(".on")?.dataset.v||v.color};
+    if (isNew) row.sort=(Math.max(0,...teamPeople.map(x=>x.sort||0))+1);
+    const r=await api.savePerson(isNew?row:{id:p.id,...row}); if(r.error) return toast(r.error.message);
+    closeSheet(); toast(isNew?"Added":"Saved"); await loadTeam(); renderTeam(); };
+  if ($("pDel")) $("pDel").onclick=async()=>{ const b=$("pDel"); if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Tap again: their link stops working"; return; }
+    const r=await api.deletePerson(p.id); if(r.error) return toast(r.error.message); closeSheet(); toast("Removed. Their jobs are kept as not given to anyone."); await loadTeam(); renderTeam(); };
+}
+async function openPersonLink(p){
+  if (!p) return;
+  const nm=p.name||p.role_label||"them";
+  sheet(`<h2>${esc(nm)}'s link</h2>
+    <p class="small muted" style="margin:0">${esc(nm)} opens it on their phone (no account needed), sees their next work in order with the brief and links, and taps Start or Done. You get a notification and see it here.</p>
+    <div id="plBox">${p.link_made?`<div class="small">Link made ${esc(relDay(p.link_made.slice(0,10)).toLowerCase())}${p.last_seen?`, last opened ${esc(relDay(p.last_seen.slice(0,10)).toLowerCase())}`:", not opened yet"}. For safety the link is shown only once. Lost it? Make a new one; the old one stops working.</div>`:""}</div>
+    <div class="actions"><button class="btn" id="plMake">${p.link_made?"Make a new link":"Make the link"}</button>${p.link_made?`<button class="btn danger" id="plOff">Turn off</button>`:""}</div>
+    <button class="btn ghost" data-close>Close</button>`);
+  $("plMake").onclick=async()=>{
+    const bytes=new Uint8Array(24); crypto.getRandomValues(bytes);
+    const key="wt_"+[...bytes].map(x=>x.toString(16).padStart(2,"0")).join("");
+    const r=await api.savePerson({id:p.id, token_hash:await sha256hex(key), link_made:new Date().toISOString(), last_seen:null}); if(r.error) return toast(r.error.message);
+    Object.assign(p, r.data||{});
+    const link=new URL("team.html", location.href).href.split("?")[0].split("#")[0]+"#k="+key;
+    $("plBox").innerHTML=`<div class="fl"><span class="label">Send this to ${esc(nm)}</span><div class="line"><code class="field small" style="overflow-wrap:anywhere">${esc(link)}</code><button class="ib" id="plCopy" aria-label="Copy">${icon("copy")}</button></div></div>
+      <div class="actions"><button class="btn soft" id="plShare">Share on WhatsApp</button></div>`;
+    $("plMake").textContent="Make a new link";
+    $("plCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(link); toast("Copied"); }catch{ toast("Press and hold to copy"); } };
+    $("plShare").onclick=async()=>{ const text=`${p.name?p.name+", here":"Here"}'s your work list. Open it to see what's next, and tap Start and Done as you go:`; if (navigator.share) { try{ await navigator.share({title:"Your work", text, url:link}); }catch{} } else location.href="https://wa.me/?text="+encodeURIComponent(text+" "+link); };
+    loadTeam();
+  };
+  if ($("plOff")) $("plOff").onclick=async()=>{ const r=await api.savePerson({id:p.id, token_hash:null, link_made:null}); if(r.error) return toast(r.error.message); closeSheet(); toast("Link turned off"); await loadTeam(); renderTeam(); };
+}
+
 /* ---------- designer portal ---------- */
 async function openDesignerPortal(){
   let info=null; try{ const {data}=await api.designerTokenInfo(); info=data&&data[0]; }catch{}
@@ -2581,6 +3002,7 @@ function handleLink(url){
   const u=new URL(url, location.href);
   if (u.searchParams.get("planner")) { openPlanner(); return; }
   if (u.searchParams.get("review")) { showTab("review"); return; }
+  if (u.searchParams.get("team")) { try { history.replaceState(null, "", location.pathname); } catch {} showTab("team"); return; }
   if (u.searchParams.get("voice")) {
     try { history.replaceState(null, "", location.pathname); } catch {}
     /* wait for the AI settings, open the add screen, and start listening straight away
@@ -2602,7 +3024,7 @@ function handleLink(url){
     me=user; $("auth").classList.add("hidden"); $("app").classList.remove("hidden");
     let d; try { d=await api.loadAll(); } catch(e){ d={error:e}; }
     if (d.error) { if (d.missing) return showSetup(); toast("Couldn't load: "+(d.error.message||d.error)); me=null; return; }
-    await loadHealth(); await loadLife();
+    await loadHealth(); await loadLife(); await loadTeam();
     applyData(d); started=true; api.subscribe(reloadSoon);
     window.aiReady = api.getAi().then(r=>{ const a=r?.data?.[0]; if(a) ai={...ai,...a}; aiOn=!!(a && a.enabled && a.has_key); }).catch(()=>{});
     showTab(tab);

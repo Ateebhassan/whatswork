@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#151a25">
+<title>My work</title>
+<link rel="icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+/* One person's work list: what's next, the brief, and Start / Done. Opened from a private link, no account. */
+:root{
+  --bg:#f4f5f9; --panel:#fff; --sunk:#eceef4; --ink:#151a25; --muted:#687186; --faint:#a5acbb; --line:#e0e4ec;
+  --brand:#3157e8; --ok:#169a62; --warn:#ffb21e; --bad:#e5483b;
+  --display:"Bricolage Grotesque",ui-rounded,system-ui,sans-serif; --body:"Manrope",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d1119; --panel:#151b26; --sunk:#1b2231; --ink:#e8ecf4; --muted:#929bb0; --faint:#5c6579; --line:#262f41;
+  --brand:#7491ff; --ok:#3fcf8e; --bad:#ff6b5e; color-scheme:dark;
+}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--body)}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+a{color:var(--brand);font-weight:700;overflow-wrap:anywhere}
+.wrap{max-width:640px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 50px max(16px,env(safe-area-inset-left))}
+.hi{font-size:14px;font-weight:700;color:var(--muted)}
+h1{margin:2px 0 0;font-family:var(--display);font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.count{margin-top:6px;font-size:14px;font-weight:700;color:var(--muted)}
+.count b{color:var(--ink)}
+h2{font-family:var(--display);font-size:18px;font-weight:800;margin:24px 2px 8px}
+.next{margin-top:16px;background:var(--ink);color:var(--bg);border-radius:22px;padding:18px 18px 16px;display:grid;gap:10px}
+.next .lbl{font-size:12.5px;font-weight:800;opacity:.7}
+.next .ttl{font-family:var(--display);font-size:24px;font-weight:800;line-height:1.15;letter-spacing:-.01em}
+.next .meta{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:800;background:var(--sunk);color:var(--ink)}
+.next .tag{background:rgba(255,255,255,.14);color:inherit}
+@media (prefers-color-scheme:dark){.next .tag{background:rgba(0,0,0,.12)}}
+.tag.late{background:var(--bad)!important;color:#fff!important}
+.tag.urg{background:var(--warn)!important;color:#3a2600!important}
+.tag i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.brief{white-space:pre-wrap;font-size:15px;line-height:1.5}
+.next .brief{background:rgba(255,255,255,.08);border-radius:14px;padding:10px 12px}
+@media (prefers-color-scheme:dark){.next .brief{background:rgba(0,0,0,.08)}}
+.next a{color:inherit;text-decoration:underline}
+.btns{display:flex;gap:8px;margin-top:2px}
+.b{flex:1;padding:13px 14px;border-radius:14px;font-weight:800;font-size:15px;text-align:center}
+.b.start{background:var(--warn);color:#3a2600}
+.b.done{background:var(--ok);color:#fff}
+.b.ghost{background:var(--sunk);color:var(--muted);flex:0 0 auto}
+.next .b.ghost{background:rgba(255,255,255,.14);color:inherit}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.item{border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px}
+.row .bar{width:5px;align-self:stretch;border-radius:4px;flex:0 0 auto}
+.row .t{flex:1;min-width:0}.row .t b{display:block;font-size:15px;line-height:1.3}
+.row .t span{font-size:12.5px;font-weight:600;color:var(--muted)}
+.pill{flex:0 0 auto;font-size:12px;font-weight:800;border-radius:999px;padding:4px 10px;background:var(--sunk);color:var(--muted)}
+.pill.doing{background:var(--warn);color:#3a2600}.pill.done{background:var(--ok);color:#fff}
+.more{padding:0 14px 14px 31px;display:grid;gap:10px}
+.item.done .t b{text-decoration:line-through;color:var(--muted)}
+.empty{color:var(--muted);font-weight:600;padding:16px}
+.big-empty{margin-top:30px;text-align:center;color:var(--muted);font-weight:700}
+.big-empty div{font-size:42px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
+.toast.on{opacity:1}
+.foot{margin-top:26px;font-size:12.5px;color:var(--faint);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hi" id="hi"></div>
+  <h1 id="title">Your work</h1>
+  <div class="count" id="count"></div>
+  <main id="main"><div class="empty">Loading…</div></main>
+  <div class="foot">This list updates on its own. Keep this link private.</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const SUPABASE_URL = "https://boajcspgqhuhchnvbkxl.supabase.co";
+const SUPABASE_KEY = "sb_publishable_QbVXMyGif27UZnxhjApFUw_ul7EuoC5";
+const FN = SUPABASE_URL + "/functions/v1/whatswork-worker";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const key = new URLSearchParams(location.hash.slice(1)).get("k") || "";
+const CLIENTS = {ailc:["AILC","#8c1d2f"], superior:["Superior","#0b8a84"], ceo:["CEO brand","#b7791f"], chamber:["Chamber","#475569"], tariq:["Tariq Studio","#111827"], other:["Other","#7c3aed"]};
+const ST = {todo:"To do", doing:"Doing", done:"Done"};
+let data = null, open = {};
+
+async function call(body){
+  const r = await fetch(FN, { method:"POST", headers:{ "Content-Type":"application/json", apikey:SUPABASE_KEY, Authorization:"Bearer "+SUPABASE_KEY }, body: JSON.stringify({ key, ...body }) });
+  const j = await r.json().catch(()=>({error:"No answer from the server"}));
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+function toast(t){ const e=$("toast"); e.textContent=t; e.classList.add("on"); clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove("on"),2600); }
+const dn = d => Math.round(Date.UTC(+d.slice(0,4), +d.slice(5,7)-1, +d.slice(8,10))/864e5);
+function dueWords(d){ if(!d) return ""; const n=dn(d)-dn(data.today);
+  if (n<0) return `${-n} day${n<-1?"s":""} late`; if (n===0) return "Due today"; if (n===1) return "Due tomorrow";
+  const dt=new Date(d+"T12:00:00"); return n<7 ? "Due "+dt.toLocaleDateString("en-GB",{weekday:"long"}) : "Due "+dt.toLocaleDateString("en-GB",{day:"numeric",month:"short"}); }
+/* links in a brief become tappable */
+function linkify(t){ return esc(t).replace(/(https?:\/\/[^\s<]+)/g, u=>`<a href="${u}" target="_blank" rel="noopener">${u.length>48?u.slice(0,45)+"…":u}</a>`); }
+/* everything as one list: jobs, plus college posts for a designer */
+function all(){
+  const jobs=(data.jobs||[]).map(j=>({id:"j"+j.id, job:j.id, title:j.title, client:j.client, due:j.due, urgent:j.priority==="urgent", status:j.status, brief:j.brief, refs:j.refs}));
+  const posts=(data.posts||[]).map(p=>({id:"p"+p.key, post:p, title:p.title+" post", tag:p.college, due:p.date, urgent:p.size==="major", status:p.status, brief:`Social media post for ${p.college}${p.birthday?" (birthday)":""}.`}));
+  const o={doing:0,todo:1,done:2};
+  return jobs.concat(posts).sort((a,b)=>o[a.status]-o[b.status] || (b.urgent-a.urgent) || (a.due||"9999").localeCompare(b.due||"9999"));
+}
+function tagsHtml(x){
+  const c=x.client&&CLIENTS[x.client], late=x.status!=="done" && x.due && x.due<data.today;
+  return [c?`<span class="tag"><i style="background:${c[1]}"></i>${esc(c[0])}</span>`:x.tag?`<span class="tag">${esc(x.tag)}</span>`:"",
+    x.due?`<span class="tag ${late?"late":""}">${esc(dueWords(x.due))}</span>`:"", x.urgent&&x.status!=="done"?`<span class="tag urg">Urgent</span>`:""].join("");
+}
+function detailHtml(x){
+  return `${x.brief?`<div class="brief">${linkify(x.brief)}</div>`:""}${x.refs?`<div class="brief">🔗 ${linkify(x.refs)}</div>`:""}`;
+}
+function buttons(x, inNext){
+  if (x.status==="todo") return `<div class="btns"><button class="b start" data-s="doing" data-id="${esc(x.id)}">▶ Start</button><button class="b done" data-s="done" data-id="${esc(x.id)}">✓ Done</button></div>`;
+  if (x.status==="doing") return `<div class="btns"><button class="b done" data-s="done" data-id="${esc(x.id)}">✓ Mark done</button><button class="b ghost" data-s="todo" data-id="${esc(x.id)}">Not started</button></div>`;
+  return `<div class="btns"><button class="b ghost" data-s="doing" data-id="${esc(x.id)}">Not done yet</button></div>`;
+}
+function render(){
+  const list=all(), active=list.filter(x=>x.status!=="done"), done=list.filter(x=>x.status==="done");
+  const name=data.name||"";
+  $("hi").textContent = (new Date().getHours()<12?"Good morning":new Date().getHours()<17?"Good afternoon":"Good evening")+(name?", "+name:"");
+  $("title").textContent = "Your work";
+  document.title = (name?name+": ":"")+"My work";
+  const late=active.filter(x=>x.due && x.due<data.today).length;
+  $("count").innerHTML = active.length ? `<b>${active.length}</b> to finish${late?` · <b style="color:var(--bad)">${late} late</b>`:""}` : "";
+  if (!list.length) { $("main").innerHTML=`<div class="big-empty"><div>🎉</div>Nothing to do right now.<br>New work will show up here.</div>`; return; }
+  const n=active[0], rest=active.slice(1);
+  $("main").innerHTML = `
+    ${n?`<section class="next"><span class="lbl">${n.status==="doing"?"YOU'RE ON":"NEXT UP"}</span><div class="ttl">${esc(n.title)}</div><div class="meta">${tagsHtml(n)}</div>${detailHtml(n)}${buttons(n,true)}</section>`
+       :`<div class="big-empty"><div>🎉</div>All done. Nice work.</div>`}
+    ${rest.length?`<h2>After that</h2><div class="card">${rest.map(x=>itemHtml(x)).join("")}</div>`:""}
+    ${done.length?`<h2>Done</h2><div class="card">${done.map(x=>itemHtml(x)).join("")}</div>`:""}`;
+  $("main").querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{ open[b.dataset.open]=!open[b.dataset.open]; render(); });
+  $("main").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>setStatus(b.dataset.id, b.dataset.s, b));
+}
+function itemHtml(x){
+  const c=x.client&&CLIENTS[x.client], late=x.status!=="done" && x.due && x.due<data.today;
+  return `<div class="item ${x.status}"><button class="row" data-open="${esc(x.id)}"><i class="bar" style="background:${c?c[1]:"var(--faint)"}"></i>
+    <span class="t"><b>${esc(x.title)}</b><span style="${late?"color:var(--bad);font-weight:800":""}">${esc([c?c[0]:x.tag, dueWords(x.due), x.urgent&&x.status!=="done"?"Urgent":""].filter(Boolean).join(" · "))}</span></span>
+    <span class="pill ${x.status}">${ST[x.status]}</span></button>
+    ${open[x.id]?`<div class="more">${detailHtml(x)}${buttons(x)}</div>`:""}</div>`;
+}
+async function setStatus(id, s, btn){
+  const x=all().find(y=>y.id===id); if(!x) return;
+  btn.disabled=true;
+  try {
+    if (x.job) await call({action:"team_status", job:x.job, status:s});
+    else await call({action:"team_status", item_key:x.post.key, date:x.post.date, title:x.post.title, status:s});
+    if (x.job) { const j=data.jobs.find(y=>y.id===x.job); if(j) j.status=s; } else { const p=data.posts.find(y=>y.key===x.post.key); if(p) p.status=s; }
+    toast(s==="done"?"Marked done ✓":s==="doing"?"Started ▶":"Updated");
+    open={}; render();
+  } catch(e){ toast(e.message); btn.disabled=false; }
+}
+async function load(){
+  if (!/^wt_[0-9a-f]{48}$/.test(key)) { $("main").innerHTML=`<div class="big-empty"><div>🔒</div>This link isn't complete. Ask for the link again.</div>`; return; }
+  try { data=await call({action:"team_list"}); render(); }
+  catch(e){ if(!data) $("main").innerHTML=`<div class="big-empty"><div>🔒</div>${esc(e.message)}</div>`; }
+}
+load();
+setInterval(()=>{ if(document.visibilityState==="visible") load(); }, 60000);
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") load(); });
+</script>
+</body>
+</html>

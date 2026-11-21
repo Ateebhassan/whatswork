@@ -529,7 +529,8 @@ var WWCore = (function () {
      A real clash = two foreground things at once, or anything (shift included) placed inside sleep. */
   function isBackground(o) { return o.kind === 'shift' || o.kind === 'sleep'; }
   function analyse(occs) {
-    var t = timed(occs), clashes = [], shortSleep = [], flagged = {};
+    /* a reminder is a ping, not something that takes time: never a clash */
+    var t = timed(occs).filter(function (o) { return !(o.ev && o.ev.source === 'reminder'); }), clashes = [], shortSleep = [], flagged = {};
     var fg = t.filter(function (o) { return !isBackground(o); });
     for (var i = 0; i < fg.length; i++) for (var j = i + 1; j < fg.length; j++) {
       var a = fg[i], b = fg[j];

@@ -145,6 +145,7 @@ async function reminders() {
       const ctx = await contextFor(u.id, date, true);
       const due = (ctx.occs as any[]).filter((o) => {
         if (o.allDay || o.cal.archived) return false;
+        if (o.ev.source === "reminder") return o.start >= now && o.start - now < 5;
         const pr = np[prefKey(o.kind)]; if (!pr?.on) return false;
         const lead = Math.max(0, Math.min(180, Number(pr.lead) || 15));
         return o.start > now && o.start - now <= lead;
@@ -154,6 +155,7 @@ async function reminders() {
         const [prev] = await sql`select 1 from private.app_config where key = ${key}`;
         if (prev) continue;
         await sql`insert into private.app_config (key, value) values (${key}, ${o.date}) on conflict (key) do nothing`;
+        if (o.ev.source === "reminder") { sent += await pushTo([u.id], { title: o.ev.title.startsWith("⏰") ? o.ev.title : "⏰ " + o.ev.title, body: `Reminder · ${W.fmtTime(o.start % W.DAY)}`, tag: `remind-${o.key}`, url: `./?d=${o.date}` }); continue; }
         const pr = np[prefKey(o.kind)], mins = o.start - now, at = W.fmtTime(o.start % W.DAY);
         const icon = o.kind === "shift" ? "💼" : o.kind === "meeting" ? "👥" : o.kind === "call" ? "📞" : o.kind === "university" ? "🎓" : o.kind === "sleep" ? "🌙" : o.kind === "prayer" ? "🕌" : "⏰";
         const title = o.kind === "sleep" ? `${icon} Bedtime in ${mins} min` : `${icon} ${o.ev.title} in ${mins} min`;
@@ -345,19 +347,48 @@ Note: ${String(text).slice(0, 300)}`;
 
 
 // ---------- VOICE: audio from the app's mic, understood by your AI key ----------
-const VOICE_RULES = `Answer ONLY with JSON: {"transcript": string (what was said, word for word), "add": [{"title": string, "calendar": string, "kind": string, "date": "YYYY-MM-DD", "start": "HH:MM" or null, "end": "HH:MM" or null, "repeat": "none"|"daily"|"weekly", "repeat_days": [numbers 0-6, 0 = Sunday]}], "remove": [{"what": string, "date": "YYYY-MM-DD"}], "day_off": ["YYYY-MM-DD"], "ideas": [string]}
-The person may say several things in one go, fast, in English or Urdu mixed with English. Use empty lists for whatever wasn't asked.
-- "add": one entry for each new thing to put in the calendar.
+const VOICE_RULES = `Answer ONLY with JSON: {"transcript": string (what was said, word for word),
+ "add": [{"title": string, "calendar": string, "kind": string, "date": "YYYY-MM-DD", "start": "HH:MM" or null, "end": "HH:MM" or null, "repeat": "none"|"daily"|"weekly", "repeat_days": [numbers 0-6, 0 = Sunday]}],
+ "remove": [{"what": string, "date": "YYYY-MM-DD"}],
+ "day_off": ["YYYY-MM-DD"],
+ "ideas": [string],
+ "move": [{"what": string, "date": "YYYY-MM-DD", "to_date": "YYYY-MM-DD" or null, "to_start": "HH:MM" or null, "to_end": "HH:MM" or null}],
+ "push": [{"date": "YYYY-MM-DD", "after": "HH:MM" or null, "minutes": number}],
+ "undo": boolean,
+ "ask": null or {"type": "day"|"free"|"posts"|"next", "date": "YYYY-MM-DD", "to_date": "YYYY-MM-DD" or null},
+ "find_time": null or {"title": string, "minutes": number, "from_date": "YYYY-MM-DD", "to_date": "YYYY-MM-DD", "after": "HH:MM" or null, "before": "HH:MM" or null},
+ "posts_done": [{"what": string, "date": "YYYY-MM-DD" or null, "status": "sent"|"made"|"scheduled"}],
+ "paid": [string],
+ "done": [{"what": string, "date": "YYYY-MM-DD", "time": "HH:MM" or null}],
+ "remind": [{"text": string, "date": "YYYY-MM-DD", "time": "HH:MM"}],
+ "note": [{"what": string, "date": "YYYY-MM-DD" or null, "text": string}],
+ "sleep": [{"date": "YYYY-MM-DD", "start": "HH:MM" or null, "end": "HH:MM" or null}]}
+The person may say several things in one go, fast, in English, Urdu or Punjabi mixed with English (Roman Urdu). Understand Urdu words: aaj = today, kal = tomorrow (or yesterday if the verb is past, e.g. "kal hui thi"), parson = the day after tomorrow, agle hafte = next week, is hafte = this week, subah = morning, dopahar = afternoon, shaam = evening, raat = night, baje = o'clock ("3 baje" = 3:00), saadhe = half past ("saadhe 4" = 4:30), meeting rakho / add karo = add, hatao / cancel karo = remove, chutti = day off, aage karo / shift karo = move. Always write titles and notes in English. Use empty lists, false or null for whatever wasn't asked.
+- "add": one entry for each new thing to put in the calendar. "every Saturday 11am" makes it repeat weekly.
 - "remove": for each thing to cancel, remove or skip on a day. "what" is a short name for it in the person's own words ("university", "classes", "meeting with Sam"). "Remove my classes Monday and Tuesday" = two items.
-- "ideas": when the person says "idea" and then a thought ("idea: sell the studio apps to other studios"), put the thought here in their words and do NOT make a calendar entry for it.
+- "ideas": when the person says "idea" and then a thought, put the thought here in their words and do NOT make a calendar entry for it.
 - "day_off": when a whole day should be cleared ("give me tomorrow off"), give that date here and don't list the things separately.
+- "move": to change the day or time of something that is already planned ("move my meeting with Ma'am Sofia to 4pm", "shift Tariq shoot to Sunday"). "date" is the day it is on now (today if not said), "to_date" the new day (null = same day), "to_start" the new start time (null = keep the time). Never also put it in "add".
+- "push": to shift everything later or earlier on a day ("push everything after 2 by an hour" = after "14:00", minutes 60; "earlier by 30 minutes" = minutes -30). "after" null = from now.
+- "undo": true only when the person says undo, "undo that", "go back", "galat ho gaya wapis karo".
+- "ask": a question that needs an answer, not a change. "what's tomorrow", "read my day", "kal kya hai" = type "day" with that date. "when am I free Thursday" = "free". "what posts are due this week" = "posts" with date today and to_date the end of that range. "what's next" = "next".
+- "find_time": "find me 2 hours this week for editing" = title "Editing", minutes 120, from_date today, to_date the last day of that range. Put it here, not in "add".
+- "posts_done": a social media post finished. "Human Rights post sent to designer" = status "sent"; "APS post done" or "made" = "made"; "scheduled" or "posted" = "scheduled". "what" is the post's name.
+- "paid": a payment made, in the person's words ("committee").
+- "done": something that already happened ("had the chamber meeting", "met Tariq today"). date = the day it happened, time = when, if said.
+- "remind": "remind me at 3 to call Hamza" = text "Call Hamza", that date and time. Not also in "add".
+- "note": add a note to something already planned ("add note to CEO shoot: bring the mic").
+- "sleep": a change to a night's sleep ("I'll sleep at 11 tonight" = date today, start "23:00", end null; "I'll wake at 6 tomorrow" = date today, end "06:00"). "date" is the evening the sleep starts.
 Rules for each "add" entry:
 ${QUICK_SYSTEM.split("Rules:")[1]}`;
 async function calendarContext(uid: string, today: string, now: string) {
   const cals = await sql`select name, short_name, billing, kind from public.calendars where user_id = ${uid} and not archived order by sort`;
+  let names: string[] = [];
+  try { names = ((await sql`select distinct title from public.events where user_id = ${uid} and kind not in ('sleep', 'post') and (repeat <> 'none' or date >= ${today}::date - 7) limit 80`) as any[]).map((r) => String(r.title).slice(0, 60)); } catch { /* fine */ }
   const wd = new Date(today + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" });
   return `Today is ${wd} ${today}. The time now is ${now}.
-Calendars: ${(cals as any[]).map((c) => `${c.name}${c.short_name ? ` (also called ${c.short_name})` : ""}${c.billing === "personal" ? " [personal]" : ""}${c.kind === "planner" ? " [college social media]" : ""}`).join("; ")}.`;
+Calendars: ${(cals as any[]).map((c) => `${c.name}${c.short_name ? ` (also called ${c.short_name})` : ""}${c.billing === "personal" ? " [personal]" : ""}${c.kind === "planner" ? " [college social media]" : ""}`).join("; ")}.
+Things already planned (names to match for move, remove, note): ${names.join("; ") || "none"}.`;
 }
 async function voiceAdd(uid: string, audio: string, mime: string, today: string, now: string) {
   if (typeof audio !== "string" || audio.length < 1000) throw new Error("No audio received");
@@ -391,8 +422,8 @@ async function voiceAdd(uid: string, audio: string, mime: string, today: string,
       if (model === "whisper-1") throw new Error(j?.error?.message ?? `OpenAI error ${r.status}`);
     }
     if (!text.trim()) return { transcript: "", add: [], remove: [], day_off: [] };
-    const out = firstJson(await callAI("openai", st.model, st.api_key, "You turn a short voice note into calendar actions for a planner app.\n" + VOICE_RULES, `${ctx}\nVoice note: ${text.slice(0, 1500)}`, 900));
-    return { transcript: text, add: out.add ?? out.entries ?? [], remove: out.remove ?? [], day_off: out.day_off ?? [], ideas: out.ideas ?? [] };
+    const out = firstJson(await callAI("openai", st.model, st.api_key, "You turn a short voice note into calendar actions for a planner app.\n" + VOICE_RULES, `${ctx}\nVoice note: ${text.slice(0, 1500)}`, 1500));
+    return { ...out, transcript: text, add: out.add ?? out.entries ?? [], remove: out.remove ?? [], day_off: out.day_off ?? [], ideas: out.ideas ?? [] };
   }
   throw new Error("Voice needs a Gemini or ChatGPT key. Change it in Settings, AI, or use the keyboard microphone.");
 }
@@ -404,8 +435,8 @@ async function textActions(uid: string, text: string, today?: string, now?: stri
   const t = today && /^\d{4}-\d{2}-\d{2}$/.test(today) ? today : lp.date;
   const n = now && /^\d{2}:\d{2}$/.test(now) ? now : `${String(lp.hour).padStart(2, "0")}:00`;
   const ctx = await calendarContext(uid, t, n);
-  const out = firstJson(await callAI(st.provider, st.model, st.api_key, "You turn one short request into calendar actions for a planner app.\n" + VOICE_RULES, `${ctx}\nRequest: ${String(text).slice(0, 400)}`, 900));
-  return { transcript: String(text).slice(0, 400), add: out.add ?? out.entries ?? [], remove: out.remove ?? [], day_off: out.day_off ?? [], ideas: out.ideas ?? [] };
+  const out = firstJson(await callAI(st.provider, st.model, st.api_key, "You turn one short request into calendar actions for a planner app.\n" + VOICE_RULES, `${ctx}\nRequest: ${String(text).slice(0, 400)}`, 1500));
+  return { ...out, transcript: String(text).slice(0, 400), add: out.add ?? out.entries ?? [], remove: out.remove ?? [], day_off: out.day_off ?? [], ideas: out.ideas ?? [] };
 }
 /* The Home Screen voice button: understand the dictated text and change the calendar straight away. */
 function hmPlus(hm: string, mins: number) { const [h, m] = hm.split(":").map(Number); const x = (h * 60 + m + mins) % 1440; return `${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`; }
@@ -459,7 +490,10 @@ async function applyActions(uid: string, out: any) {
       msgs.push(`Removed ${o.ev.title} on ${r.date}`);
     }
   }
-  let message = msgs.length ? msgs.join(". ") : "I heard you, but found nothing to change.";
+  const other = ["move", "push", "posts_done", "paid", "done", "remind", "note", "sleep"].filter((k) => Array.isArray(out[k]) && out[k].length);
+  if (out.undo) other.push("undo"); if (out.ask) other.push("questions"); if (out.find_time) other.push("finding time");
+  let message = msgs.length ? msgs.join(". ") : (other.length ? "" : "I heard you, but found nothing to change.");
+  if (other.length) message += `${message ? ". " : ""}Open WhatsWork's mic for ${other.join(", ")}.`;
   if (asks.length) message += `. Left alone (important): ${asks.join(", ")}. Open WhatsWork to remove these.`;
   return { ok: true, message, heard: out.transcript || "" };
 }
@@ -657,7 +691,7 @@ async function designerList(uid: string, days: number) {
   for (const f of files as any[]) (byKey[f.item_key] ??= []).push({ id: f.id, name: f.name, mime: f.mime, size: Number(f.size), note: f.note, by: f.uploaded_by, url: urls[f.path] || null });
   const posts: any[] = [];
   for (let d = from; d <= to; d = W.addDays(d, 1)) {
-    for (const it of itemsOn(d, planner, "both", null) as any[]) {
+    for (const it of (itemsOn(d, planner, "both", null) as any[]).filter((x: any) => !W.relevantDay || W.relevantDay(x))) {
       const key = it.id + "@" + d, tr = (tracks[d.slice(0, 7)] || {})[key] || {};
       posts.push({ key, date: d, title: it.title, college: it.college, collegeName: (COLLEGES as any)[it.college]?.name ?? "", cat: it.cat, size: it.size, weekly: !!it.weekly, birthday: it.kind === "birthday",
         status: { sent: !!tr.q, made: !!tr.m, scheduled: !!tr.s }, files: byKey[key] || [] });
@@ -714,6 +748,53 @@ async function designer(body: any) {
   return { error: "unknown action" };
 }
 
+// ---------- TEAM (team.html: one private link per person, to see their work and mark it) ----------
+async function teamPerson(key: string) {
+  if (typeof key !== "string" || !/^wt_[0-9a-f]{48}$/.test(key)) return null;
+  const [p] = await sql`select id, user_id, name, role, role_label from public.team_people where token_hash = ${await sha256hex(key)}`;
+  if (!p) return null;
+  await sql`update public.team_people set last_seen = now() where id = ${p.id}`;
+  return p;
+}
+async function team(body: any) {
+  const p = await teamPerson(body.key);
+  if (!p) return { error: "This link doesn't work any more. Ask for a new one." };
+  const uid = p.user_id, who = p.name || p.role_label || "Your team";
+  if (body.action === "team_list") {
+    const tz = await tzOf(uid), today = localParts(tz).date;
+    const jobs = await sql`select id, title, client, brief, refs, due, priority, status, done_at, updated_at from public.team_jobs
+      where user_id = ${uid} and person_id = ${p.id} and (status <> 'done' or done_at > now() - interval '14 days')
+      order by (status = 'done'), (priority = 'urgent') desc, due nulls last, created_at`;
+    let posts: any[] = [];
+    if (p.role === "designer") {
+      const d = await designerList(uid, 21);
+      posts = (d.posts || []).filter((x: any) => !x.status.scheduled && (x.date >= today || !x.status.made)).map((x: any) => ({
+        key: x.key, date: x.date, title: x.title, college: x.collegeName, size: x.size, birthday: x.birthday,
+        status: x.status.made ? "done" : x.status.sent ? "doing" : "todo" }));
+    }
+    return { name: who, role: p.role, role_label: p.role_label || "", today, jobs: (jobs as any[]).map((j) => ({ ...j, due: j.due ? String(j.due instanceof Date ? j.due.toISOString() : j.due).slice(0, 10) : null })), posts };
+  }
+  if (body.action === "team_status") {
+    const st = String(body.status || "");
+    if (!["todo", "doing", "done"].includes(st)) return { error: "Bad status" };
+    let title = "";
+    if (body.job) {
+      const [j] = await sql`update public.team_jobs set status = ${st}, done_at = ${st === "done" ? new Date().toISOString() : null}, updated_at = now()
+        where id = ${String(body.job)} and person_id = ${p.id} and user_id = ${uid} returning title`;
+      if (!j) return { error: "That job isn't yours any more." };
+      title = j.title;
+    } else if (p.role === "designer") {
+      const key = String(body.item_key || ""), date = String(body.date || "");
+      if (!/^.{1,180}@\d{4}-\d{2}-\d{2}$/.test(key) || !key.endsWith("@" + date)) return { error: "Bad post" };
+      await setTrack(uid, key, date, st === "done" ? { q: true, m: true } : st === "doing" ? { q: true, m: false } : { q: false, m: false });
+      title = String(body.title || "A post").slice(0, 100) + " post";
+    } else return { error: "Bad request" };
+    if (st !== "todo") await pushTo([uid], { title: st === "done" ? `✅ ${who} finished` : `🎬 ${who} started`, body: title, tag: "team-" + (body.job || body.item_key), url: "./?team=1" });
+    return { ok: true };
+  }
+  return { error: "unknown action" };
+}
+
 // ---------- AUTH ----------
 async function signedInUser(req: Request): Promise<string | null> {
   const auth = req.headers.get("Authorization");
@@ -761,6 +842,7 @@ Deno.serve(async (req) => {
       catch (e: any) { return json({ ok: false, message: String(e?.message ?? e) }); }
     }
     if (typeof body.action === "string" && body.action.startsWith("designer_")) return json(await designer(body));
+    if (typeof body.action === "string" && body.action.startsWith("team_")) return json(await team(body));
 
     if (secret && secret === c.worker_secret) {
       if (body.action === "cron") return json(await cron());
