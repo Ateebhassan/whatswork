@@ -6,7 +6,7 @@
 // Deployed as a two-line loader that imports this file from the public repo at a pinned commit.
 import postgres from "npm:postgres@3.4.5";
 import webpush from "npm:web-push@3.6.7";
-import { WWCore, normaliseState, itemsOn, COLLEGES } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@2775ce4/core.mjs";
+import { WWCore, normaliseState, itemsOn, COLLEGES } from "https://cdn.jsdelivr.net/gh/Ateebhassan/whatswork@4182738/core.mjs";
 
 const sql = postgres(Deno.env.get("SUPABASE_DB_URL")!, { prepare: false, max: 3 });
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
