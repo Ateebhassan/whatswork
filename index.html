@@ -550,6 +550,10 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
 .nxlist{padding:4px 12px}
 .nx2{display:grid;grid-template-columns:96px 4px 1fr;gap:10px;align-items:center;width:100%;text-align:left;padding:9px 0;border-top:1px solid var(--line)}
 .nx2:first-child{border-top:0}
+.nxs{display:grid;grid-template-columns:96px 4px 1fr;gap:10px;align-items:center;width:100%;text-align:left;padding:6px 0;border-top:1px solid var(--line)}
+.nxs .tm{font-size:12.5px;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}.nxs .tm small{font-size:10px}
+.nxs i{align-self:stretch;border-radius:2px;min-height:16px}
+.nxs .t{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .nx2 .when{display:flex;flex-direction:column;line-height:1.15;font-variant-numeric:tabular-nums}
 .nx2 .when b{font-size:14px;font-weight:800;color:var(--brand)}
 .nx2 .when small{font-size:10px;font-weight:800;color:var(--muted)}
@@ -1253,7 +1257,7 @@ function donutCardHtml(t){
 
 /* ---------- TODAY ---------- */
 function greeting(){ const h=new Date().getHours(); return h<5?"Working late":h<12?"Good morning":h<17?"Good afternoon":"Good evening"; }
-let upRange = store.get("upRange","week");
+let upRange = "today";   /* opens on Today each time, since it replaces Next up */
 function rangeDays(r, t){
   if (r==="today") return [t,t];
   if (r==="week") return [t, W.addDays(mondayOf(t),6)];
@@ -1279,8 +1283,22 @@ function renderToday(){
   let weekTodo=0; for(let i=0;i<7;i++) weekTodo+=groupPosts(postsFor(W.addDays(t,i),list)).filter(p=>!p.status.scheduled).length;
   const dayTag = o => { const sd=W.dstr(Math.floor(o.start/DAY)); return sd===t ? "" : sd===W.addDays(t,1) ? "Tomorrow" : relDay(sd).slice(0,3); };
   const togo = m => m<60 ? `in ${m} min` : m<DAY ? `in ${dur(m)}` : `in ${Math.round(m/DAY)} day${Math.round(m/DAY)>1?"s":""}`;
-  const nextHtml = nextAll.map(o=>`<button class="nx2" data-ev="${o.ev.id}" data-date="${o.date}"><span class="when">${dayTag(o)?`<small>${dayTag(o)}</small>`:""}<b>${tFull(o.start)}</b><em>${dayPart(o.start)} · ${togo(o.start-nm)}</em></span><i style="background:${colorOf(o)}"></i><span class="t"><b>${o.kind==="prayer"?"🕌 ":""}${esc(o.ev.title)}</b><small>${o.kind==="prayer"?"Prayer break":tFull(o.start)+" – "+tFull(o.end)+" · "+esc(shortName(o.cal))}</small></span></button>`).join("");
-  let upHtml=""; for (let d=r0; d<=r1; d=W.addDays(d,1)) upHtml += agendaDayHtml(d, list, an, {skipRoutine:true, prayers:upRange==="today", hideEmpty:true, noHead:upRange==="today", full:true});
+  const nextRowHtml = o => `<button class="nx2" data-ev="${o.ev.id}" data-date="${o.date}"><span class="when">${dayTag(o)?`<small>${dayTag(o)}</small>`:""}<b>${tFull(o.start)}</b><em>${dayPart(o.start)} · ${togo(o.start-nm)}</em></span><i style="background:${colorOf(o)}"></i><span class="t"><b>${o.kind==="prayer"?"🕌 ":""}${esc(o.ev.title)}</b><small>${o.kind==="prayer"?"Prayer break":tFull(o.start)+" – "+tFull(o.end)+" · "+esc(shortName(o.cal))}</small></span></button>`;
+  const nextAllLong = timedV.filter(o=>o.start>nm).sort((a,b)=>a.start-b.start).slice(0,12);
+  /* one "Coming up" card: on Today the next thing is big with its countdown, the rest of the day are slim rows */
+  let upHtml="";
+  if (upRange==="today") {
+    const endToday=(W.dnum(t)+1)*DAY;
+    const prayersToday=vis.filter(o=>o.kind==="prayer" && !o.allDay && o.start>nm && o.start<endToday);
+    const pool=[...nextAllLong.filter(o=>!ROUTINE(o) || o===nextAllLong[0]), ...prayersToday].sort((a,b)=>a.start-b.start);
+    const seen=new Set(), uniq=pool.filter(o=>{ const k=o.ev.id+"@"+o.start; if(seen.has(k)) return false; seen.add(k); return true; });
+    const restToday=uniq.filter(o=>o.start<endToday);
+    const rows = restToday.length>=3 ? restToday : uniq.slice(0, Math.max(4, restToday.length));
+    const allDay = vis.filter(o=>o.date===t && o.allDay && o.kind!=="post");
+    if (rows.length) { const [first,...more]=rows;
+      upHtml = nextRowHtml(first) + more.map(o=>`<button class="nxs" data-ev="${o.ev.id}" data-date="${o.date}"><span class="tm">${dayTag(o)?`<small>${dayTag(o)==="Tomorrow"?"Tmw":dayTag(o)}</small> `:""}${tFull(o.start)}</span><i style="background:${colorOf(o)}"></i><span class="t">${o.kind==="prayer"?"🕌 ":""}${esc(o.ev.title)}</span></button>`).join("")
+        + allDay.map(o=>`<button class="nxs" data-ev="${o.ev.id}" data-date="${o.date}"><span class="tm">All day</span><i style="background:${colorOf(o)}"></i><span class="t">${esc(o.ev.title)}</span></button>`).join(""); }
+  } else for (let d=r0; d<=r1; d=W.addDays(d,1)) upHtml += agendaDayHtml(d, list, an, {skipRoutine:true, prayers:false, hideEmpty:true, noHead:false, full:true});
   $("todayBody").innerHTML = `
     <div class="hero">
       ${nowO ? `<div><div class="lbl">Now</div><div class="big">${esc(nowO.ev.title)}</div><div class="meta">ends ${W.fmtTime(nowO.end)} · ${dur(nowO.end-nm)} left</div></div>
@@ -1288,11 +1306,9 @@ function renderToday(){
         : `<div><div class="lbl">Now</div><div class="big">Free time</div><div class="meta">${nextAll[0]?`${dur(nextAll[0].start-nm)} until ${esc(nextAll[0].ev.title)}`:"Nothing else planned"}</div></div>`}
     </div>
     ${lifeTodayHtml(t,list)}
-    <div class="sec"><h2>Next up</h2></div>
-    <div class="card nxlist">${nextHtml || `<div class="empty">Nothing coming up.</div>`}</div>
-    <div class="sec"><h2>Upcoming</h2></div>
+    <div class="sec"><h2>Coming up</h2></div>
     <div class="seg wide4" id="upSeg">${[["today","Today"],["week","This week"],["next","Next week"],["month","This month"]].map(([k,l])=>`<button data-r="${k}" class="${upRange===k?"on":""}">${l}</button>`).join("")}</div>
-    <div class="card">${upHtml || `<div class="empty">Nothing planned${upRange==="today"?" for the rest of today":""}.</div>`}</div>
+    <div class="card ${upRange==="today"?"nxlist":""}">${upHtml || `<div class="empty">Nothing planned${upRange==="today"?" for the rest of today":""}.</div>`}</div>
     ${suggestHtml(t)}
     <div class="tiles">
       <div class="tile"><span class="k">Free today</span><span class="v num">${W.fmtDur(free)}</span></div>
