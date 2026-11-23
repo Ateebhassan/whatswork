@@ -250,6 +250,36 @@ const FEEDS: [string, string[], number][] = [
   ["AI", ["https://techcrunch.com/category/artificial-intelligence/feed/", "https://www.technologyreview.com/topic/artificial-intelligence/feed", "https://feeds.bbci.co.uk/news/technology/rss.xml"], 1],
 ];
 function unxml(t: string) { return t.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/\s+/g, " ").trim(); }
+// ---------- FINANCE: live crypto prices in rupees (CoinGecko), cached so the free API isn't hammered ----------
+const fxCache = new Map<string, { at: number; data: any }>();
+async function cg(path: string, ttlMin: number) {
+  const hit = fxCache.get(path);
+  if (hit && Date.now() - hit.at < ttlMin * 60000) return hit.data;
+  const r = await fetch("https://api.coingecko.com/api/v3" + path, { headers: { accept: "application/json" } });
+  if (!r.ok) { if (hit) return hit.data; throw new Error("Prices are busy, try again in a minute"); }
+  const data = await r.json();
+  fxCache.set(path, { at: Date.now(), data });
+  if (fxCache.size > 200) fxCache.delete(fxCache.keys().next().value!);
+  return data;
+}
+async function finPrices(body: any) {
+  const ids = [...new Set((Array.isArray(body.ids) ? body.ids : []).map((x: any) => String(x)).filter((x: string) => /^[a-z0-9-]{1,60}$/.test(x)))].slice(0, 20) as string[];
+  if (!ids.length) return { now: {}, hist: {} };
+  const now = await cg(`/simple/price?ids=${ids.join(",")}&vs_currencies=pkr,usd`, 5);
+  const days = Math.max(30, Math.min(365, Number(body.days) || 200));
+  const hist: Record<string, number[][]> = {};
+  for (const id of ids) {
+    try { const h = await cg(`/coins/${id}/market_chart?vs_currency=pkr&days=${days}&interval=daily`, 180); hist[id] = (h.prices || []).map((x: number[]) => [x[0], Math.round(x[1] * 100) / 100]); } catch { /* history is optional */ }
+  }
+  return { now, hist, at: new Date().toISOString() };
+}
+async function finSearch(body: any) {
+  const q = String(body.q || "").trim().slice(0, 40);
+  if (q.length < 2) return { coins: [] };
+  const r = await cg(`/search?query=${encodeURIComponent(q)}`, 60);
+  return { coins: (r.coins || []).slice(0, 8).map((c: any) => ({ id: c.id, name: c.name, symbol: c.symbol, rank: c.market_cap_rank, thumb: c.thumb })) };
+}
+
 async function headlines() {
   if (Date.now() - hlCache.at < 30 * 60000 && hlCache.items.length) return { items: hlCache.items };
   const out: any[] = [];
@@ -832,6 +862,8 @@ Deno.serve(async (req) => {
 
     if (body.action === "widget") return json(await widgetFor(body.key));
     if (body.action === "headlines") return json(await headlines());
+    if (body.action === "fin_prices") { try { return json(await finPrices(body)); } catch (e) { return json({ error: (e as Error).message }); } }
+    if (body.action === "fin_search") { try { return json(await finSearch(body)); } catch (e) { return json({ error: (e as Error).message }); } }
     if (body.action === "voice_text" && typeof body.key === "string") {
       if (!/^wm_[0-9a-f]{48}$/.test(body.key.trim())) return json({ ok: false, message: "This voice button's key isn't recognised. Make a new one in WhatsWork Settings." });
       const [row] = await sql`select user_id from private.mic_tokens where token_hash = ${await sha256hex(body.key.trim())}`;

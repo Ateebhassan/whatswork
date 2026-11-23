@@ -29,11 +29,13 @@
   --display:"Bricolage Grotesque",ui-rounded,system-ui,sans-serif;
   --body:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --navh:58px;
+  --fin-cash:#3157e8; --fin-save:#13915a; --fin-inv:#c7861a;
 }
 @media (prefers-color-scheme:dark){:root{
   --bg:#0d1119; --panel:#151b26; --sunk:#1b2231; --ink:#e8ecf4; --muted:#929bb0; --faint:#5c6579; --line:#262f41;
   --brand:#7491ff; --brand-soft:#1e2847; --on-brand:#0d1119;
   --warn:#ffb21e; --warn-ink:#ffcf6b; --bad:#ff6b5e; --bad-soft:#3a1d1d; --ok:#3fcf8e; --ok-soft:#14301f;
+  --fin-cash:#7d98ff; --fin-save:#3fcf8e; --fin-inv:#f0b54a;
   --grid:#1a2130; --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
   color-scheme:dark;
 }}
@@ -355,6 +357,50 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
 .vitem{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px;text-align:left;width:100%}
 .vitem .t{flex:1;min-width:0}.vitem .t b{display:block}
 .vitem input{width:20px;height:20px;accent-color:var(--brand)}
+.fincard{cursor:pointer;display:grid;gap:8px}
+.fc-top{display:flex;align-items:flex-start;gap:10px}.fc-top .t{flex:1}.fc-top .t>span{display:block}
+.fc-net{display:block;font-family:var(--display);font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.fc-chart{margin:0 -4px}
+.fc-legend{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.fc-legend>span{display:grid;grid-template-columns:auto 1fr;column-gap:6px;align-items:center}
+.fc-legend i{width:10px;height:10px;border-radius:3px;grid-row:span 2}
+.fc-legend b{font-size:15px;grid-column:2}
+.fc-legend.big{display:flex;flex-wrap:wrap;gap:12px;margin-top:4px}.fc-legend.big>span{display:flex;gap:6px}
+.fg{display:block;overflow:visible;touch-action:pan-y}
+.fg-grid{stroke:var(--grid);stroke-width:1}.fg-grid.zero{stroke:var(--faint)}
+.fg-mo{stroke:var(--grid);stroke-width:1;stroke-dasharray:2 3}
+.fg-ax{fill:var(--muted);font-size:10.5px;font-weight:700;font-family:var(--body)}
+.fg-today{stroke:var(--ink);stroke-width:1.2;opacity:.45}
+.fg-tl{fill:var(--ink);font-size:10.5px;font-weight:800;font-family:var(--body)}
+.fg-line{fill:none;stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.fg-line.fut{stroke-dasharray:5 5;opacity:.85}
+.fg-dot{stroke:var(--panel);stroke-width:2}
+.fg-cross{stroke:var(--ink);stroke-width:1;opacity:.35}
+.fin-hero{display:flex;align-items:flex-start;gap:10px;margin:2px 2px 10px}.fin-hero>div{flex:1}
+.fin-net{font-family:var(--display);font-size:36px;font-weight:800;letter-spacing:-.03em;line-height:1.05}
+.fin-range{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px 10px;margin:0 2px 10px}.fin-range .seg3{justify-self:start}
+.seg3.sm button{padding:6px 9px;font-size:12.5px}
+.fin-chartcard{position:relative;padding:12px 12px 12px 6px}
+.fin-chart{min-height:120px}
+.fin-tip{position:absolute;top:8px;width:206px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:12px;padding:8px 10px;display:grid;gap:3px;font-size:12.5px;pointer-events:none;z-index:2}
+.fin-tip span{display:flex;align-items:center;gap:6px;white-space:nowrap}.fin-tip i{width:8px;height:8px;border-radius:2px}.fin-tip span b{margin-left:auto}
+.fin-warn{margin:8px 6px 0;font-size:13px;font-weight:600;color:var(--warn-ink);background:color-mix(in srgb,var(--warn) 16%,transparent);border-radius:10px;padding:7px 10px}
+.fin-lines{display:grid;gap:10px;margin-top:12px}
+.fin-lc{display:grid;gap:10px}
+.fl-h{display:flex;gap:10px;align-items:flex-start}.fl-h i{width:6px;align-self:stretch;border-radius:4px}
+.fl-h .t{display:grid}.fl-h .t b{font-family:var(--display);font-size:22px;font-weight:800;letter-spacing:-.01em}
+.fl-b{display:flex;gap:6px;flex-wrap:wrap}
+.fin-list{display:grid;padding:4px 14px}
+.fl-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);text-align:left;width:100%}
+.fin-list>.fl-row:first-child{border-top:0}
+.fl-row .t{flex:1;min-width:0;display:grid}.fl-row .t b{font-size:14.5px}
+.fl-d{width:34px;display:grid;justify-items:center;line-height:1.05}.fl-d b{font-size:17px}.fl-d span{font-size:11px;font-weight:700;color:var(--muted)}
+.fl-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:12px;flex:0 0 auto;background:var(--sunk)}
+.fl-ic.pos{color:var(--ok);background:var(--ok-soft)}.fl-ic.neg{color:var(--bad);background:var(--bad-soft)}.fl-ic.sav{color:var(--ok);background:var(--ok-soft)}.fl-ic.inv{color:#9a6400;background:color-mix(in srgb,#c7861a 18%,transparent)}
+.amt{font-weight:800;font-size:14.5px;white-space:nowrap;font-variant-numeric:tabular-nums}.amt.pos{color:var(--ok)}.amt.neg{color:var(--ink)}.amt.muted{color:var(--brand);font-size:13px}
+.fl-prog{height:5px;border-radius:3px;background:var(--sunk);margin-top:5px;overflow:hidden}.fl-prog i{display:block;height:100%;background:var(--fin-save);border-radius:3px}
+.fl-add{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 10px;border-top:1px solid var(--line)}
+.fin-amt{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
 .backb{font-size:13px;font-weight:800;color:var(--brand);padding:2px 0 4px}
 .teamcard{display:flex;align-items:center;gap:12px;width:100%;text-align:left}
 .teamcard .t{flex:1;min-width:0}.teamcard .t b{display:block;font-size:15.5px}
@@ -778,6 +824,11 @@ u.pok{color:var(--ok)} u.ptodo{color:#d97706}
     <div class="scroll" id="settingsBody"></div>
   </section>
 
+  <section class="screen hidden" id="sFin">
+    <div class="head"><div><button class="backb" id="finBack">‹ Today</button><h1>Finance</h1></div></div>
+    <div class="scroll" id="finBody"></div>
+  </section>
+
   <section class="screen hidden" id="sTeam">
     <div class="head"><div><button class="backb" id="tmBack">‹ Today</button><h1>Team work</h1></div><button class="btn sm" id="tmNew">+ Job</button></div>
     <div class="scroll" id="teamBody"></div>
@@ -891,6 +942,8 @@ const api = window.WW_TEST_API || {
   deleteJob(id){ return sb.from("team_jobs").delete().eq("id",id); },
   savePerson(p){ const {id,...v}=p; return id ? sb.from("team_people").update(v).eq("id",id).select("id,name,role,role_label,color,sort,link_made,last_seen,created_at").single() : sb.from("team_people").insert(v).select("id,name,role,role_label,color,sort,link_made,last_seen,created_at").single(); },
   deletePerson(id){ return sb.from("team_people").delete().eq("id",id); },
+  finPrices(ids, days){ return sb.functions.invoke(WORKER,{body:{action:"fin_prices", ids, days}}); },
+  finSearch(q){ return sb.functions.invoke(WORKER,{body:{action:"fin_search", q}}); },
   restoreEvent(row){ return sb.from("events").upsert(row).select().single(); },
   setPostStatus(calendar_id,item_key,patch){ return sb.from("post_status").upsert({calendar_id,item_key,...patch,updated_at:new Date().toISOString()},{onConflict:"calendar_id,item_key"}).select().single(); },
   async setPlannerTrack(key, date, patch){
@@ -959,10 +1012,10 @@ async function loadHealth(){
   try { const h = await api.loadHealth(); healthMissing = !!h.missing; if (!h.missing) { health=h.health||[]; screenWeeks=h.weeks||[]; reviews=h.reviews||[]; } }
   catch { healthMissing = true; }
 }
-let life={goals:[],ideas:[],trips:[],money:{items:[],paid:{}},suggest:[],undo:[]};
+let life={goals:[],ideas:[],trips:[],money:{items:[],paid:{}},suggest:[],undo:[],finance:null};
 async function loadLife(){
-  try { const {data}=await api.loadLife(); const L={goals:[],ideas:[],trips:[],money:{items:[],paid:{}},suggest:[],undo:[]};
-    (data||[]).forEach(r=>{ try{ const j=JSON.parse(r.json); if(r.name==="money") L.money={items:j.items||[],paid:j.paid||{}}; else if(L[r.name]) L[r.name]=Array.isArray(j)?j:(j.items||[]); }catch{} });
+  try { const {data}=await api.loadLife(); const L={goals:[],ideas:[],trips:[],money:{items:[],paid:{}},suggest:[],undo:[],finance:null};
+    (data||[]).forEach(r=>{ try{ const j=JSON.parse(r.json); if(r.name==="money") L.money={items:j.items||[],paid:j.paid||{}}; else if(r.name==="finance") L.finance={...finDefaultsEmpty(), ...j}; else if(L[r.name]) L[r.name]=Array.isArray(j)?j:(j.items||[]); }catch{} });
     life=L; } catch { /* the life table isn't there yet */ }
 }
 async function saveLife(name){ const {error}=await api.saveLife(name, name==="money"?life.money:life[name]); if(error) toast("Couldn't save: "+error.message); return !error; }
@@ -996,13 +1049,15 @@ $("authForm").onsubmit=async e=>{
 /* ---------- navigation ---------- */
 document.querySelectorAll("#nav button[data-tab]").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 $("tmBack").onclick=()=>showTab("today");
+$("finBack").onclick=()=>showTab("today");
 $("tmNew").onclick=()=>openJob(null, teamFilter!=="all"?teamFilter:null);
 $("navAdd").onclick=()=>openAdd(tab==="cal"?calDate:todayStr());
 function showTab(t){
-  if (!["today","cal","review","settings","team"].includes(t)) t="today";
+  if (!["today","cal","review","settings","team","fin"].includes(t)) t="today";
   tab=t; store.set("tab",t);
-  document.querySelectorAll("#nav button[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===(t==="team"?"today":t)));
+  document.querySelectorAll("#nav button[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===(t==="team"||t==="fin"?"today":t)));
   $("sTeam").classList.toggle("hidden",t!=="team");
+  $("sFin").classList.toggle("hidden",t!=="fin");
   if (t==="team") loadTeam().then(()=>{ if(tab==="team") renderTeam(); });
   $("sToday").classList.toggle("hidden",t!=="today");
   $("sCal").classList.toggle("hidden",t!=="cal");
@@ -1017,6 +1072,7 @@ function render(){
   else if (tab==="settings") renderSettings();
   else if (tab==="review") renderReview();
   else if (tab==="team") renderTeam();
+  else if (tab==="fin") renderFin();
 }
 function openDay(date){ calDate=date; calView="day"; store.set("calView","day"); showTab("cal"); }
 
@@ -1233,9 +1289,12 @@ function renderToday(){
     ${warnsHtml(alerts)}
     <div class="sec"><h2>Team</h2></div>
     ${teamSummaryHtml()}
+    <div class="sec"><h2>Finance</h2></div>
+    ${finCardHtml()}
     <div style="height:20px"></div>`;
   const body=$("todayBody"); wire(body);
-  $("tTeam").onclick=()=>showTab("team");
+  $("tTeam").onclick=()=>showTab("team"); wireFinCard();
+  if (life.finance?.holdings?.some(h=>h.type==="coin")) finLoadPrices().then(ok=>{ if(ok && tab==="today") renderToday(); });
   $("upSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{ upRange=b.dataset.r; store.set("upRange",upRange); renderToday(); });
   $("tWeek").onclick=()=>showTab("review");
   wireLifeToday(); wireSuggest(); loadHeadlines();
@@ -2481,6 +2540,357 @@ async function openAlarms(){
   $("sheetRoot").querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{ try{ await navigator.clipboard.writeText(b.dataset.copy); toast("Copied"); }catch{ toast("Press and hold to copy"); } });
   $("aSave").onclick=async()=>{ notify.alarms={wake:$("aWake").checked, shift:$("aShift").checked, shift_lead:+$("aShiftL").value, meeting:$("aMeet").checked, meeting_lead:+$("aMeetL").value};
     const r=await api.setNotify(notify); if(r?.error) return toast(r.error.message); closeSheet(); toast("Saved"); renderSettings(); };
+}
+
+/* ---------- FINANCE TIMELINE: money in hand, savings and investments as three lines over time ---------- */
+const FIN_LINES = [["cash","Money in hand","var(--fin-cash)"],["save","Savings","var(--fin-save)"],["inv","Investments","var(--fin-inv)"]];
+const FIN_CATS = ["Food","Fuel","Bills","Family","Shopping","Fun","Other"];
+let finPx = store.get("finPx", {now:{}, hist:{}, at:0}), finRange = store.get("finRange", {back:3, ahead:6}), finHide = store.get("finHide", false), finOpen = {};
+function finDefaults(){
+  const cm=(life.money.items||[]).find(i=>/committee/i.test(i.title));
+  return {v:1, sets:[], moves:[], budget:{amount:0}, holdings:[],
+    incomes:[{id:"inc-sup",title:"Superior pay",amount:0,day:10,dayTo:null,from:null,until:null},
+             {id:"inc-ailc",title:"AILC pay",amount:0,day:10,dayTo:null,from:null,until:null},
+             {id:"inc-casa",title:"Casa pay",amount:0,day:7,dayTo:8,from:null,until:null}],
+    plans: cm ? [{id:"plan-committee",title:"Committee",amount:Number(cm.amount)||0,day:Number(cm.day)||10,start:"2026-10",months:12,payout:null,payoutAmount:0}] : []};
+}
+const finDefaultsEmpty = () => ({v:1, sets:[], moves:[], budget:{amount:0}, holdings:[], incomes:[], plans:[]});
+const finD = () => life.finance || (life.finance = finDefaults());
+async function finSave(){ return saveLife("finance"); }
+const finId = p => p+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+/* "50k", "1.5 lakh", "2 crore", "50,000" → a number */
+function parseMoney(s){
+  if (typeof s==="number") return s;
+  let t=String(s||"").toLowerCase().replace(/rs\.?|pkr|,|\s+/g,"");
+  const m=t.match(/^(-?\d*\.?\d+)(k|thousand|l|lac|lakh|lakhs|cr|crore|crores|m)?$/); if(!m) return NaN;
+  const mul={k:1e3,thousand:1e3,l:1e5,lac:1e5,lakh:1e5,lakhs:1e5,cr:1e7,crore:1e7,crores:1e7,m:1e6}[m[2]]||1;
+  return Math.round(parseFloat(m[1])*mul);
+}
+const fmAmt = n => finHide ? "Rs •••••" : "Rs "+Math.round(n).toLocaleString("en-PK");
+function fcAmt(n){ if (finHide) return "•••"; const a=Math.abs(n), sg=n<0?"−":"";
+  return sg+(a>=1e7?(a/1e7).toFixed(a>=1e8?0:1).replace(/\.0$/,"")+" cr":a>=1e5?(a/1e5).toFixed(a>=1e6?0:1).replace(/\.0$/,"")+" lakh":a>=1e3?Math.round(a/1e3)+"k":String(Math.round(a))); }
+const dim = (y,m) => new Date(Date.UTC(y,m,0)).getUTCDate();
+const ymAdd = (ym,n) => { const y=+ym.slice(0,4), m=+ym.slice(5,7)-1+n; return `${y+Math.floor(m/12)}-${String((m%12+12)%12+1).padStart(2,"0")}`; };
+const dayIn = (ym,day) => `${ym}-${String(Math.min(day, dim(+ym.slice(0,4), +ym.slice(5,7)))).padStart(2,"0")}`;
+const monthsBack = n => W.dstr(W.dnum(ymAdd(todayStr().slice(0,7),-n)+todayStr().slice(7)));
+/* every planned or logged change, as {date, line, delta, title, kind} */
+function finFlows(from, to){
+  const f=finD(), out=[], t=todayStr();
+  for (let ym=from.slice(0,7); ym<=to.slice(0,7); ym=ymAdd(ym,1)) {
+    f.incomes.forEach(i=>{ if(!(i.amount>0)) return; const d=dayIn(ym,i.day);
+      if ((i.from && d<i.from) || (i.until && d>i.until) || d<from || d>to) return;
+      out.push({date:d, line:"cash", delta:i.amount, title:i.title, kind:"pay", ref:i.id, dayTo:i.dayTo}); });
+    f.plans.forEach(p=>{ if(!(p.amount>0)) return; const end=ymAdd(p.start,(p.months||1)-1); if (ym<p.start || ym>end) return; const d=dayIn(ym,p.day);
+      if (d<from || d>to) return;
+      const after = p.payout && p.payoutAmount>0 && d>p.payout;   /* after your turn, the payments just pay it back */
+      out.push({date:d, line:"cash", delta:-p.amount, title:p.title, kind:after?"planback":"plan", ref:p.id});
+      if (!after) out.push({date:d, line:"save", delta:p.amount, title:p.title, kind:"plan", ref:p.id, hidden:true}); });
+  }
+  f.plans.forEach(p=>{ if(!(p.payout && p.payoutAmount>0) || p.payout<from || p.payout>to) return;
+    let paid=0; for (let ym=p.start; ym<=ymAdd(p.start,(p.months||1)-1); ym=ymAdd(ym,1)) if (dayIn(ym,p.day)<=p.payout) paid+=p.amount||0;
+    out.push({date:p.payout, line:"cash", delta:p.payoutAmount, title:p.title+" payout", kind:"payout", ref:p.id},{date:p.payout, line:"save", delta:-Math.min(paid,p.payoutAmount), title:p.title+" payout", kind:"payout", ref:p.id, hidden:true}); });
+  f.moves.forEach(m=>{ if(m.date<from||m.date>to) return;
+    if (m.kind==="move") out.push({date:m.date, line:m.from, delta:-m.amount, title:m.title||"Moved", kind:"move", ref:m.id},{date:m.date, line:m.to, delta:m.amount, title:m.title||"Moved", kind:"move", ref:m.id, hidden:true});
+    else out.push({date:m.date, line:m.line||"cash", delta:m.kind==="out"?-m.amount:m.amount, title:m.title||(m.kind==="out"?"Spent":"Money in"), kind:m.kind, cat:m.cat, ref:m.id}); });
+  f.holdings.forEach(h=>{ if(h.fromCash && h.invested>0 && h.date>=from && h.date<=to) out.push({date:h.date, line:"cash", delta:-h.invested, title:"Invested: "+(h.name||h.symbol||"investment"), kind:"invest", ref:h.id}); });
+  /* the monthly budget, spread over the days still ahead (this month: only what's left after what you logged) */
+  const b=Number(f.budget?.amount)||0;
+  if (b>0) for (let d=W.addDays(t,1); d<=to; d=W.addDays(d,1)) { if (d<from) continue;
+    const ym=d.slice(0,7), y=+ym.slice(0,4), mo=+ym.slice(5,7), n=dim(y,mo);
+    let per=b/n;
+    if (ym===t.slice(0,7)) { const spent=f.moves.filter(m=>m.kind==="out" && (m.line||"cash")==="cash" && m.date.slice(0,7)===ym && m.date<=t).reduce((s,m)=>s+m.amount,0);
+      const left=Math.max(0,b-spent), daysLeft=n-(+t.slice(8,10)); per=daysLeft>0?left/daysLeft:0; }
+    out.push({date:d, line:"cash", delta:-per, title:"Budget", kind:"budget", hidden:true}); }
+  return out;
+}
+function priceOn(id, d){
+  const h=finPx.hist[id]; const now=finPx.now[id]?.pkr;
+  if (d>=todayStr() || !h?.length) return now ?? (h?.length?h[h.length-1][1]:null);
+  const ms=Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10));
+  let lo=0, hi=h.length-1; if (ms<=h[0][0]) return h[0][1];
+  while (lo<hi){ const mid=(lo+hi+1)>>1; if (h[mid][0]<=ms) lo=mid; else hi=mid-1; }
+  return h[lo][1];
+}
+function holdingValue(h, d){
+  if (d<h.date) return 0;
+  if (h.type==="coin") { const p=priceOn(h.coin,d); return p!=null && h.qty>0 ? h.qty*p : (h.invested||0); }
+  return h.valueDate && d>=h.valueDate ? (Number(h.value)||0) : (Number(h.invested)||0);
+}
+/* the three lines, one value per day (null where there's nothing to show yet) */
+function finSeries(from, to){
+  const f=finD(), days=[]; for (let d=from; d<=to; d=W.addDays(d,1)) days.push(d);
+  const firstSet = l => f.sets.filter(s=>s.line===l).map(s=>s.date).sort()[0];
+  const startAll = [from, ...f.sets.map(s=>s.date), ...f.plans.map(p=>dayIn(p.start,p.day))].sort()[0];
+  const flows=finFlows(startAll, to), out={};
+  ["cash","save"].forEach(l=>{
+    const sets=f.sets.filter(s=>s.line===l).sort((a,b)=>a.date.localeCompare(b.date)||a.at?.localeCompare?.(b.at||"")||0);
+    let base0 = sets[0]?.date;
+    if (l==="save" && !base0) { const fp=flows.filter(x=>x.line==="save").map(x=>x.date).sort()[0]; if (fp) base0=W.addDays(fp,-1); }
+    const fl=flows.filter(x=>x.line===l).sort((a,b)=>a.date.localeCompare(b.date));
+    out[l]=days.map(d=>{
+      if (!base0 || d<base0) return null;
+      const s=sets.filter(x=>x.date<=d).pop(); const bd=s?s.date:base0, bv=s?s.amount:0;
+      let v=bv; for (const x of fl) { if (x.date>d) break; if (x.date>bd) v+=x.delta; } return v; });
+  });
+  out.inv = f.holdings.length ? days.map(d=>{ const any=f.holdings.some(h=>h.date<=d); return any ? f.holdings.reduce((s,h)=>s+holdingValue(h,d),0) : null; }) : days.map(()=>null);
+  return {days, lines:out, flows};
+}
+async function finLoadPrices(force){
+  const ids=[...new Set(finD().holdings.filter(h=>h.type==="coin"&&h.coin).map(h=>h.coin))];
+  if (!ids.length) return false;
+  const fresh = Date.now()-(finPx.at||0) < 5*60000 && ids.every(i=>finPx.now[i]);
+  if (fresh && !force) return false;
+  try { const {data,error}=await api.finPrices(ids, 365); if (error||!data||data.error) return false;
+    finPx={now:{...finPx.now,...data.now}, hist:{...finPx.hist,...data.hist}, at:Date.now()}; store.set("finPx", finPx); return true; } catch { return false; }
+}
+/* ---- the chart ---- */
+function finChartSvg(from, to, opts={}){
+  const {days, lines}=finSeries(from, to), t=todayStr();
+  const W_=opts.w||350, H=opts.h||220, pl=opts.mini?4:44, pr=opts.mini?4:12, pt=opts.mini?8:14, pb=opts.mini?6:26;
+  const vals=FIN_LINES.flatMap(([k])=>lines[k].filter(v=>v!=null));
+  if (!vals.length) return {svg:"", empty:true, days, lines};
+  let lo=Math.min(0,...vals), hi=Math.max(...vals); if (hi===lo) hi=lo+1000;
+  const step=niceStep((hi-lo)/3); lo=Math.floor(lo/step)*step; hi=Math.ceil(hi*1.04/step)*step;
+  const X=i=>pl+(W_-pl-pr)*(days.length<2?0:i/(days.length-1)), Y=v=>pt+(H-pt-pb)*(1-(v-lo)/(hi-lo));
+  const ti=days.indexOf(t);
+  let g="";
+  if (!opts.mini) for (let v=lo; v<=hi+1e-6; v+=step) g+=`<line x1="${pl}" x2="${W_-pr}" y1="${Y(v)}" y2="${Y(v)}" class="fg-grid${v===0&&lo<0?" zero":""}"/><text x="${pl-6}" y="${Y(v)+4}" class="fg-ax" text-anchor="end">${esc(finHide?"":fcAmt(v))}</text>`;
+  const firsts=days.map((d,i)=>d.slice(8)==="01"?i:-1).filter(i=>i>=0), every=Math.max(1,Math.ceil(firsts.length*34/(W_-pl-pr)));
+  if (!opts.mini) firsts.forEach((i,k)=>{ const d=days[i]; g+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt}" y2="${H-pb}" class="fg-mo"/>`; if (k%every) return; g+=`<text x="${X(i)+3}" y="${H-8}" class="fg-ax">${esc(new Date(d+"T12:00:00").toLocaleDateString("en-GB",{month:"short"})+(d.slice(5,7)==="01"?" "+d.slice(2,4):""))}</text>`; });
+  if (ti>=0) g+=`<line x1="${X(ti)}" x2="${X(ti)}" y1="${pt-4}" y2="${H-pb}" class="fg-today"/>${opts.mini?"":`<text x="${X(ti)}" y="${pt-4}" class="fg-tl" text-anchor="middle">Today</text>`}`;
+  const path=(arr,a,b)=>{ let s="", on=false; for (let i=a;i<=b;i++){ const v=arr[i]; if (v==null){ on=false; continue; } s+=(on?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1); on=true; } return s; };
+  FIN_LINES.forEach(([k,,c])=>{ const arr=lines[k]; if (arr.every(v=>v==null)) return;
+    const cut = ti>=0 ? ti : (days[0]>t ? -1 : days.length-1);
+    if (cut>=0) g+=`<path d="${path(arr,0,cut)}" style="stroke:${c}" class="fg-line"/>`;
+    if (cut<days.length-1) g+=`<path d="${path(arr,Math.max(0,cut),days.length-1)}" style="stroke:${c}" class="fg-line fut"/>`;
+    if (ti>=0 && arr[ti]!=null) g+=`<circle cx="${X(ti)}" cy="${Y(arr[ti])}" r="${opts.mini?3:4}" style="fill:${c}" class="fg-dot"/>`; });
+  return {svg:`<svg viewBox="0 0 ${W_} ${H}" width="100%" height="${H}" class="fg" preserveAspectRatio="none">${g}<rect x="${pl}" y="0" width="${W_-pl-pr}" height="${H}" fill="transparent" class="fg-hit"/></svg>`, days, lines, X, Y, pl, pr};
+}
+function niceStep(raw){ const p=Math.pow(10,Math.floor(Math.log10(Math.max(raw,1)))), n=raw/p; return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p; }
+function finTotals(){ const t=todayStr(), {lines}=finSeries(W.addDays(t,-31), t), i=lines.cash.length-1, m=0;
+  const v=k=>lines[k][i], ago=k=>lines[k].find(x=>x!=null);
+  return {cash:v("cash"), save:v("save"), inv:v("inv"), net:["cash","save","inv"].reduce((s,k)=>s+(v(k)||0),0), net30:["cash","save","inv"].reduce((s,k)=>s+(lines[k][0]??ago(k)??0),0)}; }
+const eyeSvg = on => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>${on?"":`<path d="M3 3l18 18"/>`}</svg>`;
+/* ---- the card at the bottom of Today ---- */
+function finCardHtml(){
+  const f=finD(), t=todayStr(), tot=finTotals(), has=f.sets.length||f.holdings.length||f.plans.some(p=>p.amount>0);
+  const ch=finChartSvg(W.addDays(t,-30), monthsAheadEnd(3), {mini:true, w:340, h:86});
+  return `<div class="card fincard" id="finCard" role="button" tabindex="0">
+    <div class="fc-top"><span class="t"><span class="small muted">Finance · all you have</span><b class="fc-net">${has?esc(fmAmt(tot.net)):"Set it up"}</b></span>
+      <button class="ib" id="finEye" aria-label="${finHide?"Show":"Hide"} amounts">${eyeSvg(!finHide)}</button></div>
+    ${has&&!ch.empty?`<div class="fc-chart">${ch.svg}</div>`:`<div class="small muted" style="padding:6px 0 2px">Add what you have, your pay days and your savings to see the three lines.</div>`}
+    <div class="fc-legend">${FIN_LINES.map(([k,n,c])=>`<span><i style="background:${c}"></i><span class="small muted">${esc(n)}</span><b>${tot[k]!=null?esc(fcAmt(tot[k])):"—"}</b></span>`).join("")}</div>
+  </div>`;
+}
+function monthsAheadEnd(n){ const t=todayStr(); return n<=0 ? t : W.dstr(W.dnum(ymAdd(t.slice(0,7),n)+"-01")-1+Math.min(+t.slice(8,10), 28)); }
+function wireFinCard(){
+  const c=$("finCard"); if(!c) return;
+  c.onclick=e=>{ if (e.target.closest("#finEye")) return; showTab("fin"); };
+  $("finEye").onclick=e=>{ e.stopPropagation(); finHide=!finHide; store.set("finHide",finHide); renderToday(); };
+}
+/* ---- the Finance page ---- */
+async function renderFin(){
+  const body=$("finBody"); if(!body) return;
+  const f=finD(), t=todayStr(), from=monthsBack(finRange.back), to=monthsAheadEnd(finRange.ahead);
+  const tot=finTotals(), diff=tot.net-tot.net30;
+  const ch=finChartSvg(from, to, {w:Math.max(300, body.clientWidth-30), h:230});
+  const flows=finFlows(W.addDays(t,1), W.addDays(t,62)).filter(x=>!x.hidden).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
+  const low = (()=>{ if (ch.empty) return null; const i0=ch.days.indexOf(t); if (i0<0) return null; let mi=-1, mv=Infinity; ch.lines.cash.forEach((v,i)=>{ if(i>i0 && v!=null && v<mv){ mv=v; mi=i; } }); return mi>0 ? {d:ch.days[mi], v:mv} : null; })();
+  const coins=f.holdings;
+  const putIn=coins.reduce((s,h)=>s+(Number(h.invested)||0),0), nowInv=coins.reduce((s,h)=>s+holdingValue(h,t),0);
+  body.innerHTML=`
+    <div class="fin-hero"><div><div class="small muted">All you have today</div><div class="fin-net">${esc(fmAmt(tot.net))}</div>
+      ${tot.net30 && Math.abs(diff)>=1?`<div class="small" style="color:${diff>=0?"var(--ok)":"var(--bad)"};font-weight:800">${diff>=0?"▲":"▼"} ${esc(fcAmt(Math.abs(diff)))} in the last 30 days</div>`:""}</div>
+      <button class="ib" id="finEye2" aria-label="${finHide?"Show":"Hide"} amounts">${eyeSvg(!finHide)}</button></div>
+    <div class="fin-range"><span class="small muted">Look back</span><div class="seg3 sm" id="frBack">${[1,3,6,12].map(n=>`<button data-v="${n}" class="${finRange.back===n?"on":""}">${n===12?"1Y":n+"M"}</button>`).join("")}</div>
+      <span class="small muted">Look ahead</span><div class="seg3 sm" id="frAhead">${[0,3,6,12].map(n=>`<button data-v="${n}" class="${finRange.ahead===n?"on":""}">${n===0?"—":n===12?"1Y":n+"M"}</button>`).join("")}</div></div>
+    <div class="card fin-chartcard"><div class="fin-chart" id="finChart">${ch.empty?`<div class="empty">Tap “Money in hand” below and add what you have today. Your lines start from there.</div>`:ch.svg}</div>
+      <div class="fin-tip hidden" id="finTip"></div>
+      <div class="fc-legend big">${FIN_LINES.map(([k,n,c])=>`<span><i style="background:${c}"></i><span class="small muted">${esc(n)}</span></span>`).join("")}<span class="small muted">· dashed = expected</span></div>
+      ${low && low.v< (tot.cash||0)*0.25 ? `<div class="fin-warn">${low.v<0?"⚠️ Money in hand goes below zero":"Lowest point"} around ${esc(fmtDay(low.d,{day:"numeric",month:"short"}))}: <b>${esc(fmAmt(low.v))}</b></div>`:""}
+    </div>
+    <div class="fin-lines">
+      ${finLineCard("cash", tot.cash, `<button class="btn soft sm" data-fa="in">+ Money in</button><button class="btn soft sm" data-fa="out">− Spent</button><button class="btn ghost sm" data-fa="set-cash">Set amount</button>`)}
+      ${finLineCard("save", tot.save, `<button class="btn soft sm" data-fa="move">+ Put in savings</button><button class="btn ghost sm" data-fa="set-save">Set amount</button>`)}
+      ${finLineCard("inv", tot.inv, `<button class="btn soft sm" data-fa="hold">+ Add investment</button>${coins.some(h=>h.type==="coin")?`<button class="btn ghost sm" id="finRefresh">↻ Prices</button>`:""}`,
+        coins.length?`${esc(fcAmt(putIn))} put in → ${esc(fcAmt(nowInv))} now <b style="color:${nowInv>=putIn?"var(--ok)":"var(--bad)"}">${nowInv>=putIn?"+":"−"}${putIn?Math.abs(Math.round((nowInv/putIn-1)*1000)/10):0}%</b>`:"")}
+    </div>
+    <div class="sec"><h2>Coming up</h2></div>
+    <div class="card fin-list">${flows.length?flows.map(x=>`<div class="fl-row"><span class="fl-d"><b>${esc(fmtDay(x.date,{day:"numeric"}))}</b><span>${esc(fmtDay(x.date,{month:"short"}))}</span></span>
+      <span class="t"><b>${esc(x.title)}</b><span class="small muted">${x.kind==="pay"?(x.dayTo?`expected ${fmtDay(x.date,{day:"numeric"})}–${x.dayTo}`:"pay day"):x.kind==="plan"?"into savings":x.kind==="planback"?"paying back after your turn":x.kind==="payout"?"your turn, it comes to you":esc(x.cat||"")}</span></span>
+      <b class="amt ${x.delta>=0?"pos":"neg"}">${x.delta>=0?"+":"−"}${esc(fcAmt(Math.abs(x.delta)))}</b></div>`).join(""):`<div class="empty">Add your pay amounts below to see what's coming.</div>`}</div>
+    <div class="sec"><h2>Every month</h2></div>
+    <div class="card fin-list">
+      ${f.incomes.map(i=>`<button class="fl-row" data-inc="${esc(i.id)}"><span class="fl-ic pos">↓</span><span class="t"><b>${esc(i.title)}</b><span class="small muted">${i.dayTo?`${ord(i.day)}–${ord(i.dayTo)}`:ord(i.day)} of every month${i.until?" · until "+esc(fmtDay(i.until,{day:"numeric",month:"short"})):""}</span></span><b class="amt ${i.amount?"pos":"muted"}">${i.amount?"+"+esc(fcAmt(i.amount)):"Add amount"}</b></button>`).join("")}
+      ${f.plans.map(p=>{ const end=ymAdd(p.start,p.months-1), done=Math.max(0,Math.min(p.months, monthsBetween(p.start, t.slice(0,7))+(t.slice(8)>=String(p.day).padStart(2,"0")?1:0)));
+        return `<button class="fl-row" data-plan="${esc(p.id)}"><span class="fl-ic sav">◎</span><span class="t"><b>${esc(p.title)}</b><span class="small muted">${ord(p.day)} · ${done} of ${p.months} paid · ends ${esc(monthName(end))}</span><span class="fl-prog"><i style="width:${Math.round(done/p.months*100)}%"></i></span></span><b class="amt ${p.amount?"":"muted"}">${p.amount?"−"+esc(fcAmt(p.amount)):"Add amount"}</b></button>`; }).join("")}
+      <button class="fl-row" data-budget="1"><span class="fl-ic neg">−</span><span class="t"><b>Monthly spending</b><span class="small muted">${f.budget.amount?`${esc(fcAmt(Math.max(0,f.budget.amount-monthSpent())))} left this month`:"Rent, food, fuel… taken off the future line"}</span></span><b class="amt ${f.budget.amount?"neg":"muted"}">${f.budget.amount?"−"+esc(fcAmt(f.budget.amount)):"Set budget"}</b></button>
+      <div class="fl-add"><button class="btn ghost sm" id="finAddInc">+ Pay</button><button class="btn ghost sm" id="finAddPlan">+ Committee or saving plan</button></div>
+    </div>
+    ${coins.length?`<div class="sec"><h2>Investments</h2></div><div class="card fin-list">${coins.map(h=>{ const v=holdingValue(h,t), pct=h.invested?Math.round((v/h.invested-1)*1000)/10:null;
+      return `<button class="fl-row" data-hold="${esc(h.id)}"><span class="fl-ic inv">${h.type==="coin"?esc((h.symbol||"?").slice(0,4).toUpperCase()):"◆"}</span><span class="t"><b>${esc(h.name||h.symbol||"Investment")}</b><span class="small muted">${h.type==="coin"&&h.qty?`${+Number(h.qty).toPrecision(6)} ${esc((h.symbol||"").toUpperCase())} · `:""}put in ${esc(fcAmt(h.invested||0))}${h.type!=="coin"?" · value you set":" · live price"}</span></span><span class="amt"><b>${esc(fcAmt(v))}</b>${pct!=null?`<span class="small" style="color:${pct>=0?"var(--ok)":"var(--bad)"};font-weight:800;display:block;text-align:right">${pct>=0?"+":""}${pct}%</span>`:""}</span></button>`; }).join("")}</div>`:""}
+    <div class="sec"><h2>History</h2></div>
+    <div class="card fin-list">${finHistory().slice(0, finOpen.all?200:12).map(x=>`<button class="fl-row" data-${x.t}="${esc(x.id)}"><span class="fl-d"><b>${esc(fmtDay(x.date,{day:"numeric"}))}</b><span>${esc(fmtDay(x.date,{month:"short"}))}</span></span><span class="t"><b>${esc(x.title)}</b><span class="small muted">${esc(x.sub)}</span></span><b class="amt ${x.cls}">${esc(x.amt)}</b></button>`).join("")||`<div class="empty">Nothing logged yet.</div>`}
+      ${finHistory().length>12&&!finOpen.all?`<button class="donebtn" id="finAll">Show all</button>`:""}</div>
+    <div class="small muted" style="text-align:center;margin:14px 0 30px">Crypto prices from CoinGecko${finPx.at?", updated "+esc(new Date(finPx.at).toLocaleTimeString("en-GB",{hour:"numeric",minute:"2-digit"})):""}.</div>`;
+  const rerange=(k,id)=>$(id).querySelectorAll("button").forEach(b=>b.onclick=()=>{ finRange[k]=+b.dataset.v; store.set("finRange",finRange); renderFin(); });
+  rerange("back","frBack"); rerange("ahead","frAhead");
+  $("finEye2").onclick=()=>{ finHide=!finHide; store.set("finHide",finHide); renderFin(); };
+  body.querySelectorAll("[data-fa]").forEach(b=>b.onclick=()=>{ const a=b.dataset.fa; if(a.startsWith("set-")) openFinSet(a.slice(4)); else if(a==="hold") openFinHolding(null); else openFinMove(null,a); });
+  body.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>openFinIncome(f.incomes.find(x=>x.id===b.dataset.inc)));
+  body.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>openFinPlan(f.plans.find(x=>x.id===b.dataset.plan)));
+  body.querySelectorAll("[data-hold]").forEach(b=>b.onclick=()=>openFinHolding(f.holdings.find(x=>x.id===b.dataset.hold)));
+  body.querySelectorAll("[data-move]").forEach(b=>b.onclick=()=>openFinMove(f.moves.find(x=>x.id===b.dataset.move)));
+  body.querySelectorAll("[data-set]").forEach(b=>b.onclick=()=>openFinSet(null, f.sets.find(x=>x.id===b.dataset.set)));
+  body.querySelectorAll("[data-budget]").forEach(b=>b.onclick=openFinBudget);
+  $("finAddInc").onclick=()=>openFinIncome(null); $("finAddPlan").onclick=()=>openFinPlan(null);
+  if ($("finAll")) $("finAll").onclick=()=>{ finOpen.all=1; renderFin(); };
+  if ($("finRefresh")) $("finRefresh").onclick=async()=>{ toast("Getting prices…"); if (await finLoadPrices(true)) renderFin(); else toast("Couldn't get prices right now"); };
+  if (!ch.empty) wireFinChart(ch);
+  if (await finLoadPrices()) { if (tab==="fin") renderFin(); }
+}
+function finLineCard(k, v, btns, extra){
+  const [,n,c]=FIN_LINES.find(x=>x[0]===k);
+  return `<div class="card fin-lc"><div class="fl-h"><i style="background:${c}"></i><span class="t"><span class="small muted">${esc(n)}</span><b>${v!=null?esc(fmAmt(v)):"Not set yet"}</b>${extra?`<span class="small muted">${extra}</span>`:""}</span></div><div class="fl-b">${btns}</div></div>`;
+}
+const ord = n => n+(n%10===1&&n!==11?"st":n%10===2&&n!==12?"nd":n%10===3&&n!==13?"rd":"th");
+const monthsBetween = (a,b) => (+b.slice(0,4)-+a.slice(0,4))*12 + (+b.slice(5,7)-+a.slice(5,7));
+function monthSpent(){ const ym=todayStr().slice(0,7); return finD().moves.filter(m=>m.kind==="out"&&(m.line||"cash")==="cash"&&m.date.slice(0,7)===ym).reduce((s,m)=>s+m.amount,0); }
+function finHistory(){
+  const f=finD(), L=k=>FIN_LINES.find(x=>x[0]===k)?.[1]||k;
+  return [...f.sets.map(s=>({t:"set", id:s.id, date:s.date, title:`${L(s.line)} set`, sub:s.note||"Your count", amt:fcAmt(s.amount), cls:""})),
+    ...f.moves.map(m=>({t:"move", id:m.id, date:m.date, title:m.title||(m.kind==="out"?"Spent":m.kind==="move"?"Into savings":"Money in"), sub:m.kind==="move"?`${L(m.from)} → ${L(m.to)}`:(m.cat||L(m.line||"cash")), amt:(m.kind==="out"?"−":m.kind==="move"?"":"+")+fcAmt(m.amount), cls:m.kind==="out"?"neg":m.kind==="in"?"pos":""})),
+    ...f.holdings.map(h=>({t:"hold", id:h.id, date:h.date, title:"Invested: "+(h.name||h.symbol||"investment"), sub:h.fromCash?"from money in hand":"investment", amt:fcAmt(h.invested||0), cls:""}))]
+    .sort((a,b)=>b.date.localeCompare(a.date));
+}
+function wireFinChart(ch){
+  const box=$("finChart"), tip=$("finTip"), svg=box.querySelector("svg"); if(!svg) return;
+  const show=e=>{ const r=svg.getBoundingClientRect(), vb=svg.viewBox.baseVal, x=(e.clientX-r.left)/r.width*vb.width;
+    const i=Math.max(0,Math.min(ch.days.length-1, Math.round((x-ch.pl)/(vb.width-ch.pl-ch.pr)*(ch.days.length-1)))), d=ch.days[i];
+    const ev=finFlows(d,d).filter(x=>!x.hidden);
+    let line=svg.querySelector(".fg-cross"); if(!line){ line=document.createElementNS("http://www.w3.org/2000/svg","line"); line.setAttribute("class","fg-cross"); svg.appendChild(line); }
+    line.setAttribute("x1",ch.X(i)); line.setAttribute("x2",ch.X(i)); line.setAttribute("y1",4); line.setAttribute("y2",vb.height-20);
+    tip.innerHTML=`<b>${esc(fmtDay(d,{weekday:"short",day:"numeric",month:"short"}))}${d>todayStr()?" · expected":""}</b>${FIN_LINES.map(([k,n,c])=>ch.lines[k][i]!=null?`<span><i style="background:${c}"></i>${esc(n)} <b>${esc(fmAmt(ch.lines[k][i]))}</b></span>`:"").join("")}${ev.map(x=>`<span class="small muted">${x.delta>=0?"+":"−"}${esc(fcAmt(Math.abs(x.delta)))} ${esc(x.title)}</span>`).join("")}`;
+    tip.classList.remove("hidden"); const left=Math.max(0, Math.min(r.width-206, (e.clientX-r.left)-103)); tip.style.left=left+"px"; };
+  svg.addEventListener("pointerdown", show); svg.addEventListener("pointermove", show);
+  svg.addEventListener("pointerleave", ()=>{ tip.classList.add("hidden"); svg.querySelector(".fg-cross")?.remove(); });
+}
+/* ---- editing ---- */
+function amtField(id, v, ph){ return `<input id="${id}" class="field fin-amt" inputmode="decimal" placeholder="${esc(ph||"Amount, e.g. 45000 or 45k")}" value="${v?esc(String(v)):""}">`; }
+function readAmt(id){ const n=parseMoney($(id).value); if (!(n>0)) { toast("Type an amount, like 45000 or 45k"); return null; } return n; }
+function delBtn(){ return `<button class="btn danger" id="fDel">Delete</button>`; }
+function armDel(fn){ const b=$("fDel"); if(!b) return; b.onclick=async()=>{ if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Tap again to delete"; return; } await fn(); }; }
+async function finDone(msg){ if (!await finSave()) return; closeSheet(); toast(msg); if (tab==="fin") renderFin(); else render(); }
+function openFinSet(line, s){
+  const isNew=!s; line=s?s.line:line; const n=FIN_LINES.find(x=>x[0]===line)[1];
+  sheet(`<h2>${esc(n)}</h2><p class="small muted" style="margin:0">${line==="cash"?"How much money do you have right now, cash and bank together?":"How much do you have saved, apart from the committee?"} The line starts again from this number.</p>
+    ${amtField("fAmt", s?.amount)}<label class="fl"><span class="label">On</span><input id="fDate" class="field" type="date" value="${esc(s?.date||todayStr())}"></label>
+    <input id="fNote" class="field" placeholder="Note (optional)" maxlength="80" value="${esc(s?.note||"")}">
+    <div class="actions"><button class="btn" id="fGo">Save</button>${isNew?`<button class="btn ghost" data-close>Cancel</button>`:delBtn()}</div>`);
+  $("fAmt").focus();
+  $("fGo").onclick=async()=>{ const a=readAmt("fAmt"); if(a==null) return; const f=finD(), row={id:s?.id||finId("s"), line, amount:a, date:$("fDate").value||todayStr(), note:$("fNote").value.trim()||null, at:new Date().toISOString()};
+    f.sets=f.sets.filter(x=>x.id!==row.id && !(x.line===line && x.date===row.date)).concat(row); await finDone("Saved"); };
+  armDel(async()=>{ finD().sets=finD().sets.filter(x=>x.id!==s.id); await finDone("Deleted"); });
+}
+function openFinMove(m, kind){
+  const isNew=!m; kind=m?m.kind:kind;
+  const head={in:"Money in", out:"Spent", move:"Put in savings"}[kind];
+  sheet(`<h2>${head}</h2>${amtField("fAmt", m?.amount)}
+    ${kind==="out"?`<div class="vchoose" id="fCat">${FIN_CATS.map(c=>`<button type="button" class="chipb ${(m?.cat||"")===c?"on":""}" data-v="${c}">${c}</button>`).join("")}</div>`:""}
+    <input id="fTitle" class="field" placeholder="${kind==="out"?"What for (optional)":kind==="in"?"From where, e.g. bonus, freelance":"e.g. spare money"}" maxlength="80" value="${esc(m?.title||"")}">
+    ${kind==="move"?`<div class="fl"><span class="label">From → to</span><div class="seg3" id="fDir"><button type="button" data-v="cash>save" class="${!m||m.from==="cash"?"on":""}">Hand → Savings</button><button type="button" data-v="save>cash" class="${m&&m.from==="save"?"on":""}">Savings → Hand</button></div></div>`:""}
+    ${kind!=="move"?`<div class="fl"><span class="label">Line</span><div class="seg3" id="fLine"><button type="button" data-v="cash" class="${(m?.line||"cash")==="cash"?"on":""}">Money in hand</button><button type="button" data-v="save" class="${m?.line==="save"?"on":""}">Savings</button></div></div>`:""}
+    <label class="fl"><span class="label">On</span><input id="fDate" class="field" type="date" value="${esc(m?.date||todayStr())}"></label>
+    <div class="actions"><button class="btn" id="fGo">Save</button>${isNew?`<button class="btn ghost" data-close>Cancel</button>`:delBtn()}</div>`);
+  const seg=id=>$(id)?.querySelectorAll("button").forEach(b=>b.onclick=()=>$(id).querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)));
+  seg("fCat"); seg("fDir"); seg("fLine"); $("fAmt").focus();
+  $("fGo").onclick=async()=>{ const a=readAmt("fAmt"); if(a==null) return; const f=finD();
+    const row={id:m?.id||finId("m"), kind, amount:a, date:$("fDate").value||todayStr(), title:$("fTitle").value.trim()||null};
+    if (kind==="move") { const [fr,to]=($("fDir").querySelector(".on")?.dataset.v||"cash>save").split(">"); row.from=fr; row.to=to; }
+    else row.line=$("fLine").querySelector(".on")?.dataset.v||"cash";
+    if (kind==="out") row.cat=$("fCat").querySelector(".on")?.dataset.v||null;
+    f.moves=f.moves.filter(x=>x.id!==row.id).concat(row); await finDone(isNew?"Added":"Saved"); };
+  armDel(async()=>{ finD().moves=finD().moves.filter(x=>x.id!==m.id); await finDone("Deleted"); });
+}
+function openFinIncome(i){
+  const isNew=!i;
+  sheet(`<h2>${isNew?"New pay":"Pay"}</h2><input id="fTitle" class="field" placeholder="Name, e.g. Superior pay" maxlength="60" value="${esc(i?.title||"")}">
+    ${amtField("fAmt", i?.amount||"", "Amount each month")}
+    <div class="grid2"><label class="fl"><span class="label">Comes on day</span><input id="fDay" class="field" type="number" min="1" max="31" value="${esc(i?.day||1)}"></label>
+      <label class="fl"><span class="label">Or as late as (optional)</span><input id="fDayTo" class="field" type="number" min="1" max="31" value="${esc(i?.dayTo||"")}"></label></div>
+    <div class="grid2"><label class="fl"><span class="label">Starting</span><input id="fFrom" class="field" type="date" value="${esc(i?.from||"")}"></label>
+      <label class="fl"><span class="label">Ends (optional)</span><input id="fUntil" class="field" type="date" value="${esc(i?.until||"")}"></label></div>
+    <div class="small muted">The line uses the first day. It's added to money in hand on that day each month.</div>
+    <div class="actions"><button class="btn" id="fGo">Save</button>${isNew?`<button class="btn ghost" data-close>Cancel</button>`:delBtn()}</div>`);
+  $("fGo").onclick=async()=>{ const title=$("fTitle").value.trim(); if(!title) return toast("Give it a name"); const a=parseMoney($("fAmt").value)||0;
+    const day=Math.max(1,Math.min(31,+$("fDay").value||1)), dt=+$("fDayTo").value||null; const f=finD();
+    const row={id:i?.id||finId("inc"), title, amount:a, day, dayTo:dt&&dt>day?Math.min(31,dt):null, from:$("fFrom").value||null, until:$("fUntil").value||null};
+    f.incomes=f.incomes.some(x=>x.id===row.id)?f.incomes.map(x=>x.id===row.id?row:x):f.incomes.concat(row); await finDone("Saved"); };
+  armDel(async()=>{ finD().incomes=finD().incomes.filter(x=>x.id!==i.id); await finDone("Deleted"); });
+}
+function openFinPlan(p){
+  const isNew=!p;
+  sheet(`<h2>${isNew?"Committee or saving plan":esc(p.title)}</h2><input id="fTitle" class="field" placeholder="Name, e.g. Committee" maxlength="60" value="${esc(p?.title||"Committee")}">
+    ${amtField("fAmt", p?.amount||"", "You pay each month")}
+    <div class="grid2"><label class="fl"><span class="label">On day</span><input id="fDay" class="field" type="number" min="1" max="31" value="${esc(p?.day||10)}"></label>
+      <label class="fl"><span class="label">For months</span><input id="fMonths" class="field" type="number" min="1" max="60" value="${esc(p?.months||12)}"></label></div>
+    <label class="fl"><span class="label">First month</span><input id="fStart" class="field" type="month" value="${esc(p?.start||todayStr().slice(0,7))}"></label>
+    <div class="grid2"><label class="fl"><span class="label">Your turn (payout) date</span><input id="fPay" class="field" type="date" value="${esc(p?.payout||"")}"></label>
+      <label class="fl"><span class="label">Payout amount</span>${amtField("fPayAmt", p?.payoutAmount||"", "e.g. 2.4 lakh")}</label></div>
+    <div class="small muted">Each month it moves from money in hand to savings. On your turn the payout comes into money in hand.</div>
+    <div class="actions"><button class="btn" id="fGo">Save</button>${isNew?`<button class="btn ghost" data-close>Cancel</button>`:delBtn()}</div>`);
+  $("fGo").onclick=async()=>{ const title=$("fTitle").value.trim()||"Committee"; const f=finD();
+    const row={id:p?.id||finId("plan"), title, amount:parseMoney($("fAmt").value)||0, day:Math.max(1,Math.min(31,+$("fDay").value||10)), months:Math.max(1,Math.min(60,+$("fMonths").value||12)),
+      start:$("fStart").value||todayStr().slice(0,7), payout:$("fPay").value||null, payoutAmount:parseMoney($("fPayAmt").value)||0};
+    f.plans=f.plans.some(x=>x.id===row.id)?f.plans.map(x=>x.id===row.id?row:x):f.plans.concat(row); await finDone("Saved"); };
+  armDel(async()=>{ finD().plans=finD().plans.filter(x=>x.id!==p.id); await finDone("Deleted"); });
+}
+function openFinBudget(){
+  const f=finD();
+  sheet(`<h2>Monthly spending</h2><p class="small muted" style="margin:0">Roughly what goes out each month (rent, food, fuel, family). It's taken off the future part of the line day by day. What you log as “Spent” this month counts towards it.</p>
+    ${amtField("fAmt", f.budget.amount||"", "e.g. 40k")}
+    <div class="actions"><button class="btn" id="fGo">Save</button><button class="btn ghost" id="fOff">No budget</button></div>`);
+  $("fGo").onclick=async()=>{ const a=readAmt("fAmt"); if(a==null) return; f.budget={amount:a}; await finDone("Saved"); };
+  $("fOff").onclick=async()=>{ f.budget={amount:0}; await finDone("Budget off"); };
+}
+function openFinHolding(h){
+  const isNew=!h; let type=h?.type||"coin", coin=h?.coin?{id:h.coin,name:h.name,symbol:h.symbol}:null;
+  sheet(`<h2>${isNew?"Add investment":esc(h.name||"Investment")}</h2>
+    <div class="seg3" id="fType"><button type="button" data-v="coin" class="${type==="coin"?"on":""}">Crypto (live price)</button><button type="button" data-v="manual" class="${type!=="coin"?"on":""}">Other</button></div>
+    <div id="fCoinBox"><input id="fCoinQ" class="field" placeholder="Search coin, e.g. bitcoin, SOL" value="${esc(coin?coin.name+" ("+String(coin.symbol).toUpperCase()+")":"")}" autocomplete="off"><div class="vchoose" id="fCoins"></div>
+      <input id="fQty" class="field" inputmode="decimal" placeholder="How many coins (leave empty to work it out)" value="${esc(h?.qty??"")}"></div>
+    <div id="fManBox"><input id="fName" class="field" placeholder="Name, e.g. KuCoin futures, gold, plot" maxlength="60" value="${esc(type!=="coin"?h?.name||"":"")}">
+      ${amtField("fVal", h?.value||"", "What it's worth now")}</div>
+    ${amtField("fAmt", h?.invested||"", "How much you put in, e.g. 50k")}
+    <label class="fl"><span class="label">When</span><input id="fDate" class="field" type="date" value="${esc(h?.date||todayStr())}"></label>
+    <label class="vitem" style="border:0;padding:0"><input type="checkbox" id="fCash" ${h?.fromCash?"checked":""}><span class="t"><b>Take it from money in hand</b><span class="small muted">Tick for new money you put in now</span></span></label>
+    <div class="actions"><button class="btn" id="fGo">Save</button>${isNew?`<button class="btn ghost" data-close>Cancel</button>`:delBtn()}</div>`);
+  const sync=()=>{ $("fCoinBox").classList.toggle("hidden",type!=="coin"); $("fManBox").classList.toggle("hidden",type==="coin"); };
+  $("fType").querySelectorAll("button").forEach(b=>b.onclick=()=>{ type=b.dataset.v; $("fType").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); sync(); }); sync();
+  let qt=0; $("fCoinQ").oninput=()=>{ clearTimeout(qt); coin=null; const q=$("fCoinQ").value.trim(); if(q.length<2){ $("fCoins").innerHTML=""; return; }
+    qt=setTimeout(async()=>{ const {data}=await api.finSearch(q); const cs=data?.coins||[];
+      $("fCoins").innerHTML=cs.length?cs.slice(0,6).map(c=>`<button type="button" class="chipb" data-id="${esc(c.id)}" data-n="${esc(c.name)}" data-s="${esc(c.symbol)}">${esc(c.name)} · ${esc(String(c.symbol).toUpperCase())}</button>`).join(""):`<span class="small muted">No coin found</span>`;
+      $("fCoins").querySelectorAll("button").forEach(b=>b.onclick=()=>{ coin={id:b.dataset.id,name:b.dataset.n,symbol:b.dataset.s}; $("fCoinQ").value=`${coin.name} (${coin.symbol.toUpperCase()})`; $("fCoins").innerHTML=""; }); }, 350); };
+  $("fGo").onclick=async()=>{ const f=finD(), inv=parseMoney($("fAmt").value)||0, date=$("fDate").value||todayStr();
+    const row={id:h?.id||finId("h"), type, date, invested:inv, fromCash:$("fCash").checked};
+    if (type==="coin") {
+      if (!coin) return toast("Pick the coin from the list");
+      Object.assign(row,{coin:coin.id, name:coin.name, symbol:coin.symbol});
+      let qty=parseFloat(String($("fQty").value).replace(/,/g,""));
+      if (!(qty>0)) { if (!(inv>0)) return toast("Add how many coins, or how much you put in");
+        $("fGo").disabled=true; const {data}=await api.finPrices([coin.id],365); $("fGo").disabled=false;
+        if (data && !data.error) { finPx={now:{...finPx.now,...data.now}, hist:{...finPx.hist,...data.hist}, at:Date.now()}; store.set("finPx",finPx); }
+        const p=priceOn(coin.id,date); if (!p) return toast("Couldn't get the price for that date. Type the number of coins.");
+        qty=inv/p; }
+      row.qty=qty;
+    } else {
+      const name=$("fName").value.trim(); if(!name) return toast("Give it a name");
+      const val=parseMoney($("fVal").value); row.name=name; row.value=val>0?val:inv; row.valueDate=todayStr();
+      if (h && h.valueDate && row.value===h.value) row.valueDate=h.valueDate;
+    }
+    f.holdings=f.holdings.some(x=>x.id===row.id)?f.holdings.map(x=>x.id===row.id?row:x):f.holdings.concat(row);
+    await finDone(isNew?"Investment added":"Saved"); finLoadPrices(true).then(ok=>{ if(ok&&tab==="fin") renderFin(); }); };
+  armDel(async()=>{ finD().holdings=finD().holdings.filter(x=>x.id!==h.id); await finDone("Deleted"); });
 }
 
 /* ---------- TEAM: who is making what, with a private link per person ---------- */
