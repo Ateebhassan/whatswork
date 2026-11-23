@@ -357,6 +357,26 @@ code.field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 1
 .vitem{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px;text-align:left;width:100%}
 .vitem .t{flex:1;min-width:0}.vitem .t b{display:block}
 .vitem input{width:20px;height:20px;accent-color:var(--brand)}
+.fc-all{display:grid;gap:1px;padding:8px 10px;border-radius:12px;background:var(--sunk)}.fc-all b{font-size:17px;font-variant-numeric:tabular-nums}
+.fin-late{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--warn-ink);background:color-mix(in srgb,var(--warn) 16%,transparent);border-radius:12px;padding:8px 8px 8px 12px;margin:0 0 10px}
+.fin-late .btn{margin-left:auto;flex:0 0 auto}
+.fincard .fin-late{margin:0}
+.fin-stops{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 12px}
+.fincard .fin-stops{margin:0}
+.fs{display:grid;gap:1px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:9px 10px;min-width:0}
+.fincard .fs{background:var(--sunk);border-color:transparent}.fincard .fs-v{font-size:16.5px}
+.fs-d{font-size:12px;font-weight:700;color:var(--muted)}.fs-d b{color:var(--ink);font-size:15px}
+.fs-w{font-size:11.5px;font-weight:600;color:var(--muted)}
+.fs-v{font-family:var(--display);font-size:19px;white-space:nowrap;font-weight:800;letter-spacing:-.01em;color:var(--fin-cash);font-variant-numeric:tabular-nums}.fs-v.neg{color:var(--bad)}
+.fs-l{font-size:11px;font-weight:600;color:var(--muted);line-height:1.25}
+.fg-num{font-size:11px;font-weight:800;font-family:var(--body);paint-order:stroke;stroke:var(--panel);stroke-width:3px}
+.fg-num.big{font-size:12.5px}
+.fg-ax.now{fill:var(--ink);font-weight:800}
+.xhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.xhead b{font-family:var(--display);font-size:24px}
+.xtrades{display:grid;gap:8px}
+.xtr{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:9px 10px}
+.xtr .t{display:grid}.xtr-b{grid-column:1/-1;display:flex;gap:6px;justify-content:flex-end}
+.xadd summary{font-weight:800;color:var(--brand);padding:4px 0;cursor:pointer}.xadd[open]{display:grid;gap:8px}
 .fincard{cursor:pointer;display:grid;gap:8px}
 .fc-top{display:flex;align-items:flex-start;gap:10px}.fc-top .t{flex:1}.fc-top .t>span{display:block}
 .fc-net{display:block;font-family:var(--display);font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
@@ -1828,7 +1848,7 @@ function voiceOps(data){
     if(!it) return out.push({miss:`No payment reminder called “${x}”`});
     const key=it.id+"@"+t.slice(0,7);
     if (life.money.paid[key]) return out.push({miss:`${it.title} is already paid for ${monthName(t.slice(0,7))}`});
-    out.push({group:"Money", label:`💰 ${it.title}`, sub:`Mark paid for ${monthName(t.slice(0,7))}`, on:true, run:async ops=>{ ops.push({t:"money", key, before:life.money.paid[key]||null}); life.money.paid[key]=t; if(!await saveLife("money")) throw new Error("Couldn't save"); }, done:`${it.title} paid`}); });
+    out.push({group:"Money", label:`💰 ${it.title}`, sub:`Mark paid for ${monthName(t.slice(0,7))}`, on:true, run:async ops=>{ ops.push({t:"money", key, before:life.money.paid[key]||null}); life.money.paid[key]=new Date().toISOString(); if(!await saveLife("money")) throw new Error("Couldn't save"); }, done:`${it.title} paid`}); });
   (data.done||[]).forEach(x=>{ const d=isDate(x.date)?x.date:t, w=String(x.what||"").trim(); if(!w) return;
     const o=bestOcc(w,d), cham=/chamber|lawyer|vakeel|wakeel/i.test(w) || (o && /chamber/i.test(o.cal.name));
     if (o) out.push({group:"Done", label:`✓ ${o.ev.title}`, sub:`Already in your calendar ${relDay(d).toLowerCase()}`, on:false, info:true});
@@ -2545,16 +2565,16 @@ async function openAlarms(){
 /* ---------- FINANCE TIMELINE: money in hand, savings and investments as three lines over time ---------- */
 const FIN_LINES = [["cash","Money in hand","var(--fin-cash)"],["save","Savings","var(--fin-save)"],["inv","Investments","var(--fin-inv)"]];
 const FIN_CATS = ["Food","Fuel","Bills","Family","Shopping","Fun","Other"];
-let finPx = store.get("finPx", {now:{}, hist:{}, at:0}), finRange = store.get("finRange", {back:3, ahead:6}), finHide = store.get("finHide", false), finOpen = {};
+let finPx = store.get("finPx", {now:{}, hist:{}, at:0}), finRange = store.get("finRange2", {back:0, ahead:1}), finHide = store.get("finHide", false), finOpen = {};
+const finDefaultsEmpty = () => ({v:1, sets:[], moves:[], budget:{amount:0}, holdings:[], incomes:[], plans:[]});
 function finDefaults(){
   const cm=(life.money.items||[]).find(i=>/committee/i.test(i.title));
-  return {v:1, sets:[], moves:[], budget:{amount:0}, holdings:[],
+  return {...finDefaultsEmpty(),
     incomes:[{id:"inc-sup",title:"Superior pay",amount:0,day:10,dayTo:null,from:null,until:null},
              {id:"inc-ailc",title:"AILC pay",amount:0,day:10,dayTo:null,from:null,until:null},
              {id:"inc-casa",title:"Casa pay",amount:0,day:7,dayTo:8,from:null,until:null}],
-    plans: cm ? [{id:"plan-committee",title:"Committee",amount:Number(cm.amount)||0,day:Number(cm.day)||10,start:"2026-10",months:12,payout:null,payoutAmount:0}] : []};
+    plans: cm ? [{id:"plan-committee",link:cm.id,title:"Committee",amount:Number(cm.amount)||0,day:Number(cm.day)||10,start:todayStr().slice(0,7),months:12,payout:null,payoutAmount:0}] : []};
 }
-const finDefaultsEmpty = () => ({v:1, sets:[], moves:[], budget:{amount:0}, holdings:[], incomes:[], plans:[]});
 const finD = () => life.finance || (life.finance = finDefaults());
 async function finSave(){ return saveLife("finance"); }
 const finId = p => p+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
@@ -2568,41 +2588,59 @@ function parseMoney(s){
 }
 const fmAmt = n => finHide ? "Rs •••••" : "Rs "+Math.round(n).toLocaleString("en-PK");
 function fcAmt(n){ if (finHide) return "•••"; const a=Math.abs(n), sg=n<0?"−":"";
-  return sg+(a>=1e7?(a/1e7).toFixed(a>=1e8?0:1).replace(/\.0$/,"")+" cr":a>=1e5?(a/1e5).toFixed(a>=1e6?0:1).replace(/\.0$/,"")+" lakh":a>=1e3?Math.round(a/1e3)+"k":String(Math.round(a))); }
+  return sg+(a>=1e7?(a/1e7).toFixed(a>=1e8?0:1).replace(/\.0$/,"")+" cr":a>=1e5?(a/1e5).toFixed(2).replace(/\.?0+$/,"")+" lakh":a>=1e3?(a/1e3).toFixed(a>=1e4?0:1).replace(/\.0$/,"")+"k":String(Math.round(a))); }
+const fmUsd = n => finHide ? "$•••" : "$"+(Math.round(n*100)/100).toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2});
 const dim = (y,m) => new Date(Date.UTC(y,m,0)).getUTCDate();
 const ymAdd = (ym,n) => { const y=+ym.slice(0,4), m=+ym.slice(5,7)-1+n; return `${y+Math.floor(m/12)}-${String((m%12+12)%12+1).padStart(2,"0")}`; };
 const dayIn = (ym,day) => `${ym}-${String(Math.min(day, dim(+ym.slice(0,4), +ym.slice(5,7)))).padStart(2,"0")}`;
-const monthsBack = n => W.dstr(W.dnum(ymAdd(todayStr().slice(0,7),-n)+todayStr().slice(7)));
+const monthsBack = n => n<=0 ? todayStr() : W.dstr(W.dnum(ymAdd(todayStr().slice(0,7),-n)+"-"+String(Math.min(+todayStr().slice(8,10),28)).padStart(2,"0")));
+function monthsAheadEnd(n){ const t=todayStr(); return n<=0 ? t : W.dstr(W.dnum(ymAdd(t.slice(0,7),n)+"-"+String(Math.min(+t.slice(8,10),28)).padStart(2,"0"))); }
+const ord = n => n+(n%10===1&&n!==11?"st":n%10===2&&n!==12?"nd":n%10===3&&n!==13?"rd":"th");
+const monthsBetween = (a,b) => (+b.slice(0,4)-+a.slice(0,4))*12 + (+b.slice(5,7)-+a.slice(5,7));
+/* a committee linked to its payment reminder: the reminder's "paid" is what counts */
+function planMonths(p){
+  const t=todayStr(), out=[];
+  for (let i=0;i<(p.months||1);i++){ const ym=ymAdd(p.start,i), due=dayIn(ym,p.day), key=(p.link||p.id)+"@"+ym;
+    const pv=p.link ? life.money.paid[key] : (due<=t ? due : null);
+    let paidOn=null, at=null;
+    if (pv) { if (typeof pv==="string" && /^\d{4}-\d{2}-\d{2}T/.test(pv)) { const x=new Date(pv); paidOn=`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`; at=pv; }
+      else paidOn = typeof pv==="string" && /^\d{4}-\d{2}-\d{2}$/.test(pv) ? pv : due; }
+    out.push({ym, due, key, paidOn, at, late: !paidOn && due<=t}); }
+  return out;
+}
 /* every planned or logged change, as {date, line, delta, title, kind} */
 function finFlows(from, to){
-  const f=finD(), out=[], t=todayStr();
-  for (let ym=from.slice(0,7); ym<=to.slice(0,7); ym=ymAdd(ym,1)) {
+  const f=finD(), out=[], t=todayStr(), tm=W.addDays(t,1);
+  for (let ym=from.slice(0,7); ym<=to.slice(0,7); ym=ymAdd(ym,1))
     f.incomes.forEach(i=>{ if(!(i.amount>0)) return; const d=dayIn(ym,i.day);
       if ((i.from && d<i.from) || (i.until && d>i.until) || d<from || d>to) return;
       out.push({date:d, line:"cash", delta:i.amount, title:i.title, kind:"pay", ref:i.id, dayTo:i.dayTo}); });
-    f.plans.forEach(p=>{ if(!(p.amount>0)) return; const end=ymAdd(p.start,(p.months||1)-1); if (ym<p.start || ym>end) return; const d=dayIn(ym,p.day);
+  f.plans.forEach(p=>{ if(!(p.amount>0)) return;
+    planMonths(p).forEach(m=>{
+      const d = m.paidOn || (m.late ? tm : m.due);   /* not paid yet but due → expected tomorrow */
       if (d<from || d>to) return;
-      const after = p.payout && p.payoutAmount>0 && d>p.payout;   /* after your turn, the payments just pay it back */
-      out.push({date:d, line:"cash", delta:-p.amount, title:p.title, kind:after?"planback":"plan", ref:p.id});
-      if (!after) out.push({date:d, line:"save", delta:p.amount, title:p.title, kind:"plan", ref:p.id, hidden:true}); });
-  }
-  f.plans.forEach(p=>{ if(!(p.payout && p.payoutAmount>0) || p.payout<from || p.payout>to) return;
-    let paid=0; for (let ym=p.start; ym<=ymAdd(p.start,(p.months||1)-1); ym=ymAdd(ym,1)) if (dayIn(ym,p.day)<=p.payout) paid+=p.amount||0;
-    out.push({date:p.payout, line:"cash", delta:p.payoutAmount, title:p.title+" payout", kind:"payout", ref:p.id},{date:p.payout, line:"save", delta:-Math.min(paid,p.payoutAmount), title:p.title+" payout", kind:"payout", ref:p.id, hidden:true}); });
+      const after = p.payout && p.payoutAmount>0 && m.due>p.payout;   /* after your turn, the payments just pay it back */
+      out.push({date:d, line:"cash", delta:-p.amount, title:p.title+(m.late?` (${monthName(m.ym)}, due)`:""), kind:after?"planback":"plan", ref:p.id, late:m.late, at:m.at});
+      if (!after) out.push({date:d, line:"save", delta:p.amount, title:p.title, kind:"plan", ref:p.id, hidden:true, at:m.at}); });
+    if (p.payout && p.payoutAmount>0 && p.payout>=from && p.payout<=to) {
+      const paid=planMonths(p).filter(m=>m.due<=p.payout).length*p.amount;
+      out.push({date:p.payout, line:"cash", delta:p.payoutAmount, title:p.title+" payout", kind:"payout", ref:p.id},{date:p.payout, line:"save", delta:-Math.min(paid,p.payoutAmount), title:p.title+" payout", kind:"payout", ref:p.id, hidden:true}); } });
   f.moves.forEach(m=>{ if(m.date<from||m.date>to) return;
-    if (m.kind==="move") out.push({date:m.date, line:m.from, delta:-m.amount, title:m.title||"Moved", kind:"move", ref:m.id},{date:m.date, line:m.to, delta:m.amount, title:m.title||"Moved", kind:"move", ref:m.id, hidden:true});
-    else out.push({date:m.date, line:m.line||"cash", delta:m.kind==="out"?-m.amount:m.amount, title:m.title||(m.kind==="out"?"Spent":"Money in"), kind:m.kind, cat:m.cat, ref:m.id}); });
-  f.holdings.forEach(h=>{ if(h.fromCash && h.invested>0 && h.date>=from && h.date<=to) out.push({date:h.date, line:"cash", delta:-h.invested, title:"Invested: "+(h.name||h.symbol||"investment"), kind:"invest", ref:h.id}); });
+    if (m.kind==="move") out.push({date:m.date, line:m.from, delta:-m.amount, title:m.title||"Moved", kind:"move", ref:m.id, at:m.at},{date:m.date, line:m.to, delta:m.amount, title:m.title||"Moved", kind:"move", ref:m.id, hidden:true, at:m.at});
+    else out.push({date:m.date, line:m.line||"cash", delta:m.kind==="out"?-m.amount:m.amount, title:m.title||(m.kind==="out"?"Spent":"Money in"), kind:m.kind, cat:m.cat, ref:m.id, at:m.at}); });
+  f.holdings.forEach(h=>{ const amt = h.type==="exchange" ? Number(h.deposit||0)*usdRate() : Number(h.invested||0);
+    if(h.fromCash && amt>0 && h.date>=from && h.date<=to) out.push({date:h.date, line:"cash", delta:-amt, title:"Invested: "+(h.name||h.symbol||"investment"), kind:"invest", ref:h.id}); });
   /* the monthly budget, spread over the days still ahead (this month: only what's left after what you logged) */
   const b=Number(f.budget?.amount)||0;
   if (b>0) for (let d=W.addDays(t,1); d<=to; d=W.addDays(d,1)) { if (d<from) continue;
-    const ym=d.slice(0,7), y=+ym.slice(0,4), mo=+ym.slice(5,7), n=dim(y,mo);
+    const ym=d.slice(0,7), n=dim(+ym.slice(0,4), +ym.slice(5,7));
     let per=b/n;
-    if (ym===t.slice(0,7)) { const spent=f.moves.filter(m=>m.kind==="out" && (m.line||"cash")==="cash" && m.date.slice(0,7)===ym && m.date<=t).reduce((s,m)=>s+m.amount,0);
-      const left=Math.max(0,b-spent), daysLeft=n-(+t.slice(8,10)); per=daysLeft>0?left/daysLeft:0; }
+    if (ym===t.slice(0,7)) { const left=Math.max(0,b-monthSpent()), daysLeft=n-(+t.slice(8,10)); per=daysLeft>0?left/daysLeft:0; }
     out.push({date:d, line:"cash", delta:-per, title:"Budget", kind:"budget", hidden:true}); }
   return out;
 }
+/* ---- prices: CoinGecko through the worker, in rupees and dollars ---- */
+function usdRate(){ for (const v of Object.values(finPx.now||{})) if (v?.pkr>0 && v?.usd>0) return v.pkr/v.usd; return store.get("finRate", 280); }
 function priceOn(id, d){
   const h=finPx.hist[id]; const now=finPx.now[id]?.pkr;
   if (d>=todayStr() || !h?.length) return now ?? (h?.length?h[h.length-1][1]:null);
@@ -2611,147 +2649,180 @@ function priceOn(id, d){
   while (lo<hi){ const mid=(lo+hi+1)>>1; if (h[mid][0]<=ms) lo=mid; else hi=mid-1; }
   return h[lo][1];
 }
-const isLive = h => h.type==="coin" || h.type==="futures";
-/* rupees per dollar, from the same live prices (CoinGecko gives both) */
-function usdRate(){ for (const v of Object.values(finPx.now||{})) if (v?.pkr>0 && v?.usd>0) return v.pkr/v.usd; return store.get("finRate", 280); }
-/* what a futures position is worth: your margin plus the profit or loss since entry (in dollars, then rupees) */
-/* the margin you put in at entry: quantity × entry ÷ leverage (how KuCoin works out its %) */
+const usdOn = (id,d) => { const p=priceOn(id,d); return p==null ? null : p/usdRate(); };
+const isLive = h => h.type==="coin" || h.type==="futures" || h.type==="exchange";
+const isUsd = h => h.type==="exchange" || h.type==="futures";
+/* a trade's profit in dollars: (price now − entry) × quantity, the other way round for a short */
+function tradePnl(tr, d){ const p=usdOn(tr.coin,d); return p==null ? 0 : (tr.side==="short"?-1:1)*(p-Number(tr.entry))*Number(tr.qty); }
 const futMargin = h => Number(h.lev)>0 ? Number(h.qty)*Number(h.entry)/Number(h.lev) : Number(h.margin||0);
-function futuresUsd(h, d){
-  const pk=priceOn(h.coin,d); if (pk==null) return null;
-  const p=pk/usdRate(), pnl=(h.side==="short"?-1:1)*(p-Number(h.entry))*Number(h.qty);
-  return {pnl, eq:Math.max(0, futMargin(h)+pnl), price:p};
+/* value of one investment in dollars (exchange accounts and futures) — null for rupee ones */
+function holdingUsd(h, d){
+  if (d<h.date) return 0;
+  if (h.type==="exchange") return Math.max(0, Number(h.deposit||0) + (h.trades||[]).reduce((s,tr)=>s+tradePnl(tr,d),0));
+  if (h.type==="futures") return Math.max(0, futMargin(h)+tradePnl(h,d));
+  return null;
 }
-const putIn = h => h.type==="futures" ? futMargin(h)*usdRate() : Number(h.invested||0);
+const putInUsd = h => h.type==="exchange" ? Number(h.deposit||0) : h.type==="futures" ? futMargin(h) : 0;
+const putIn = h => isUsd(h) ? putInUsd(h)*usdRate() : Number(h.invested||0);
 function holdingValue(h, d){
   if (d<h.date) return 0;
-  if (h.type==="futures") { const f=futuresUsd(h,d); return f ? f.eq*usdRate() : putIn(h); }
+  if (isUsd(h)) return holdingUsd(h,d)*usdRate();
   if (h.type==="coin") { const p=priceOn(h.coin,d); return p!=null && h.qty>0 ? h.qty*p : (h.invested||0); }
   return h.valueDate && d>=h.valueDate ? (Number(h.value)||0) : (Number(h.invested)||0);
 }
-/* the three lines, one value per day (null where there's nothing to show yet) */
-function finSeries(from, to){
-  const f=finD(), days=[]; for (let d=from; d<=to; d=W.addDays(d,1)) days.push(d);
-  const firstSet = l => f.sets.filter(s=>s.line===l).map(s=>s.date).sort()[0];
-  const startAll = [from, ...f.sets.map(s=>s.date), ...f.plans.map(p=>dayIn(p.start,p.day))].sort()[0];
-  const flows=finFlows(startAll, to), out={};
-  ["cash","save"].forEach(l=>{
-    const sets=f.sets.filter(s=>s.line===l).sort((a,b)=>a.date.localeCompare(b.date)||a.at?.localeCompare?.(b.at||"")||0);
-    let base0 = sets[0]?.date;
-    if (l==="save" && !base0) { const fp=flows.filter(x=>x.line==="save").map(x=>x.date).sort()[0]; if (fp) base0=W.addDays(fp,-1); }
-    const fl=flows.filter(x=>x.line===l).sort((a,b)=>a.date.localeCompare(b.date));
-    out[l]=days.map(d=>{
-      if (!base0 || d<base0) return null;
-      const s=sets.filter(x=>x.date<=d).pop(); const bd=s?s.date:base0, bv=s?s.amount:0;
-      let v=bv; for (const x of fl) { if (x.date>d) break; if (x.date>bd) v+=x.delta; } return v; });
-  });
-  out.inv = f.holdings.length ? days.map(d=>{ const any=f.holdings.some(h=>h.date<=d); return any ? f.holdings.reduce((s,h)=>s+holdingValue(h,d),0) : null; }) : days.map(()=>null);
-  return {days, lines:out, flows};
-}
 async function finLoadPrices(force){
-  const ids=[...new Set(finD().holdings.filter(h=>isLive(h)&&h.coin).map(h=>h.coin))];
+  const ids=[...new Set(finD().holdings.flatMap(h=>h.type==="exchange"?(h.trades||[]).map(t=>t.coin):isLive(h)?[h.coin]:[]).filter(Boolean))];
   if (!ids.length) return false;
   const fresh = Date.now()-(finPx.at||0) < 5*60000 && ids.every(i=>finPx.now[i]);
   if (fresh && !force) return false;
   try { const {data,error}=await api.finPrices(ids, 365); if (error||!data||data.error) return false;
     finPx={now:{...finPx.now,...data.now}, hist:{...finPx.hist,...data.hist}, at:Date.now()}; store.set("finPx", finPx); store.set("finRate", usdRate()); return true; } catch { return false; }
 }
-/* ---- the chart ---- */
+/* the three lines, one value per day (null where there's nothing to show yet) */
+function finSeries(from, to){
+  const f=finD(), days=[]; for (let d=from; d<=to; d=W.addDays(d,1)) days.push(d);
+  const startAll = [from, ...f.sets.map(s=>s.date), ...f.plans.map(p=>dayIn(p.start,p.day))].sort()[0];
+  const flows=finFlows(startAll, to), out={};
+  ["cash","save"].forEach(l=>{
+    const sets=f.sets.filter(s=>s.line===l).sort((a,b)=>a.date.localeCompare(b.date)||String(a.at||"").localeCompare(String(b.at||"")));
+    let base0 = sets[0]?.date;
+    if (l==="save" && !base0) { const fp=flows.filter(x=>x.line==="save").map(x=>x.date).sort()[0]; if (fp) base0=W.addDays(fp,-1); }
+    const fl=flows.filter(x=>x.line===l).sort((a,b)=>a.date.localeCompare(b.date));
+    out[l]=days.map(d=>{
+      if (!base0 || d<base0) return null;
+      const s=sets.filter(x=>x.date<=d).pop(); const bd=s?s.date:base0, bv=s?s.amount:0;
+      /* a change made later on the same day as your count still counts */
+      let v=bv; for (const x of fl) { if (x.date>d) break; if (x.date>bd || (s && x.date===bd && x.at && s.at && x.at>s.at)) v+=x.delta; } return v; });
+  });
+  out.inv = f.holdings.length ? days.map(d=>{ const any=f.holdings.some(h=>h.date<=d); return any ? f.holdings.reduce((s,h)=>s+holdingValue(h,d),0) : null; }) : days.map(()=>null);
+  return {days, lines:out, flows};
+}
+function finToday(){
+  const t=todayStr(), {lines}=finSeries(W.addDays(t,-31), t), i=lines.cash.length-1, f=finD();
+  const v=k=>lines[k][i];
+  const usd=f.holdings.filter(isUsd).reduce((s,h)=>s+holdingUsd(h,t),0), usdIn=f.holdings.filter(isUsd).reduce((s,h)=>s+putInUsd(h),0);
+  return {cash:v("cash"), save:v("save"), inv:v("inv"), usd, usdIn, allUsd:f.holdings.length>0 && f.holdings.every(isUsd), net:["cash","save","inv"].reduce((s,k)=>s+(v(k)||0),0)};
+}
+/* the next pay days, with how much money in hand you'll have once each one comes in */
+function finStops(n){
+  const t=todayStr(), end=W.addDays(t,75), {days, lines, flows}=finSeries(t, end);
+  const pays=flows.filter(x=>x.kind==="pay" && x.date>t).sort((a,b)=>a.date.localeCompare(b.date));
+  const dates=[...new Set(pays.map(x=>x.date))].slice(0,n);
+  return dates.map(d=>{ const i=days.indexOf(d), on=flows.filter(x=>x.date===d && !x.hidden && x.kind!=="budget");
+    return {date:d, days:W.dnum(d)-W.dnum(t), cash:i>=0?lines.cash[i]:null, items:on, label:on.filter(x=>x.kind==="pay").map(x=>x.title.replace(/ pay\b.*$/i,"").replace(/\s*\(.*\)/,"")).join(" + ")}; });
+}
+function lateCommittee(){ const out=[]; finD().plans.forEach(p=>{ if(p.amount>0) planMonths(p).filter(m=>m.late).forEach(m=>out.push({p,m})); }); return out; }
+/* ---- the chart: steps (money only changes on a pay day or a payment), with the amounts written on the lines ---- */
 function finChartSvg(from, to, opts={}){
-  const {days, lines}=finSeries(from, to), t=todayStr();
-  const W_=opts.w||350, H=opts.h||220, pl=opts.mini?4:44, pr=opts.mini?4:12, pt=opts.mini?8:14, pb=opts.mini?6:26;
-  const vals=FIN_LINES.flatMap(([k])=>lines[k].filter(v=>v!=null));
+  const {days, lines, flows}=finSeries(from, to), t=todayStr();
+  const W_=opts.w||350, H=opts.h||240, pl=opts.mini?6:14, pr=opts.mini?6:62, pt=opts.mini?8:30, pb=opts.mini?6:30;
+  const show=FIN_LINES.filter(([k])=>lines[k].some(v=>v!=null));
+  const vals=show.flatMap(([k])=>lines[k].filter(v=>v!=null));
   if (!vals.length) return {svg:"", empty:true, days, lines};
-  let lo=Math.min(0,...vals), hi=Math.max(...vals); if (hi===lo) hi=lo+1000;
-  const step=niceStep((hi-lo)/3); lo=Math.floor(lo/step)*step; hi=Math.ceil(hi*1.04/step)*step;
+  let lo=Math.min(0,...vals), hi=Math.max(...vals); if (hi===lo) hi=lo+1000; hi+= (hi-lo)*0.06;
   const X=i=>pl+(W_-pl-pr)*(days.length<2?0:i/(days.length-1)), Y=v=>pt+(H-pt-pb)*(1-(v-lo)/(hi-lo));
   const ti=days.indexOf(t);
   let g="";
-  if (!opts.mini) for (let v=lo; v<=hi+1e-6; v+=step) g+=`<line x1="${pl}" x2="${W_-pr}" y1="${Y(v)}" y2="${Y(v)}" class="fg-grid${v===0&&lo<0?" zero":""}"/><text x="${pl-6}" y="${Y(v)+4}" class="fg-ax" text-anchor="end">${esc(finHide?"":fcAmt(v))}</text>`;
-  const firsts=days.map((d,i)=>d.slice(8)==="01"?i:-1).filter(i=>i>=0), every=Math.max(1,Math.ceil(firsts.length*34/(W_-pl-pr)));
-  if (!opts.mini) firsts.forEach((i,k)=>{ const d=days[i]; g+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt}" y2="${H-pb}" class="fg-mo"/>`; if (k%every) return; g+=`<text x="${X(i)+3}" y="${H-8}" class="fg-ax">${esc(new Date(d+"T12:00:00").toLocaleDateString("en-GB",{month:"short"})+(d.slice(5,7)==="01"?" "+d.slice(2,4):""))}</text>`; });
-  if (ti>=0) g+=`<line x1="${X(ti)}" x2="${X(ti)}" y1="${pt-4}" y2="${H-pb}" class="fg-today"/>${opts.mini?"":`<text x="${X(ti)}" y="${pt-4}" class="fg-tl" text-anchor="middle">Today</text>`}`;
-  const path=(arr,a,b)=>{ let s="", on=false; for (let i=a;i<=b;i++){ const v=arr[i]; if (v==null){ on=false; continue; } s+=(on?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1); on=true; } return s; };
-  FIN_LINES.forEach(([k,,c])=>{ const arr=lines[k]; if (arr.every(v=>v==null)) return;
-    const cut = ti>=0 ? ti : (days[0]>t ? -1 : days.length-1);
-    if (cut>=0) g+=`<path d="${path(arr,0,cut)}" style="stroke:${c}" class="fg-line"/>`;
-    if (cut<days.length-1) g+=`<path d="${path(arr,Math.max(0,cut),days.length-1)}" style="stroke:${c}" class="fg-line fut"/>`;
-    if (ti>=0 && arr[ti]!=null) g+=`<circle cx="${X(ti)}" cy="${Y(arr[ti])}" r="${opts.mini?3:4}" style="fill:${c}" class="fg-dot"/>`; });
+  if (lo<0) g+=`<line x1="${pl}" x2="${W_-pr}" y1="${Y(0)}" y2="${Y(0)}" class="fg-grid zero"/>`;
+  /* the days that matter: today, the end, and every day money comes in or goes out */
+  const evIdx=[...new Set(flows.filter(x=>!x.hidden && x.kind!=="budget" && x.date>=from && x.date<=to).map(x=>days.indexOf(x.date)).filter(i=>i>=0))].sort((a,b)=>a-b);
+  const keys=[...new Set([ti>=0?ti:0, ...evIdx, days.length-1])].sort((a,b)=>a-b);
+  if (!opts.mini) { let lastX=-99;
+    keys.forEach(i=>{ const x=X(i); g+=`<line x1="${x}" x2="${x}" y1="${pt-6}" y2="${H-pb}" class="${i===ti?"fg-today":"fg-mo"}"/>`;
+      if (x-lastX<34 && i!==ti) return; lastX=x;
+      g+=`<text x="${x}" y="${H-10}" class="fg-ax${i===ti?" now":""}" text-anchor="middle">${esc(i===ti?"Today":fmtDay(days[i],{day:"numeric",month:"short"}))}</text>`; }); }
+  const path=arr=>{ let s="", prev=null; arr.forEach((v,i)=>{ if (v==null){ prev=null; return; } if (prev==null) s+=`M${X(i).toFixed(1)} ${Y(v).toFixed(1)}`; else s+=`H${X(i).toFixed(1)}V${Y(v).toFixed(1)}`; prev=v; }); return s; };
+  const split=(arr,cut)=>[arr.map((v,i)=>i<=cut?v:null), arr.map((v,i)=>i>=cut?v:null)];
+  const cut = ti>=0 ? ti : (days[0]>t ? 0 : days.length-1);
+  show.forEach(([k,,c])=>{ const [a,b]=split(lines[k],cut); g+=`<path d="${path(a)}" style="stroke:${c}" class="fg-line"/><path d="${path(b)}" style="stroke:${c}" class="fg-line fut"/>`; });
+  /* numbers on the lines: today and the end for every line, then money in hand on each pay day — skipped if it would overlap */
+  if (!opts.mini) {
+    const placed=[], allUsd=finToday().allUsd, last=days.length-1, t0=ti>=0?ti:0;
+    const fits=(x,y,w)=>x-w/2>=0 && x+w/2<=W_+1 && y>10 && y<H-pb+4 && !placed.some(p=>Math.abs(p.x-x)<(p.w+w)/2+2 && Math.abs(p.y-y)<14);
+    const label=(i,k,c,big,force)=>{ const v=lines[k][i]; if (v==null) return;
+      const txt = k==="inv" && allUsd ? (finHide?"$•••":"$"+Math.round(v/usdRate())) : fcAmt(v);
+      const w=txt.length*(big?7.4:6.4)+4, end=i===last; let x=end ? Math.min(W_-w/2, X(i)+5+w/2) : X(i);
+      for (const dy of [-10, 16, -24, 30]) { const y=Y(v)+dy; if (fits(x,y,w)) { placed.push({x,y,w});
+        g+=`<circle cx="${X(i)}" cy="${Y(v)}" r="${big?3.6:3}" style="fill:${c}" class="fg-dot"/><text x="${x}" y="${y}" class="fg-num${big?" big":""}" text-anchor="middle" style="fill:${c}">${esc(txt)}</text>`; return; } }
+      if (force) g+=`<circle cx="${X(i)}" cy="${Y(v)}" r="3" style="fill:${c}" class="fg-dot"/>`; };
+    const C=Object.fromEntries(FIN_LINES.map(([k,,c])=>[k,c]));
+    const payIdx=[...new Set(flows.filter(x=>x.kind==="pay" && x.date>=from && x.date<=to).map(x=>days.indexOf(x.date)).filter(i=>i>0 && i!==t0 && i!==last))].sort((a,b)=>a-b);
+    const lastPay=payIdx[payIdx.length-1], endSame = lastPay!=null && Math.abs((lines.cash[last]??0)-(lines.cash[lastPay]??0))<1;
+    label(t0,"cash",C.cash,true,true); if (!endSame) label(last,"cash",C.cash,true,true);
+    label(t0,"save",C.save,false,true); label(last,"save",C.save,false,true);
+    label(last,"inv",C.inv,false,true); if (finRange.back>0) label(t0,"inv",C.inv,false,true);
+    if (endSame) label(lastPay,"cash",C.cash,true,true);
+    payIdx.forEach(i=>{ if (i!==lastPay || !endSame) label(i,"cash",C.cash,true,false); });
+  } else if (ti>=0) show.forEach(([k,,c])=>{ const v=lines[k][ti]; if (v!=null) g+=`<circle cx="${X(ti)}" cy="${Y(v)}" r="3" style="fill:${c}" class="fg-dot"/>`; });
   return {svg:`<svg viewBox="0 0 ${W_} ${H}" width="100%" height="${H}" class="fg" preserveAspectRatio="none">${g}<rect x="${pl}" y="0" width="${W_-pl-pr}" height="${H}" fill="transparent" class="fg-hit"/></svg>`, days, lines, X, Y, pl, pr};
 }
-function niceStep(raw){ const p=Math.pow(10,Math.floor(Math.log10(Math.max(raw,1)))), n=raw/p; return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p; }
-function finTotals(){ const t=todayStr(), {lines}=finSeries(W.addDays(t,-31), t), i=lines.cash.length-1, m=0;
-  const v=k=>lines[k][i], ago=k=>lines[k].find(x=>x!=null);
-  return {cash:v("cash"), save:v("save"), inv:v("inv"), net:["cash","save","inv"].reduce((s,k)=>s+(v(k)||0),0), net30:["cash","save","inv"].reduce((s,k)=>s+(lines[k][0]??ago(k)??0),0)}; }
 const eyeSvg = on => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>${on?"":`<path d="M3 3l18 18"/>`}</svg>`;
+function stopsHtml(stops){
+  return `<div class="fin-stops">${stops.map(s=>`<div class="fs"><span class="fs-d">${s.days===1?"Tomorrow":`in <b>${s.days}</b> days`}</span><span class="fs-w">${esc(fmtDay(s.date,{weekday:"short",day:"numeric",month:"short"}))}</span>
+    <b class="fs-v ${s.cash<0?"neg":""}">${s.cash!=null?esc(fcAmt(s.cash)):"—"}</b><span class="fs-l">after ${esc(s.label||"pay")}</span></div>`).join("")}</div>`;
+}
+function invShort(tot){ return tot.allUsd ? `${fmUsd(tot.usd)} <span class="muted">(${esc(fcAmt(tot.inv||0))})</span>` : esc(fcAmt(tot.inv||0)); }
 /* ---- the card at the bottom of Today ---- */
 function finCardHtml(){
-  const f=finD(), t=todayStr(), tot=finTotals(), has=f.sets.length||f.holdings.length||f.plans.some(p=>p.amount>0);
-  const ch=finChartSvg(W.addDays(t,-30), monthsAheadEnd(3), {mini:true, w:340, h:86});
+  const f=finD(), tot=finToday(), has=f.sets.length||f.holdings.length||f.plans.some(p=>p.amount>0);
+  const stops=has?finStops(3):[], late=lateCommittee();
   return `<div class="card fincard" id="finCard" role="button" tabindex="0">
-    <div class="fc-top"><span class="t"><span class="small muted">Finance · all you have</span><b class="fc-net">${has?esc(fmAmt(tot.net)):"Set it up"}</b></span>
+    <div class="fc-top"><span class="t"><span class="small muted">Money in hand today</span><b class="fc-net">${tot.cash!=null?esc(fmAmt(tot.cash)):"Set it up"}</b></span>
       <button class="ib" id="finEye" aria-label="${finHide?"Show":"Hide"} amounts">${eyeSvg(!finHide)}</button></div>
-    ${has&&!ch.empty?`<div class="fc-chart">${ch.svg}</div>`:`<div class="small muted" style="padding:6px 0 2px">Add what you have, your pay days and your savings to see the three lines.</div>`}
-    <div class="fc-legend">${FIN_LINES.map(([k,n,c])=>`<span><i style="background:${c}"></i><span class="small muted">${esc(n)}</span><b>${tot[k]!=null?esc(fcAmt(tot[k])):"—"}</b></span>`).join("")}</div>
+    ${has?`<div class="fc-all"><span class="small muted">Everything, with savings and investments</span><b>${esc(fmAmt(tot.net))}</b>
+      <span class="small muted">${tot.save?`Committee ${esc(fcAmt(tot.save))}`:""}${tot.save&&f.holdings.length?" · ":""}${f.holdings.length?`KuCoin ${invShort(tot)}`:""}</span></div>`:`<div class="small muted">Add what you have and your pay days to see where your money is heading.</div>`}
+    ${late.length?`<div class="fin-late">💰 ${esc(late[0].p.title)} for ${esc(monthName(late[0].m.ym))} not paid yet: ${esc(fcAmt(late[0].p.amount))}<button class="btn sm" id="finPayLate">Mark paid</button></div>`:""}
+    ${stops.length?stopsHtml(stops):""}
   </div>`;
 }
-function monthsAheadEnd(n){ const t=todayStr(); return n<=0 ? t : W.dstr(W.dnum(ymAdd(t.slice(0,7),n)+"-01")-1+Math.min(+t.slice(8,10), 28)); }
 function wireFinCard(){
   const c=$("finCard"); if(!c) return;
-  c.onclick=e=>{ if (e.target.closest("#finEye")) return; showTab("fin"); };
+  c.onclick=e=>{ if (e.target.closest("#finEye,#finPayLate")) return; showTab("fin"); };
   $("finEye").onclick=e=>{ e.stopPropagation(); finHide=!finHide; store.set("finHide",finHide); renderToday(); };
+  if ($("finPayLate")) $("finPayLate").onclick=e=>{ e.stopPropagation(); const l=lateCommittee()[0]; if(l) openPaid(l.m.key); };
 }
 /* ---- the Finance page ---- */
 async function renderFin(){
   const body=$("finBody"); if(!body) return;
   const f=finD(), t=todayStr(), from=monthsBack(finRange.back), to=monthsAheadEnd(finRange.ahead);
-  const tot=finTotals(), diff=tot.net-tot.net30;
-  const ch=finChartSvg(from, to, {w:Math.max(300, body.clientWidth-30), h:230});
-  const flows=finFlows(W.addDays(t,1), W.addDays(t,62)).filter(x=>!x.hidden).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
-  const low = (()=>{ if (ch.empty) return null; const i0=ch.days.indexOf(t); if (i0<0) return null; let mi=-1, mv=Infinity; ch.lines.cash.forEach((v,i)=>{ if(i>i0 && v!=null && v<mv){ mv=v; mi=i; } }); return mi>0 ? {d:ch.days[mi], v:mv} : null; })();
+  const tot=finToday(), stops=finStops(3), late=lateCommittee();
+  const ch=finChartSvg(from, to, {w:Math.max(300, body.clientWidth-30), h:250});
   const coins=f.holdings;
-  const putInAll=coins.reduce((s,h)=>s+putIn(h),0), nowInv=coins.reduce((s,h)=>s+holdingValue(h,t),0);
   body.innerHTML=`
-    <div class="fin-hero"><div><div class="small muted">All you have today</div><div class="fin-net">${esc(fmAmt(tot.net))}</div>
-      ${tot.net30 && Math.abs(diff)>=1?`<div class="small" style="color:${diff>=0?"var(--ok)":"var(--bad)"};font-weight:800">${diff>=0?"▲":"▼"} ${esc(fcAmt(Math.abs(diff)))} in the last 30 days</div>`:""}</div>
+    <div class="fin-hero"><div><div class="small muted">Money in hand today</div><div class="fin-net">${tot.cash!=null?esc(fmAmt(tot.cash)):"Not set yet"}</div>
+      <div class="small muted">Everything: <b style="color:var(--ink)">${esc(fmAmt(tot.net))}</b></div></div>
       <button class="ib" id="finEye2" aria-label="${finHide?"Show":"Hide"} amounts">${eyeSvg(!finHide)}</button></div>
-    <div class="fin-range"><span class="small muted">Look back</span><div class="seg3 sm" id="frBack">${[1,3,6,12].map(n=>`<button data-v="${n}" class="${finRange.back===n?"on":""}">${n===12?"1Y":n+"M"}</button>`).join("")}</div>
-      <span class="small muted">Look ahead</span><div class="seg3 sm" id="frAhead">${[0,3,6,12].map(n=>`<button data-v="${n}" class="${finRange.ahead===n?"on":""}">${n===0?"—":n===12?"1Y":n+"M"}</button>`).join("")}</div></div>
-    <div class="card fin-chartcard"><div class="fin-chart" id="finChart">${ch.empty?`<div class="empty">Tap “Money in hand” below and add what you have today. Your lines start from there.</div>`:ch.svg}</div>
+    ${late.length?`<div class="fin-late">💰 ${esc(late[0].p.title)} for ${esc(monthName(late[0].m.ym))} not paid yet: ${esc(fcAmt(late[0].p.amount))}<button class="btn sm" id="finPayLate2">Mark paid</button></div>`:""}
+    ${stops.length?stopsHtml(stops):""}
+    <div class="card fin-chartcard"><div class="fin-chart" id="finChart">${ch.empty?`<div class="empty">Tap “Set amount” under Money in hand and add what you have today. Your lines start from there.</div>`:ch.svg}</div>
       <div class="fin-tip hidden" id="finTip"></div>
       <div class="fc-legend big">${FIN_LINES.map(([k,n,c])=>`<span><i style="background:${c}"></i><span class="small muted">${esc(n)}</span></span>`).join("")}<span class="small muted">· dashed = expected</span></div>
-      ${low && low.v< (tot.cash||0)*0.25 ? `<div class="fin-warn">${low.v<0?"⚠️ Money in hand goes below zero":"Lowest point"} around ${esc(fmtDay(low.d,{day:"numeric",month:"short"}))}: <b>${esc(fmAmt(low.v))}</b></div>`:""}
+      <div class="fin-range"><span class="small muted">Ahead</span><div class="seg3 sm" id="frAhead">${[[1,"1 month"],[3,"3M"],[6,"6M"],[12,"1 year"]].map(([n,l])=>`<button data-v="${n}" class="${finRange.ahead===n?"on":""}">${l}</button>`).join("")}</div>
+        <span class="small muted">Past</span><div class="seg3 sm" id="frBack">${[[0,"Off"],[1,"1 month"],[3,"3M"]].map(([n,l])=>`<button data-v="${n}" class="${finRange.back===n?"on":""}">${l}</button>`).join("")}</div></div>
     </div>
     <div class="fin-lines">
-      ${finLineCard("cash", tot.cash, `<button class="btn soft sm" data-fa="in">+ Money in</button><button class="btn soft sm" data-fa="out">− Spent</button><button class="btn ghost sm" data-fa="set-cash">Set amount</button>`)}
-      ${finLineCard("save", tot.save, `<button class="btn soft sm" data-fa="move">+ Put in savings</button><button class="btn ghost sm" data-fa="set-save">Set amount</button>`)}
-      ${finLineCard("inv", tot.inv, `<button class="btn soft sm" data-fa="hold">+ Add investment</button>${coins.some(isLive)?`<button class="btn ghost sm" id="finRefresh">↻ Prices</button>`:""}`,
-        coins.length?`${esc(fcAmt(putInAll))} put in → ${esc(fcAmt(nowInv))} now <b style="color:${nowInv>=putInAll?"var(--ok)":"var(--bad)"}">${nowInv>=putInAll?"+":"−"}${putInAll?Math.abs(Math.round((nowInv/putInAll-1)*1000)/10):0}%</b>`:"")}
+      ${finLineCard("cash", tot.cash!=null?esc(fmAmt(tot.cash)):"Not set yet", `<button class="btn soft sm" data-fa="in">+ Money in</button><button class="btn soft sm" data-fa="out">− Spent</button><button class="btn ghost sm" data-fa="set-cash">Set amount</button>`)}
+      ${finLineCard("save", tot.save!=null?esc(fmAmt(tot.save)):"Nothing yet", `<button class="btn soft sm" data-fa="move">+ Put in savings</button><button class="btn ghost sm" data-fa="set-save">Set amount</button>`, f.plans.filter(p=>p.amount>0).map(p=>{ const ms=planMonths(p), paid=ms.filter(m=>m.paidOn).length; return `${esc(p.title)}: ${paid} of ${p.months} paid`; }).join(" · "))}
+      ${finLineCard("inv", coins.length?invShort(tot):"Nothing yet", `<button class="btn soft sm" data-fa="hold">+ Add investment</button>${coins.some(isLive)?`<button class="btn ghost sm" id="finRefresh">↻ Prices</button>`:""}`,
+        coins.length&&tot.allUsd?`${fmUsd(tot.usdIn)} put in → ${fmUsd(tot.usd)} now <b style="color:${tot.usd>=tot.usdIn?"var(--ok)":"var(--bad)"}">${tot.usd>=tot.usdIn?"+":"−"}${fmUsd(Math.abs(tot.usd-tot.usdIn))}</b>`:"")}
     </div>
-    <div class="sec"><h2>Coming up</h2></div>
-    <div class="card fin-list">${flows.length?flows.map(x=>`<div class="fl-row"><span class="fl-d"><b>${esc(fmtDay(x.date,{day:"numeric"}))}</b><span>${esc(fmtDay(x.date,{month:"short"}))}</span></span>
-      <span class="t"><b>${esc(x.title)}</b><span class="small muted">${x.kind==="pay"?(x.dayTo?`expected ${fmtDay(x.date,{day:"numeric"})}–${x.dayTo}`:"pay day"):x.kind==="plan"?"into savings":x.kind==="planback"?"paying back after your turn":x.kind==="payout"?"your turn, it comes to you":esc(x.cat||"")}</span></span>
-      <b class="amt ${x.delta>=0?"pos":"neg"}">${x.delta>=0?"+":"−"}${esc(fcAmt(Math.abs(x.delta)))}</b></div>`).join(""):`<div class="empty">Add your pay amounts below to see what's coming.</div>`}</div>
+    ${coins.length?`<div class="sec"><h2>Investments</h2></div><div class="card fin-list">${coins.map(h=>holdingRowHtml(h,t)).join("")}</div>`:""}
     <div class="sec"><h2>Every month</h2></div>
     <div class="card fin-list">
       ${f.incomes.map(i=>`<button class="fl-row" data-inc="${esc(i.id)}"><span class="fl-ic pos">↓</span><span class="t"><b>${esc(i.title)}</b><span class="small muted">${i.dayTo?`${ord(i.day)}–${ord(i.dayTo)}`:ord(i.day)} of every month${i.until?" · until "+esc(fmtDay(i.until,{day:"numeric",month:"short"})):""}</span></span><b class="amt ${i.amount?"pos":"muted"}">${i.amount?"+"+esc(fcAmt(i.amount)):"Add amount"}</b></button>`).join("")}
-      ${f.plans.map(p=>{ const end=ymAdd(p.start,p.months-1), done=Math.max(0,Math.min(p.months, monthsBetween(p.start, t.slice(0,7))+(t.slice(8)>=String(p.day).padStart(2,"0")?1:0)));
-        return `<button class="fl-row" data-plan="${esc(p.id)}"><span class="fl-ic sav">◎</span><span class="t"><b>${esc(p.title)}</b><span class="small muted">${ord(p.day)} · ${done} of ${p.months} paid · ends ${esc(monthName(end))}</span><span class="fl-prog"><i style="width:${Math.round(done/p.months*100)}%"></i></span></span><b class="amt ${p.amount?"":"muted"}">${p.amount?"−"+esc(fcAmt(p.amount)):"Add amount"}</b></button>`; }).join("")}
-      <button class="fl-row" data-budget="1"><span class="fl-ic neg">−</span><span class="t"><b>Monthly spending</b><span class="small muted">${f.budget.amount?`${esc(fcAmt(Math.max(0,f.budget.amount-monthSpent())))} left this month`:"Rent, food, fuel… taken off the future line"}</span></span><b class="amt ${f.budget.amount?"neg":"muted"}">${f.budget.amount?"−"+esc(fcAmt(f.budget.amount)):"Set budget"}</b></button>
+      ${f.plans.map(p=>{ const ms=planMonths(p), paid=ms.filter(m=>m.paidOn).length, end=ymAdd(p.start,p.months-1);
+        return `<button class="fl-row" data-plan="${esc(p.id)}"><span class="fl-ic sav">◎</span><span class="t"><b>${esc(p.title)}</b><span class="small muted">${ord(p.day)} · ${paid} of ${p.months} paid${ms.some(m=>m.late)?` · <b style="color:var(--bad)">${esc(monthName(ms.find(m=>m.late).ym))} due</b>`:""} · ends ${esc(monthName(end))}</span><span class="fl-prog"><i style="width:${Math.round(paid/p.months*100)}%"></i></span></span><b class="amt ${p.amount?"":"muted"}">${p.amount?"−"+esc(fcAmt(p.amount)):"Add amount"}</b></button>`; }).join("")}
+      <button class="fl-row" data-budget="1"><span class="fl-ic neg">−</span><span class="t"><b>Monthly spending</b><span class="small muted">${f.budget.amount?`${esc(fcAmt(Math.max(0,f.budget.amount-monthSpent())))} left this month`:"Optional: rent, food, fuel… taken off the future line"}</span></span><b class="amt ${f.budget.amount?"neg":"muted"}">${f.budget.amount?"−"+esc(fcAmt(f.budget.amount)):"Set budget"}</b></button>
       <div class="fl-add"><button class="btn ghost sm" id="finAddInc">+ Pay</button><button class="btn ghost sm" id="finAddPlan">+ Committee or saving plan</button></div>
     </div>
-    ${coins.length?`<div class="sec"><h2>Investments</h2></div><div class="card fin-list">${coins.map(h=>{ const v=holdingValue(h,t), pin=putIn(h), pct=pin?Math.round((v/pin-1)*1000)/10:null;
-      const fu=h.type==="futures"?futuresUsd(h,t):null, sym=esc((h.symbol||"").toUpperCase());
-      const sub = h.type==="futures" ? `${+Number(h.qty).toPrecision(6)} ${sym} · ${h.side==="short"?"short":"long"}${h.lev?" "+h.lev+"×":""} · entry ${Number(h.entry).toLocaleString("en-US")}${fu?` · now ${Math.round(fu.price).toLocaleString("en-US")}`:""} · margin $${futMargin(h).toFixed(2)}${fu?` · P&L ${fu.pnl>=0?"+":"−"}$${Math.abs(fu.pnl).toFixed(2)}`:""}`
-        : `${h.type==="coin"&&h.qty?`${+Number(h.qty).toPrecision(6)} ${sym} · `:""}put in ${esc(fcAmt(pin))}${h.type!=="coin"?" · value you set":" · live price"}`;
-      return `<button class="fl-row" data-hold="${esc(h.id)}"><span class="fl-ic inv">${isLive(h)?sym.slice(0,4)||"?":"◆"}</span><span class="t"><b>${esc(h.name||h.symbol||"Investment")}</b><span class="small muted">${sub}</span></span><span class="amt"><b>${esc(fcAmt(v))}</b>${pct!=null?`<span class="small" style="color:${pct>=0?"var(--ok)":"var(--bad)"};font-weight:800;display:block;text-align:right">${pct>=0?"+":""}${pct}%</span>`:""}</span></button>`; }).join("")}</div>`:""}
     <div class="sec"><h2>History</h2></div>
     <div class="card fin-list">${finHistory().slice(0, finOpen.all?200:12).map(x=>`<button class="fl-row" data-${x.t}="${esc(x.id)}"><span class="fl-d"><b>${esc(fmtDay(x.date,{day:"numeric"}))}</b><span>${esc(fmtDay(x.date,{month:"short"}))}</span></span><span class="t"><b>${esc(x.title)}</b><span class="small muted">${esc(x.sub)}</span></span><b class="amt ${x.cls}">${esc(x.amt)}</b></button>`).join("")||`<div class="empty">Nothing logged yet.</div>`}
       ${finHistory().length>12&&!finOpen.all?`<button class="donebtn" id="finAll">Show all</button>`:""}</div>
-    <div class="small muted" style="text-align:center;margin:14px 0 30px">Crypto prices from CoinGecko${finPx.at?", updated "+esc(new Date(finPx.at).toLocaleTimeString("en-GB",{hour:"numeric",minute:"2-digit"})):""}.</div>`;
-  const rerange=(k,id)=>$(id).querySelectorAll("button").forEach(b=>b.onclick=()=>{ finRange[k]=+b.dataset.v; store.set("finRange",finRange); renderFin(); });
+    <div class="small muted" style="text-align:center;margin:14px 0 30px">Prices from CoinGecko${finPx.at?", updated "+esc(new Date(finPx.at).toLocaleTimeString("en-GB",{hour:"numeric",minute:"2-digit"})):""} · $1 = Rs ${Math.round(usdRate()*10)/10}</div>`;
+  const rerange=(k,id)=>$(id).querySelectorAll("button").forEach(b=>b.onclick=()=>{ finRange[k]=+b.dataset.v; store.set("finRange2",finRange); renderFin(); });
   rerange("back","frBack"); rerange("ahead","frAhead");
   $("finEye2").onclick=()=>{ finHide=!finHide; store.set("finHide",finHide); renderFin(); };
+  if ($("finPayLate2")) $("finPayLate2").onclick=()=>{ const l=lateCommittee()[0]; if(l) openPaid(l.m.key); };
   body.querySelectorAll("[data-fa]").forEach(b=>b.onclick=()=>{ const a=b.dataset.fa; if(a.startsWith("set-")) openFinSet(a.slice(4)); else if(a==="hold") openFinHolding(null); else openFinMove(null,a); });
   body.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>openFinIncome(f.incomes.find(x=>x.id===b.dataset.inc)));
   body.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>openFinPlan(f.plans.find(x=>x.id===b.dataset.plan)));
@@ -2765,28 +2836,39 @@ async function renderFin(){
   if (!ch.empty) wireFinChart(ch);
   if (await finLoadPrices()) { if (tab==="fin") renderFin(); }
 }
-function finLineCard(k, v, btns, extra){
-  const [,n,c]=FIN_LINES.find(x=>x[0]===k);
-  return `<div class="card fin-lc"><div class="fl-h"><i style="background:${c}"></i><span class="t"><span class="small muted">${esc(n)}</span><b>${v!=null?esc(fmAmt(v)):"Not set yet"}</b>${extra?`<span class="small muted">${extra}</span>`:""}</span></div><div class="fl-b">${btns}</div></div>`;
+function holdingRowHtml(h, t){
+  const sym=esc((h.symbol||"").toUpperCase());
+  if (h.type==="exchange") { const v=holdingUsd(h,t), pnl=v-Number(h.deposit||0);
+    return `<button class="fl-row" data-hold="${esc(h.id)}"><span class="fl-ic inv">${esc((h.name||"EX").slice(0,2).toUpperCase())}</span><span class="t"><b>${esc(h.name||"Exchange")}</b><span class="small muted">Balance ${fmUsd(h.deposit||0)}${(h.trades||[]).length?` · ${(h.trades||[]).map(tr=>`${esc(String(tr.symbol).toUpperCase())} ${tradePnl(tr,t)>=0?"+":"−"}${fmUsd(Math.abs(tradePnl(tr,t)))}`).join(" · ")}`:" · no open trades"}</span></span>
+      <span class="amt"><b>${fmUsd(v)}</b><span class="small muted" style="display:block;text-align:right">${esc(fcAmt(v*usdRate()))}</span>${(h.trades||[]).length?`<span class="small" style="color:${pnl>=0?"var(--ok)":"var(--bad)"};font-weight:800;display:block;text-align:right">${pnl>=0?"+":"−"}${fmUsd(Math.abs(pnl))}</span>`:""}</span></button>`; }
+  const v=holdingValue(h,t), pin=putIn(h), pct=pin?Math.round((v/pin-1)*1000)/10:null;
+  const sub = h.type==="futures" ? `${+Number(h.qty).toPrecision(6)} ${sym} ${h.side==="short"?"short":"long"} · entry ${Number(h.entry).toLocaleString("en-US")}`
+    : `${h.type==="coin"&&h.qty?`${+Number(h.qty).toPrecision(6)} ${sym} · `:""}put in ${esc(fcAmt(pin))}${h.type!=="coin"?" · value you set":" · live price"}`;
+  return `<button class="fl-row" data-hold="${esc(h.id)}"><span class="fl-ic inv">${isLive(h)?sym.slice(0,4)||"?":"◆"}</span><span class="t"><b>${esc(h.name||h.symbol||"Investment")}</b><span class="small muted">${sub}</span></span><span class="amt"><b>${isUsd(h)?fmUsd(holdingUsd(h,t)):esc(fcAmt(v))}</b>${pct!=null?`<span class="small" style="color:${pct>=0?"var(--ok)":"var(--bad)"};font-weight:800;display:block;text-align:right">${pct>=0?"+":""}${pct}%</span>`:""}</span></button>`;
 }
-const ord = n => n+(n%10===1&&n!==11?"st":n%10===2&&n!==12?"nd":n%10===3&&n!==13?"rd":"th");
-const monthsBetween = (a,b) => (+b.slice(0,4)-+a.slice(0,4))*12 + (+b.slice(5,7)-+a.slice(5,7));
+function finLineCard(k, valHtml, btns, extra){
+  const [,n,c]=FIN_LINES.find(x=>x[0]===k);
+  return `<div class="card fin-lc"><div class="fl-h"><i style="background:${c}"></i><span class="t"><span class="small muted">${esc(n)}</span><b>${valHtml}</b>${extra?`<span class="small muted">${extra}</span>`:""}</span></div><div class="fl-b">${btns}</div></div>`;
+}
 function monthSpent(){ const ym=todayStr().slice(0,7); return finD().moves.filter(m=>m.kind==="out"&&(m.line||"cash")==="cash"&&m.date.slice(0,7)===ym).reduce((s,m)=>s+m.amount,0); }
 function finHistory(){
   const f=finD(), L=k=>FIN_LINES.find(x=>x[0]===k)?.[1]||k;
+  const paidRows=f.plans.flatMap(p=>planMonths(p).filter(m=>m.paidOn).map(m=>({t:"plan", id:p.id, date:m.paidOn, title:`${p.title} paid`, sub:`${monthName(m.ym)} · into savings`, amt:"−"+fcAmt(p.amount), cls:"neg"})));
   return [...f.sets.map(s=>({t:"set", id:s.id, date:s.date, title:`${L(s.line)} set`, sub:s.note||"Your count", amt:fcAmt(s.amount), cls:""})),
     ...f.moves.map(m=>({t:"move", id:m.id, date:m.date, title:m.title||(m.kind==="out"?"Spent":m.kind==="move"?"Into savings":"Money in"), sub:m.kind==="move"?`${L(m.from)} → ${L(m.to)}`:(m.cat||L(m.line||"cash")), amt:(m.kind==="out"?"−":m.kind==="move"?"":"+")+fcAmt(m.amount), cls:m.kind==="out"?"neg":m.kind==="in"?"pos":""})),
-    ...f.holdings.map(h=>({t:"hold", id:h.id, date:h.date, title:"Invested: "+(h.name||h.symbol||"investment"), sub:h.type==="futures"?"futures position":h.fromCash?"from money in hand":"investment", amt:fcAmt(putIn(h)), cls:""}))]
+    ...paidRows,
+    ...f.holdings.map(h=>({t:"hold", id:h.id, date:h.date, title:(h.type==="exchange"?"Deposited: ":"Invested: ")+(h.name||h.symbol||"investment"), sub:h.type==="exchange"?"in dollars":h.fromCash?"from money in hand":"investment", amt:isUsd(h)?fmUsd(putInUsd(h)):fcAmt(putIn(h)), cls:""}))]
     .sort((a,b)=>b.date.localeCompare(a.date));
 }
 function wireFinChart(ch){
   const box=$("finChart"), tip=$("finTip"), svg=box.querySelector("svg"); if(!svg) return;
   const show=e=>{ const r=svg.getBoundingClientRect(), vb=svg.viewBox.baseVal, x=(e.clientX-r.left)/r.width*vb.width;
     const i=Math.max(0,Math.min(ch.days.length-1, Math.round((x-ch.pl)/(vb.width-ch.pl-ch.pr)*(ch.days.length-1)))), d=ch.days[i];
-    const ev=finFlows(d,d).filter(x=>!x.hidden);
+    const ev=finFlows(d,d).filter(x=>!x.hidden && x.kind!=="budget");
     let line=svg.querySelector(".fg-cross"); if(!line){ line=document.createElementNS("http://www.w3.org/2000/svg","line"); line.setAttribute("class","fg-cross"); svg.appendChild(line); }
-    line.setAttribute("x1",ch.X(i)); line.setAttribute("x2",ch.X(i)); line.setAttribute("y1",4); line.setAttribute("y2",vb.height-20);
-    tip.innerHTML=`<b>${esc(fmtDay(d,{weekday:"short",day:"numeric",month:"short"}))}${d>todayStr()?" · expected":""}</b>${FIN_LINES.map(([k,n,c])=>ch.lines[k][i]!=null?`<span><i style="background:${c}"></i>${esc(n)} <b>${esc(fmAmt(ch.lines[k][i]))}</b></span>`:"").join("")}${ev.map(x=>`<span class="small muted">${x.delta>=0?"+":"−"}${esc(fcAmt(Math.abs(x.delta)))} ${esc(x.title)}</span>`).join("")}`;
+    line.setAttribute("x1",ch.X(i)); line.setAttribute("x2",ch.X(i)); line.setAttribute("y1",4); line.setAttribute("y2",vb.height-24);
+    const allUsd=finToday().allUsd;
+    tip.innerHTML=`<b>${esc(fmtDay(d,{weekday:"short",day:"numeric",month:"short"}))}${d>todayStr()?` · in ${W.dnum(d)-W.dnum(todayStr())} days`:""}</b>${FIN_LINES.map(([k,n,c])=>ch.lines[k][i]!=null?`<span><i style="background:${c}"></i>${esc(n)} <b>${k==="inv"&&allUsd?fmUsd(ch.lines[k][i]/usdRate()):esc(fmAmt(ch.lines[k][i]))}</b></span>`:"").join("")}${ev.map(x=>`<span class="small muted">${x.delta>=0?"+":"−"}${esc(fcAmt(Math.abs(x.delta)))} ${esc(x.title)}</span>`).join("")}`;
     tip.classList.remove("hidden"); const left=Math.max(0, Math.min(r.width-206, (e.clientX-r.left)-103)); tip.style.left=left+"px"; };
   svg.addEventListener("pointerdown", show); svg.addEventListener("pointermove", show);
   svg.addEventListener("pointerleave", ()=>{ tip.classList.add("hidden"); svg.querySelector(".fg-cross")?.remove(); });
@@ -2797,6 +2879,7 @@ function readAmt(id){ const n=parseMoney($(id).value); if (!(n>0)) { toast("Type
 function delBtn(){ return `<button class="btn danger" id="fDel">Delete</button>`; }
 function armDel(fn){ const b=$("fDel"); if(!b) return; b.onclick=async()=>{ if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Tap again to delete"; return; } await fn(); }; }
 async function finDone(msg){ if (!await finSave()) return; closeSheet(); toast(msg); if (tab==="fin") renderFin(); else render(); }
+const numIn = id => parseFloat(String($(id)?.value||"").replace(/[,$\s]/g,""));
 function openFinSet(line, s){
   const isNew=!s; line=s?s.line:line; const n=FIN_LINES.find(x=>x[0]===line)[1];
   sheet(`<h2>${esc(n)}</h2><p class="small muted" style="margin:0">${line==="cash"?"How much money do you have right now, cash and bank together?":"How much do you have saved, apart from the committee?"} The line starts again from this number.</p>
@@ -2821,7 +2904,7 @@ function openFinMove(m, kind){
   const seg=id=>$(id)?.querySelectorAll("button").forEach(b=>b.onclick=()=>$(id).querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)));
   seg("fCat"); seg("fDir"); seg("fLine"); $("fAmt").focus();
   $("fGo").onclick=async()=>{ const a=readAmt("fAmt"); if(a==null) return; const f=finD();
-    const row={id:m?.id||finId("m"), kind, amount:a, date:$("fDate").value||todayStr(), title:$("fTitle").value.trim()||null};
+    const row={id:m?.id||finId("m"), kind, amount:a, date:$("fDate").value||todayStr(), title:$("fTitle").value.trim()||null, at:m?.at||new Date().toISOString()};
     if (kind==="move") { const [fr,to]=($("fDir").querySelector(".on")?.dataset.v||"cash>save").split(">"); row.from=fr; row.to=to; }
     else row.line=$("fLine").querySelector(".on")?.dataset.v||"cash";
     if (kind==="out") row.cat=$("fCat").querySelector(".on")?.dataset.v||null;
@@ -2831,12 +2914,12 @@ function openFinMove(m, kind){
 function openFinIncome(i){
   const isNew=!i;
   sheet(`<h2>${isNew?"New pay":"Pay"}</h2><input id="fTitle" class="field" placeholder="Name, e.g. Superior pay" maxlength="60" value="${esc(i?.title||"")}">
-    ${amtField("fAmt", i?.amount||"", "Amount each month")}
+    ${amtField("fAmt", i?.amount||"", "Amount each time")}
     <div class="grid2"><label class="fl"><span class="label">Comes on day</span><input id="fDay" class="field" type="number" min="1" max="31" value="${esc(i?.day||1)}"></label>
       <label class="fl"><span class="label">Or as late as (optional)</span><input id="fDayTo" class="field" type="number" min="1" max="31" value="${esc(i?.dayTo||"")}"></label></div>
     <div class="grid2"><label class="fl"><span class="label">Starting</span><input id="fFrom" class="field" type="date" value="${esc(i?.from||"")}"></label>
       <label class="fl"><span class="label">Ends (optional)</span><input id="fUntil" class="field" type="date" value="${esc(i?.until||"")}"></label></div>
-    <div class="small muted">The line uses the first day. It's added to money in hand on that day each month.</div>
+    <div class="small muted">Paid twice a month? Add it twice, once for each half.</div>
     <div class="actions"><button class="btn" id="fGo">Save</button>${isNew?`<button class="btn ghost" data-close>Cancel</button>`:delBtn()}</div>`);
   $("fGo").onclick=async()=>{ const title=$("fTitle").value.trim(); if(!title) return toast("Give it a name"); const a=parseMoney($("fAmt").value)||0;
     const day=Math.max(1,Math.min(31,+$("fDay").value||1)), dt=+$("fDayTo").value||null; const f=finD();
@@ -2845,20 +2928,27 @@ function openFinIncome(i){
   armDel(async()=>{ finD().incomes=finD().incomes.filter(x=>x.id!==i.id); await finDone("Deleted"); });
 }
 function openFinPlan(p){
-  const isNew=!p;
+  const isNew=!p, ms=p?planMonths(p):[];
   sheet(`<h2>${isNew?"Committee or saving plan":esc(p.title)}</h2><input id="fTitle" class="field" placeholder="Name, e.g. Committee" maxlength="60" value="${esc(p?.title||"Committee")}">
     ${amtField("fAmt", p?.amount||"", "You pay each month")}
     <div class="grid2"><label class="fl"><span class="label">On day</span><input id="fDay" class="field" type="number" min="1" max="31" value="${esc(p?.day||10)}"></label>
       <label class="fl"><span class="label">For months</span><input id="fMonths" class="field" type="number" min="1" max="60" value="${esc(p?.months||12)}"></label></div>
     <label class="fl"><span class="label">First month</span><input id="fStart" class="field" type="month" value="${esc(p?.start||todayStr().slice(0,7))}"></label>
+    ${p?.link?`<div class="fl"><span class="label">Paid so far: tap a month</span><div class="vchoose" id="fMonthsPaid">${ms.map(m=>`<button type="button" class="chipb ${m.paidOn?"on":""}" data-k="${esc(m.key)}" data-due="${m.due}">${esc(dateObj(m.ym+"-01").toLocaleDateString("en-GB",{month:"short"}))}${m.paidOn?" ✓":m.late?" !":""}</button>`).join("")}</div><span class="small muted">Same as the committee reminder: marking it there ticks it here.</span></div>`:""}
     <div class="grid2"><label class="fl"><span class="label">Your turn (payout) date</span><input id="fPay" class="field" type="date" value="${esc(p?.payout||"")}"></label>
-      <label class="fl"><span class="label">Payout amount</span>${amtField("fPayAmt", p?.payoutAmount||"", "e.g. 2.4 lakh")}</label></div>
+      <label class="fl"><span class="label">Payout amount</span>${amtField("fPayAmt", p?.payoutAmount||"", "e.g. 6 lakh")}</label></div>
     <div class="small muted">Each month it moves from money in hand to savings. On your turn the payout comes into money in hand.</div>
     <div class="actions"><button class="btn" id="fGo">Save</button>${isNew?`<button class="btn ghost" data-close>Cancel</button>`:delBtn()}</div>`);
+  const paidSel={}; $("fMonthsPaid")?.querySelectorAll("button").forEach(b=>b.onclick=()=>{ b.classList.toggle("on"); paidSel[b.dataset.k]={on:b.classList.contains("on"), due:b.dataset.due}; });
   $("fGo").onclick=async()=>{ const title=$("fTitle").value.trim()||"Committee"; const f=finD();
-    const row={id:p?.id||finId("plan"), title, amount:parseMoney($("fAmt").value)||0, day:Math.max(1,Math.min(31,+$("fDay").value||10)), months:Math.max(1,Math.min(60,+$("fMonths").value||12)),
+    const row={id:p?.id||finId("plan"), link:p?.link||null, title, amount:parseMoney($("fAmt").value)||0, day:Math.max(1,Math.min(31,+$("fDay").value||10)), months:Math.max(1,Math.min(60,+$("fMonths").value||12)),
       start:$("fStart").value||todayStr().slice(0,7), payout:$("fPay").value||null, payoutAmount:parseMoney($("fPayAmt").value)||0};
-    f.plans=f.plans.some(x=>x.id===row.id)?f.plans.map(x=>x.id===row.id?row:x):f.plans.concat(row); await finDone("Saved"); };
+    f.plans=f.plans.some(x=>x.id===row.id)?f.plans.map(x=>x.id===row.id?row:x):f.plans.concat(row);
+    if (row.link) { /* keep the payment reminder in step */
+      const it=(life.money.items||[]).find(x=>x.id===row.link); if (it){ it.amount=row.amount; it.day=row.day; }
+      Object.entries(paidSel).forEach(([k,v])=>{ if (v.on) life.money.paid[k]=life.money.paid[k]||v.due; else delete life.money.paid[k]; });
+      await saveLife("money"); }
+    await finDone("Saved"); };
   armDel(async()=>{ finD().plans=finD().plans.filter(x=>x.id!==p.id); await finDone("Deleted"); });
 }
 function openFinBudget(){
@@ -2869,48 +2959,42 @@ function openFinBudget(){
   $("fGo").onclick=async()=>{ const a=readAmt("fAmt"); if(a==null) return; f.budget={amount:a}; await finDone("Saved"); };
   $("fOff").onclick=async()=>{ f.budget={amount:0}; await finDone("Budget off"); };
 }
+/* coin search used by trades and crypto */
+function wireCoinSearch(qId, listId, onPick){
+  let qt=0; $(qId).oninput=()=>{ clearTimeout(qt); onPick(null); const q=$(qId).value.trim(); if(q.length<2){ $(listId).innerHTML=""; return; }
+    qt=setTimeout(async()=>{ const {data}=await api.finSearch(q); const cs=data?.coins||[];
+      $(listId).innerHTML=cs.length?cs.slice(0,6).map(c=>`<button type="button" class="chipb" data-id="${esc(c.id)}" data-n="${esc(c.name)}" data-s="${esc(c.symbol)}">${esc(c.name)} · ${esc(String(c.symbol).toUpperCase())}</button>`).join(""):`<span class="small muted">Nothing found</span>`;
+      $(listId).querySelectorAll("button").forEach(b=>b.onclick=()=>{ const c={id:b.dataset.id,name:b.dataset.n,symbol:b.dataset.s}; onPick(c); $(qId).value=`${c.name} (${c.symbol.toUpperCase()})`; $(listId).innerHTML=""; }); }, 350); };
+}
 function openFinHolding(h){
-  const isNew=!h; let type=h?.type||"coin", coin=h?.coin?{id:h.coin,name:h.name,symbol:h.symbol}:null, side=h?.side||"long";
+  if (h?.type==="exchange") return openExchange(h);
+  const isNew=!h; let type=h?.type==="futures"?"coin":(h?.type||"exchange"), coin=h?.coin?{id:h.coin,name:h.name,symbol:h.symbol}:null;
   sheet(`<h2>${isNew?"Add investment":esc(h.name||"Investment")}</h2>
-    <div class="seg3" id="fType"><button type="button" data-v="coin" class="${type==="coin"?"on":""}">Crypto</button><button type="button" data-v="futures" class="${type==="futures"?"on":""}">Futures</button><button type="button" data-v="manual" class="${type==="manual"?"on":""}">Other</button></div>
-    <div id="fCoinBox"><input id="fCoinQ" class="field" placeholder="Search coin, e.g. bitcoin, SOL" value="${esc(coin?coin.name+" ("+String(coin.symbol).toUpperCase()+")":"")}" autocomplete="off"><div class="vchoose" id="fCoins"></div>
-      <input id="fQty" class="field" inputmode="decimal" placeholder="How many coins" value="${esc(h?.qty??"")}"></div>
-    <div id="fFutBox"><div class="seg3" id="fSide"><button type="button" data-v="long" class="${side==="long"?"on":""}">Long</button><button type="button" data-v="short" class="${side==="short"?"on":""}">Short</button></div>
-      <div class="grid2"><label class="fl"><span class="label">Entry price ($)</span><input id="fEntry" class="field" inputmode="decimal" value="${esc(h?.entry??"")}"></label>
-        <label class="fl"><span class="label">Leverage</span><input id="fLev" class="field" inputmode="decimal" placeholder="e.g. 3" value="${esc(h?.lev??"")}"></label></div>
-      <label class="fl"><span class="label">Margin ($), only if no leverage</span><input id="fMargin" class="field" inputmode="decimal" value="${esc(h?.lev?"":h?.margin??"")}"></label>
-      <div class="small muted">Worth = the margin you put in (quantity × entry ÷ leverage) + profit or loss since entry, with live prices.</div></div>
+    <div class="seg3" id="fType">${isNew?`<button type="button" data-v="exchange" class="on">Exchange (KuCoin…)</button>`:""}<button type="button" data-v="coin" class="${type==="coin"?"on":""}">Coins I hold</button><button type="button" data-v="manual" class="${type==="manual"?"on":""}">Other</button></div>
+    <div id="fExBox"><p class="small muted" style="margin:0">An account in dollars: your deposit plus the live profit or loss of your open trades.</p></div>
+    <div id="fCoinBox"><input id="fCoinQ" class="field" placeholder="Search coin or gold, e.g. bitcoin, SOL, PAX gold" value="${esc(coin?coin.name+" ("+String(coin.symbol).toUpperCase()+")":"")}" autocomplete="off"><div class="vchoose" id="fCoins"></div>
+      <input id="fQty" class="field" inputmode="decimal" placeholder="How many (leave empty to work it out)" value="${esc(h?.qty??"")}"></div>
     <div id="fManBox"><input id="fName" class="field" placeholder="Name, e.g. gold, plot" maxlength="60" value="${esc(type==="manual"?h?.name||"":"")}">
       ${amtField("fVal", h?.value||"", "What it's worth now")}</div>
     <div id="fAmtBox">${amtField("fAmt", h?.invested||"", "How much you put in, e.g. 50k")}</div>
-    <label class="fl"><span class="label">When</span><input id="fDate" class="field" type="date" value="${esc(h?.date||todayStr())}"></label>
-    <label class="vitem" style="border:0;padding:0"><input type="checkbox" id="fCash" ${h?.fromCash?"checked":""}><span class="t"><b>Take it from money in hand</b><span class="small muted">Tick for new money you put in now</span></span></label>
-    <div class="actions"><button class="btn" id="fGo">Save</button>${isNew?`<button class="btn ghost" data-close>Cancel</button>`:delBtn()}</div>`);
-  const sync=()=>{ $("fCoinBox").classList.toggle("hidden",type==="manual"); $("fFutBox").classList.toggle("hidden",type!=="futures"); $("fManBox").classList.toggle("hidden",type!=="manual"); $("fAmtBox").classList.toggle("hidden",type==="futures");
-    $("fQty").placeholder = type==="futures" ? "Quantity, e.g. 0.05" : "How many coins (leave empty to work it out)"; };
+    <label class="fl" id="fDateBox"><span class="label">When</span><input id="fDate" class="field" type="date" value="${esc(h?.date||todayStr())}"></label>
+    <label class="vitem" style="border:0;padding:0" id="fCashBox"><input type="checkbox" id="fCash" ${h?.fromCash?"checked":""}><span class="t"><b>Take it from money in hand</b><span class="small muted">Tick for new money you put in now</span></span></label>
+    <div class="actions"><button class="btn" id="fGo">${type==="exchange"&&isNew?"Next":"Save"}</button>${isNew?`<button class="btn ghost" data-close>Cancel</button>`:delBtn()}</div>`);
+  const sync=()=>{ ["fExBox"].forEach(id=>$(id).classList.toggle("hidden",type!=="exchange")); $("fCoinBox").classList.toggle("hidden",type!=="coin"); $("fManBox").classList.toggle("hidden",type!=="manual");
+    ["fAmtBox","fDateBox","fCashBox"].forEach(id=>$(id).classList.toggle("hidden",type==="exchange")); $("fGo").textContent=type==="exchange"&&isNew?"Next":"Save"; };
   $("fType").querySelectorAll("button").forEach(b=>b.onclick=()=>{ type=b.dataset.v; $("fType").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); sync(); }); sync();
-  $("fSide").querySelectorAll("button").forEach(b=>b.onclick=()=>{ side=b.dataset.v; $("fSide").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); });
-  let qt=0; $("fCoinQ").oninput=()=>{ clearTimeout(qt); coin=null; const q=$("fCoinQ").value.trim(); if(q.length<2){ $("fCoins").innerHTML=""; return; }
-    qt=setTimeout(async()=>{ const {data}=await api.finSearch(q); const cs=data?.coins||[];
-      $("fCoins").innerHTML=cs.length?cs.slice(0,6).map(c=>`<button type="button" class="chipb" data-id="${esc(c.id)}" data-n="${esc(c.name)}" data-s="${esc(c.symbol)}">${esc(c.name)} · ${esc(String(c.symbol).toUpperCase())}</button>`).join(""):`<span class="small muted">No coin found</span>`;
-      $("fCoins").querySelectorAll("button").forEach(b=>b.onclick=()=>{ coin={id:b.dataset.id,name:b.dataset.n,symbol:b.dataset.s}; $("fCoinQ").value=`${coin.name} (${coin.symbol.toUpperCase()})`; $("fCoins").innerHTML=""; }); }, 350); };
-  const num = id => parseFloat(String($(id).value).replace(/[,$\s]/g,""));
-  $("fGo").onclick=async()=>{ const f=finD(), inv=parseMoney($("fAmt").value)||0, date=$("fDate").value||todayStr();
+  wireCoinSearch("fCoinQ","fCoins",c=>{ coin=c; });
+  $("fGo").onclick=async()=>{ if (type==="exchange") { closeSheet(); return openExchange(null); }
+    const f=finD(), inv=parseMoney($("fAmt").value)||0, date=$("fDate").value||todayStr();
     const row={id:h?.id||finId("h"), type, date, invested:inv, fromCash:$("fCash").checked};
-    if (type==="futures") {
-      if (!coin) return toast("Pick the coin from the list");
-      const qty=num("fQty"), entry=num("fEntry"), margin=num("fMargin"), lev=num("fLev");
-      if (!(qty>0) || !(entry>0) || !(lev>0 || margin>0)) return toast("Add quantity, entry price and leverage");
-      const m0 = lev>0 ? qty*entry/lev : margin;
-      Object.assign(row,{coin:coin.id, symbol:coin.symbol, name:h?.type==="futures"&&h.name?h.name:`${String(coin.symbol).toUpperCase()}USDT Perp`, side, qty, entry, margin:Math.round(m0*100)/100, lev:lev>0?lev:null, invested:Math.round(m0*usdRate())});
-    } else if (type==="coin") {
-      if (!coin) return toast("Pick the coin from the list");
+    if (type==="coin") {
+      if (!coin) return toast("Pick it from the list");
       Object.assign(row,{coin:coin.id, name:coin.name, symbol:coin.symbol});
-      let qty=num("fQty");
-      if (!(qty>0)) { if (!(inv>0)) return toast("Add how many coins, or how much you put in");
+      let qty=numIn("fQty");
+      if (!(qty>0)) { if (!(inv>0)) return toast("Add how many, or how much you put in");
         $("fGo").disabled=true; const {data}=await api.finPrices([coin.id],365); $("fGo").disabled=false;
         if (data && !data.error) { finPx={now:{...finPx.now,...data.now}, hist:{...finPx.hist,...data.hist}, at:Date.now()}; store.set("finPx",finPx); }
-        const p=priceOn(coin.id,date); if (!p) return toast("Couldn't get the price for that date. Type the number of coins.");
+        const p=priceOn(coin.id,date); if (!p) return toast("Couldn't get the price for that date. Type how many.");
         qty=inv/p; }
       row.qty=qty;
     } else {
@@ -2921,6 +3005,50 @@ function openFinHolding(h){
     f.holdings=f.holdings.some(x=>x.id===row.id)?f.holdings.map(x=>x.id===row.id?row:x):f.holdings.concat(row);
     await finDone(isNew?"Investment added":"Saved"); finLoadPrices(true).then(ok=>{ if(ok&&tab==="fin") renderFin(); }); };
   armDel(async()=>{ finD().holdings=finD().holdings.filter(x=>x.id!==h.id); await finDone("Deleted"); });
+}
+/* an exchange account (KuCoin): balance in dollars + open trades */
+function openExchange(h){
+  const isNew=!h, t=todayStr(); const v=h?{...h, trades:[...(h.trades||[])]}:{id:finId("x"), type:"exchange", name:"KuCoin", deposit:0, date:t, trades:[], fromCash:false};
+  const draw=()=>{
+    const total=holdingUsd({...v, deposit:numIn("xDep")>=0?numIn("xDep"):v.deposit}, t);
+    $("xTrades").innerHTML = v.trades.length ? v.trades.map((tr,i)=>{ const p=tradePnl(tr,t), now=usdOn(tr.coin,t);
+      return `<div class="xtr"><span class="t"><b>${esc(String(tr.symbol).toUpperCase())} ${tr.side==="short"?"short":"long"} · ${+Number(tr.qty).toPrecision(6)}</b><span class="small muted">entry ${Number(tr.entry).toLocaleString("en-US")}${now?` · now ${Math.round(now*100)/100>1000?Math.round(now).toLocaleString("en-US"):(Math.round(now*100)/100)}`:""}</span></span>
+        <b class="amt ${p>=0?"pos":"neg"}">${p>=0?"+":"−"}${fmUsd(Math.abs(p))}</b>
+        <span class="xtr-b"><button type="button" class="btn soft sm" data-xclose="${i}">Closed</button><button type="button" class="ib" data-xdel="${i}" aria-label="Remove">✕</button></span></div>`; }).join("") : `<div class="small muted">No open trades. Add one below.</div>`;
+    $("xTotal").innerHTML=`${fmUsd(total)} <span class="small muted">(${esc(fcAmt(total*usdRate()))})</span>`;
+    $("xTrades").querySelectorAll("[data-xclose]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.xclose, tr=v.trades[i], p=tradePnl(tr,t);
+      const dep=(numIn("xDep")>=0?numIn("xDep"):v.deposit)+p; $("xDep").value=Math.round(dep*100)/100; v.trades.splice(i,1); toast(`${String(tr.symbol).toUpperCase()} closed: ${p>=0?"+":"−"}${fmUsd(Math.abs(p))} added to the balance`); draw(); });
+    $("xTrades").querySelectorAll("[data-xdel]").forEach(b=>b.onclick=()=>{ v.trades.splice(+b.dataset.xdel,1); draw(); });
+  };
+  sheet(`<h2>${esc(v.name)}</h2>
+    <div class="xhead"><span class="small muted">Worth now</span><b id="xTotal"></b></div>
+    <div class="grid2"><label class="fl"><span class="label">Balance ($)</span><input id="xDep" class="field fin-amt" inputmode="decimal" value="${esc(v.deposit||"")}" placeholder="e.g. 169.99"></label>
+      <label class="fl"><span class="label">Since</span><input id="xDate" class="field" type="date" value="${esc(v.date)}"></label></div>
+    <div class="small muted">Balance = what you deposited, plus profit from trades you've closed. Open trades are added live.</div>
+    <div class="label">Open trades</div><div id="xTrades" class="xtrades"></div>
+    <details class="xadd"><summary>+ Add a trade</summary>
+      <input id="xCoinQ" class="field" placeholder="Coin, e.g. BTC, ETH, gold" autocomplete="off"><div class="vchoose" id="xCoins"></div>
+      <div class="seg3" id="xSide"><button type="button" data-v="long" class="on">Long</button><button type="button" data-v="short">Short</button></div>
+      <div class="grid2"><input id="xQty" class="field" inputmode="decimal" placeholder="Quantity, e.g. 0.007"><input id="xEntry" class="field" inputmode="decimal" placeholder="Entry price ($)"></div>
+      <button type="button" class="btn soft" id="xAdd">Add trade</button></details>
+    <div class="actions"><button class="btn" id="fGo">Save</button>${isNew?`<button class="btn ghost" data-close>Cancel</button>`:delBtn()}</div>`);
+  let coin=null, side="long";
+  wireCoinSearch("xCoinQ","xCoins",c=>{ coin=c; });
+  $("xSide").querySelectorAll("button").forEach(b=>b.onclick=()=>{ side=b.dataset.v; $("xSide").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); });
+  $("xDep").oninput=draw;
+  $("xAdd").onclick=async()=>{ const qty=numIn("xQty"), entry=numIn("xEntry"); if(!coin) return toast("Pick the coin from the list"); if(!(qty>0)||!(entry>0)) return toast("Add the quantity and entry price");
+    v.trades.push({id:finId("t"), coin:coin.id, symbol:coin.symbol, side, qty, entry}); $("xQty").value=""; $("xEntry").value=""; $("xCoinQ").value=""; coin=null;
+    if (await finLoadPricesFor(v.trades.map(t=>t.coin))) {} draw(); };
+  draw();
+  $("fGo").onclick=async()=>{ const dep=numIn("xDep"); if(!(dep>=0)) return toast("Add the balance in dollars");
+    const row={...v, deposit:dep, date:$("xDate").value||t}; const f=finD();
+    f.holdings=f.holdings.some(x=>x.id===row.id)?f.holdings.map(x=>x.id===row.id?row:x):f.holdings.concat(row);
+    await finDone(isNew?"Added":"Saved"); };
+  armDel(async()=>{ finD().holdings=finD().holdings.filter(x=>x.id!==v.id); await finDone("Deleted"); });
+}
+async function finLoadPricesFor(ids){
+  ids=[...new Set(ids)].filter(i=>!finPx.now[i]); if(!ids.length) return false;
+  try { const {data}=await api.finPrices(ids,365); if (!data||data.error) return false; finPx={now:{...finPx.now,...data.now}, hist:{...finPx.hist,...data.hist}, at:Date.now()}; store.set("finPx",finPx); return true; } catch { return false; }
 }
 
 /* ---------- TEAM: who is making what, with a private link per person ---------- */
@@ -3240,7 +3368,7 @@ function dueMoney(t){
 async function markPaid(key, quiet){
   if (!(life.money.items||[]).length) await loadLife();
   const id=key.split("@")[0], it=(life.money.items||[]).find(x=>x.id===id); if(!it) return toast("I couldn't find that reminder");
-  life.money.paid[key]=todayStr(); if(await saveLife("money")) toast(`${it.title}: marked paid ✓`); closeSheet(); render();
+  life.money.paid[key]=new Date().toISOString(); if(await saveLife("money")) toast(`${it.title}: marked paid ✓`); closeSheet(); render();
 }
 async function openPaid(key){
   if (!(life.money.items||[]).length) await loadLife();
