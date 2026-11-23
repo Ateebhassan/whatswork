@@ -1294,7 +1294,7 @@ function renderToday(){
     <div style="height:20px"></div>`;
   const body=$("todayBody"); wire(body);
   $("tTeam").onclick=()=>showTab("team"); wireFinCard();
-  if (life.finance?.holdings?.some(h=>h.type==="coin")) finLoadPrices().then(ok=>{ if(ok && tab==="today") renderToday(); });
+  if (life.finance?.holdings?.some(isLive)) finLoadPrices().then(ok=>{ if(ok && tab==="today") renderToday(); });
   $("upSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{ upRange=b.dataset.r; store.set("upRange",upRange); renderToday(); });
   $("tWeek").onclick=()=>showTab("review");
   wireLifeToday(); wireSuggest(); loadHeadlines();
@@ -2611,8 +2611,21 @@ function priceOn(id, d){
   while (lo<hi){ const mid=(lo+hi+1)>>1; if (h[mid][0]<=ms) lo=mid; else hi=mid-1; }
   return h[lo][1];
 }
+const isLive = h => h.type==="coin" || h.type==="futures";
+/* rupees per dollar, from the same live prices (CoinGecko gives both) */
+function usdRate(){ for (const v of Object.values(finPx.now||{})) if (v?.pkr>0 && v?.usd>0) return v.pkr/v.usd; return store.get("finRate", 280); }
+/* what a futures position is worth: your margin plus the profit or loss since entry (in dollars, then rupees) */
+/* the margin you put in at entry: quantity × entry ÷ leverage (how KuCoin works out its %) */
+const futMargin = h => Number(h.lev)>0 ? Number(h.qty)*Number(h.entry)/Number(h.lev) : Number(h.margin||0);
+function futuresUsd(h, d){
+  const pk=priceOn(h.coin,d); if (pk==null) return null;
+  const p=pk/usdRate(), pnl=(h.side==="short"?-1:1)*(p-Number(h.entry))*Number(h.qty);
+  return {pnl, eq:Math.max(0, futMargin(h)+pnl), price:p};
+}
+const putIn = h => h.type==="futures" ? futMargin(h)*usdRate() : Number(h.invested||0);
 function holdingValue(h, d){
   if (d<h.date) return 0;
+  if (h.type==="futures") { const f=futuresUsd(h,d); return f ? f.eq*usdRate() : putIn(h); }
   if (h.type==="coin") { const p=priceOn(h.coin,d); return p!=null && h.qty>0 ? h.qty*p : (h.invested||0); }
   return h.valueDate && d>=h.valueDate ? (Number(h.value)||0) : (Number(h.invested)||0);
 }
@@ -2636,12 +2649,12 @@ function finSeries(from, to){
   return {days, lines:out, flows};
 }
 async function finLoadPrices(force){
-  const ids=[...new Set(finD().holdings.filter(h=>h.type==="coin"&&h.coin).map(h=>h.coin))];
+  const ids=[...new Set(finD().holdings.filter(h=>isLive(h)&&h.coin).map(h=>h.coin))];
   if (!ids.length) return false;
   const fresh = Date.now()-(finPx.at||0) < 5*60000 && ids.every(i=>finPx.now[i]);
   if (fresh && !force) return false;
   try { const {data,error}=await api.finPrices(ids, 365); if (error||!data||data.error) return false;
-    finPx={now:{...finPx.now,...data.now}, hist:{...finPx.hist,...data.hist}, at:Date.now()}; store.set("finPx", finPx); return true; } catch { return false; }
+    finPx={now:{...finPx.now,...data.now}, hist:{...finPx.hist,...data.hist}, at:Date.now()}; store.set("finPx", finPx); store.set("finRate", usdRate()); return true; } catch { return false; }
 }
 /* ---- the chart ---- */
 function finChartSvg(from, to, opts={}){
@@ -2697,7 +2710,7 @@ async function renderFin(){
   const flows=finFlows(W.addDays(t,1), W.addDays(t,62)).filter(x=>!x.hidden).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
   const low = (()=>{ if (ch.empty) return null; const i0=ch.days.indexOf(t); if (i0<0) return null; let mi=-1, mv=Infinity; ch.lines.cash.forEach((v,i)=>{ if(i>i0 && v!=null && v<mv){ mv=v; mi=i; } }); return mi>0 ? {d:ch.days[mi], v:mv} : null; })();
   const coins=f.holdings;
-  const putIn=coins.reduce((s,h)=>s+(Number(h.invested)||0),0), nowInv=coins.reduce((s,h)=>s+holdingValue(h,t),0);
+  const putInAll=coins.reduce((s,h)=>s+putIn(h),0), nowInv=coins.reduce((s,h)=>s+holdingValue(h,t),0);
   body.innerHTML=`
     <div class="fin-hero"><div><div class="small muted">All you have today</div><div class="fin-net">${esc(fmAmt(tot.net))}</div>
       ${tot.net30 && Math.abs(diff)>=1?`<div class="small" style="color:${diff>=0?"var(--ok)":"var(--bad)"};font-weight:800">${diff>=0?"▲":"▼"} ${esc(fcAmt(Math.abs(diff)))} in the last 30 days</div>`:""}</div>
@@ -2712,8 +2725,8 @@ async function renderFin(){
     <div class="fin-lines">
       ${finLineCard("cash", tot.cash, `<button class="btn soft sm" data-fa="in">+ Money in</button><button class="btn soft sm" data-fa="out">− Spent</button><button class="btn ghost sm" data-fa="set-cash">Set amount</button>`)}
       ${finLineCard("save", tot.save, `<button class="btn soft sm" data-fa="move">+ Put in savings</button><button class="btn ghost sm" data-fa="set-save">Set amount</button>`)}
-      ${finLineCard("inv", tot.inv, `<button class="btn soft sm" data-fa="hold">+ Add investment</button>${coins.some(h=>h.type==="coin")?`<button class="btn ghost sm" id="finRefresh">↻ Prices</button>`:""}`,
-        coins.length?`${esc(fcAmt(putIn))} put in → ${esc(fcAmt(nowInv))} now <b style="color:${nowInv>=putIn?"var(--ok)":"var(--bad)"}">${nowInv>=putIn?"+":"−"}${putIn?Math.abs(Math.round((nowInv/putIn-1)*1000)/10):0}%</b>`:"")}
+      ${finLineCard("inv", tot.inv, `<button class="btn soft sm" data-fa="hold">+ Add investment</button>${coins.some(isLive)?`<button class="btn ghost sm" id="finRefresh">↻ Prices</button>`:""}`,
+        coins.length?`${esc(fcAmt(putInAll))} put in → ${esc(fcAmt(nowInv))} now <b style="color:${nowInv>=putInAll?"var(--ok)":"var(--bad)"}">${nowInv>=putInAll?"+":"−"}${putInAll?Math.abs(Math.round((nowInv/putInAll-1)*1000)/10):0}%</b>`:"")}
     </div>
     <div class="sec"><h2>Coming up</h2></div>
     <div class="card fin-list">${flows.length?flows.map(x=>`<div class="fl-row"><span class="fl-d"><b>${esc(fmtDay(x.date,{day:"numeric"}))}</b><span>${esc(fmtDay(x.date,{month:"short"}))}</span></span>
@@ -2727,8 +2740,11 @@ async function renderFin(){
       <button class="fl-row" data-budget="1"><span class="fl-ic neg">−</span><span class="t"><b>Monthly spending</b><span class="small muted">${f.budget.amount?`${esc(fcAmt(Math.max(0,f.budget.amount-monthSpent())))} left this month`:"Rent, food, fuel… taken off the future line"}</span></span><b class="amt ${f.budget.amount?"neg":"muted"}">${f.budget.amount?"−"+esc(fcAmt(f.budget.amount)):"Set budget"}</b></button>
       <div class="fl-add"><button class="btn ghost sm" id="finAddInc">+ Pay</button><button class="btn ghost sm" id="finAddPlan">+ Committee or saving plan</button></div>
     </div>
-    ${coins.length?`<div class="sec"><h2>Investments</h2></div><div class="card fin-list">${coins.map(h=>{ const v=holdingValue(h,t), pct=h.invested?Math.round((v/h.invested-1)*1000)/10:null;
-      return `<button class="fl-row" data-hold="${esc(h.id)}"><span class="fl-ic inv">${h.type==="coin"?esc((h.symbol||"?").slice(0,4).toUpperCase()):"◆"}</span><span class="t"><b>${esc(h.name||h.symbol||"Investment")}</b><span class="small muted">${h.type==="coin"&&h.qty?`${+Number(h.qty).toPrecision(6)} ${esc((h.symbol||"").toUpperCase())} · `:""}put in ${esc(fcAmt(h.invested||0))}${h.type!=="coin"?" · value you set":" · live price"}</span></span><span class="amt"><b>${esc(fcAmt(v))}</b>${pct!=null?`<span class="small" style="color:${pct>=0?"var(--ok)":"var(--bad)"};font-weight:800;display:block;text-align:right">${pct>=0?"+":""}${pct}%</span>`:""}</span></button>`; }).join("")}</div>`:""}
+    ${coins.length?`<div class="sec"><h2>Investments</h2></div><div class="card fin-list">${coins.map(h=>{ const v=holdingValue(h,t), pin=putIn(h), pct=pin?Math.round((v/pin-1)*1000)/10:null;
+      const fu=h.type==="futures"?futuresUsd(h,t):null, sym=esc((h.symbol||"").toUpperCase());
+      const sub = h.type==="futures" ? `${+Number(h.qty).toPrecision(6)} ${sym} · ${h.side==="short"?"short":"long"}${h.lev?" "+h.lev+"×":""} · entry ${Number(h.entry).toLocaleString("en-US")}${fu?` · now ${Math.round(fu.price).toLocaleString("en-US")}`:""} · margin $${futMargin(h).toFixed(2)}${fu?` · P&L ${fu.pnl>=0?"+":"−"}$${Math.abs(fu.pnl).toFixed(2)}`:""}`
+        : `${h.type==="coin"&&h.qty?`${+Number(h.qty).toPrecision(6)} ${sym} · `:""}put in ${esc(fcAmt(pin))}${h.type!=="coin"?" · value you set":" · live price"}`;
+      return `<button class="fl-row" data-hold="${esc(h.id)}"><span class="fl-ic inv">${isLive(h)?sym.slice(0,4)||"?":"◆"}</span><span class="t"><b>${esc(h.name||h.symbol||"Investment")}</b><span class="small muted">${sub}</span></span><span class="amt"><b>${esc(fcAmt(v))}</b>${pct!=null?`<span class="small" style="color:${pct>=0?"var(--ok)":"var(--bad)"};font-weight:800;display:block;text-align:right">${pct>=0?"+":""}${pct}%</span>`:""}</span></button>`; }).join("")}</div>`:""}
     <div class="sec"><h2>History</h2></div>
     <div class="card fin-list">${finHistory().slice(0, finOpen.all?200:12).map(x=>`<button class="fl-row" data-${x.t}="${esc(x.id)}"><span class="fl-d"><b>${esc(fmtDay(x.date,{day:"numeric"}))}</b><span>${esc(fmtDay(x.date,{month:"short"}))}</span></span><span class="t"><b>${esc(x.title)}</b><span class="small muted">${esc(x.sub)}</span></span><b class="amt ${x.cls}">${esc(x.amt)}</b></button>`).join("")||`<div class="empty">Nothing logged yet.</div>`}
       ${finHistory().length>12&&!finOpen.all?`<button class="donebtn" id="finAll">Show all</button>`:""}</div>
@@ -2760,7 +2776,7 @@ function finHistory(){
   const f=finD(), L=k=>FIN_LINES.find(x=>x[0]===k)?.[1]||k;
   return [...f.sets.map(s=>({t:"set", id:s.id, date:s.date, title:`${L(s.line)} set`, sub:s.note||"Your count", amt:fcAmt(s.amount), cls:""})),
     ...f.moves.map(m=>({t:"move", id:m.id, date:m.date, title:m.title||(m.kind==="out"?"Spent":m.kind==="move"?"Into savings":"Money in"), sub:m.kind==="move"?`${L(m.from)} → ${L(m.to)}`:(m.cat||L(m.line||"cash")), amt:(m.kind==="out"?"−":m.kind==="move"?"":"+")+fcAmt(m.amount), cls:m.kind==="out"?"neg":m.kind==="in"?"pos":""})),
-    ...f.holdings.map(h=>({t:"hold", id:h.id, date:h.date, title:"Invested: "+(h.name||h.symbol||"investment"), sub:h.fromCash?"from money in hand":"investment", amt:fcAmt(h.invested||0), cls:""}))]
+    ...f.holdings.map(h=>({t:"hold", id:h.id, date:h.date, title:"Invested: "+(h.name||h.symbol||"investment"), sub:h.type==="futures"?"futures position":h.fromCash?"from money in hand":"investment", amt:fcAmt(putIn(h)), cls:""}))]
     .sort((a,b)=>b.date.localeCompare(a.date));
 }
 function wireFinChart(ch){
@@ -2854,29 +2870,43 @@ function openFinBudget(){
   $("fOff").onclick=async()=>{ f.budget={amount:0}; await finDone("Budget off"); };
 }
 function openFinHolding(h){
-  const isNew=!h; let type=h?.type||"coin", coin=h?.coin?{id:h.coin,name:h.name,symbol:h.symbol}:null;
+  const isNew=!h; let type=h?.type||"coin", coin=h?.coin?{id:h.coin,name:h.name,symbol:h.symbol}:null, side=h?.side||"long";
   sheet(`<h2>${isNew?"Add investment":esc(h.name||"Investment")}</h2>
-    <div class="seg3" id="fType"><button type="button" data-v="coin" class="${type==="coin"?"on":""}">Crypto (live price)</button><button type="button" data-v="manual" class="${type!=="coin"?"on":""}">Other</button></div>
+    <div class="seg3" id="fType"><button type="button" data-v="coin" class="${type==="coin"?"on":""}">Crypto</button><button type="button" data-v="futures" class="${type==="futures"?"on":""}">Futures</button><button type="button" data-v="manual" class="${type==="manual"?"on":""}">Other</button></div>
     <div id="fCoinBox"><input id="fCoinQ" class="field" placeholder="Search coin, e.g. bitcoin, SOL" value="${esc(coin?coin.name+" ("+String(coin.symbol).toUpperCase()+")":"")}" autocomplete="off"><div class="vchoose" id="fCoins"></div>
-      <input id="fQty" class="field" inputmode="decimal" placeholder="How many coins (leave empty to work it out)" value="${esc(h?.qty??"")}"></div>
-    <div id="fManBox"><input id="fName" class="field" placeholder="Name, e.g. KuCoin futures, gold, plot" maxlength="60" value="${esc(type!=="coin"?h?.name||"":"")}">
+      <input id="fQty" class="field" inputmode="decimal" placeholder="How many coins" value="${esc(h?.qty??"")}"></div>
+    <div id="fFutBox"><div class="seg3" id="fSide"><button type="button" data-v="long" class="${side==="long"?"on":""}">Long</button><button type="button" data-v="short" class="${side==="short"?"on":""}">Short</button></div>
+      <div class="grid2"><label class="fl"><span class="label">Entry price ($)</span><input id="fEntry" class="field" inputmode="decimal" value="${esc(h?.entry??"")}"></label>
+        <label class="fl"><span class="label">Leverage</span><input id="fLev" class="field" inputmode="decimal" placeholder="e.g. 3" value="${esc(h?.lev??"")}"></label></div>
+      <label class="fl"><span class="label">Margin ($), only if no leverage</span><input id="fMargin" class="field" inputmode="decimal" value="${esc(h?.lev?"":h?.margin??"")}"></label>
+      <div class="small muted">Worth = the margin you put in (quantity × entry ÷ leverage) + profit or loss since entry, with live prices.</div></div>
+    <div id="fManBox"><input id="fName" class="field" placeholder="Name, e.g. gold, plot" maxlength="60" value="${esc(type==="manual"?h?.name||"":"")}">
       ${amtField("fVal", h?.value||"", "What it's worth now")}</div>
-    ${amtField("fAmt", h?.invested||"", "How much you put in, e.g. 50k")}
+    <div id="fAmtBox">${amtField("fAmt", h?.invested||"", "How much you put in, e.g. 50k")}</div>
     <label class="fl"><span class="label">When</span><input id="fDate" class="field" type="date" value="${esc(h?.date||todayStr())}"></label>
     <label class="vitem" style="border:0;padding:0"><input type="checkbox" id="fCash" ${h?.fromCash?"checked":""}><span class="t"><b>Take it from money in hand</b><span class="small muted">Tick for new money you put in now</span></span></label>
     <div class="actions"><button class="btn" id="fGo">Save</button>${isNew?`<button class="btn ghost" data-close>Cancel</button>`:delBtn()}</div>`);
-  const sync=()=>{ $("fCoinBox").classList.toggle("hidden",type!=="coin"); $("fManBox").classList.toggle("hidden",type==="coin"); };
+  const sync=()=>{ $("fCoinBox").classList.toggle("hidden",type==="manual"); $("fFutBox").classList.toggle("hidden",type!=="futures"); $("fManBox").classList.toggle("hidden",type!=="manual"); $("fAmtBox").classList.toggle("hidden",type==="futures");
+    $("fQty").placeholder = type==="futures" ? "Quantity, e.g. 0.05" : "How many coins (leave empty to work it out)"; };
   $("fType").querySelectorAll("button").forEach(b=>b.onclick=()=>{ type=b.dataset.v; $("fType").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); sync(); }); sync();
+  $("fSide").querySelectorAll("button").forEach(b=>b.onclick=()=>{ side=b.dataset.v; $("fSide").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); });
   let qt=0; $("fCoinQ").oninput=()=>{ clearTimeout(qt); coin=null; const q=$("fCoinQ").value.trim(); if(q.length<2){ $("fCoins").innerHTML=""; return; }
     qt=setTimeout(async()=>{ const {data}=await api.finSearch(q); const cs=data?.coins||[];
       $("fCoins").innerHTML=cs.length?cs.slice(0,6).map(c=>`<button type="button" class="chipb" data-id="${esc(c.id)}" data-n="${esc(c.name)}" data-s="${esc(c.symbol)}">${esc(c.name)} · ${esc(String(c.symbol).toUpperCase())}</button>`).join(""):`<span class="small muted">No coin found</span>`;
       $("fCoins").querySelectorAll("button").forEach(b=>b.onclick=()=>{ coin={id:b.dataset.id,name:b.dataset.n,symbol:b.dataset.s}; $("fCoinQ").value=`${coin.name} (${coin.symbol.toUpperCase()})`; $("fCoins").innerHTML=""; }); }, 350); };
+  const num = id => parseFloat(String($(id).value).replace(/[,$\s]/g,""));
   $("fGo").onclick=async()=>{ const f=finD(), inv=parseMoney($("fAmt").value)||0, date=$("fDate").value||todayStr();
     const row={id:h?.id||finId("h"), type, date, invested:inv, fromCash:$("fCash").checked};
-    if (type==="coin") {
+    if (type==="futures") {
+      if (!coin) return toast("Pick the coin from the list");
+      const qty=num("fQty"), entry=num("fEntry"), margin=num("fMargin"), lev=num("fLev");
+      if (!(qty>0) || !(entry>0) || !(lev>0 || margin>0)) return toast("Add quantity, entry price and leverage");
+      const m0 = lev>0 ? qty*entry/lev : margin;
+      Object.assign(row,{coin:coin.id, symbol:coin.symbol, name:h?.type==="futures"&&h.name?h.name:`${String(coin.symbol).toUpperCase()}USDT Perp`, side, qty, entry, margin:Math.round(m0*100)/100, lev:lev>0?lev:null, invested:Math.round(m0*usdRate())});
+    } else if (type==="coin") {
       if (!coin) return toast("Pick the coin from the list");
       Object.assign(row,{coin:coin.id, name:coin.name, symbol:coin.symbol});
-      let qty=parseFloat(String($("fQty").value).replace(/,/g,""));
+      let qty=num("fQty");
       if (!(qty>0)) { if (!(inv>0)) return toast("Add how many coins, or how much you put in");
         $("fGo").disabled=true; const {data}=await api.finPrices([coin.id],365); $("fGo").disabled=false;
         if (data && !data.error) { finPx={now:{...finPx.now,...data.now}, hist:{...finPx.hist,...data.hist}, at:Date.now()}; store.set("finPx",finPx); }
